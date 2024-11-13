@@ -1,0 +1,88 @@
+
+(int) get_pool_liquidity() method_id {
+    load_storage();
+    return storage::liquidity;
+}
+
+(slice) get_pool_liquidity_account_address(slice owner_address) method_id {
+    load_storage();
+    cell acc_state_init = calculate_bridge_pool_liquidity_account_state_init(owner_address, my_address(),storage::jetton_address, storage::pool_liquidity_account_code); 
+    slice brigde_pool_liquidity_account_address = calculate_bridge_pool_liquidity_account_address(acc_state_init);
+    return brigde_pool_liquidity_account_address;
+}
+
+(slice) get_bridge_receipt_address(slice owner_address) method_id {
+    load_storage();
+    cell acc_state_init = calculate_bridge_receipt_account_state_init(owner_address, my_address(), storage::jetton_address, storage::bridge_address, storage::bridge_receipt_account_code); 
+    slice brigde_receipt_address = calculate_bridge_receipt_account_address(acc_state_init);
+    return brigde_receipt_address;
+}
+
+(cell) get_receipt_daily_limit(int target_chain_id) method_id {
+    load_storage();
+    var key_builder = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_uint(0,1) ;; receipt:0
+            .end_cell();
+    var key_hash = cell_hash(key_builder);
+    (cell receipt_daily_limit,_) = storage::daily_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+    return receipt_daily_limit;
+}
+
+(cell) get_swap_daily_limit(int from_chain_id) method_id {
+    load_storage();
+    var key_builder = begin_cell()
+            .store_uint(from_chain_id,32)
+            .store_uint(1,1) ;; swap:1
+            .end_cell();
+    var key_hash = cell_hash(key_builder);
+    (cell swap_daily_limit,_) = storage::daily_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+    return swap_daily_limit;
+}
+
+(cell) get_receipt_rate_limit_state(int target_chain_id) method_id {
+    load_storage();
+    var key_builder = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_uint(0,1) ;; receipt:0
+            .end_cell();
+    var key_hash = cell_hash(key_builder);
+    (cell receipt_rate_limit,_) = storage::rate_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+    return receipt_rate_limit;
+}
+
+(cell) get_swap_rate_limit_state(int from_chain_id) method_id {
+    load_storage();
+    var key_builder = begin_cell()
+            .store_uint(from_chain_id,32)
+            .store_uint(1,1) ;; swap:1
+            .end_cell();
+    var key_hash = cell_hash(key_builder);
+    (cell swap_rate_limit,_) = storage::rate_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+    return swap_rate_limit;
+}
+
+(slice) get_owner() method_id {
+    load_storage();
+    return storage::owner;
+}
+
+(slice) get_admin() method_id {
+    load_storage();
+    return storage::admin;
+}
+
+(slice) get_bridge_address() method_id {
+    load_storage();
+    return storage::bridge_address;
+}
+
+(slice) get_bridge_swap_address() method_id {
+    load_storage();
+    return storage::bridge_swap_address;
+}
+
+(slice) get_jetton_address() method_id {
+    load_storage();
+    return storage::jetton_address;
+}

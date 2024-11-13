@@ -1,0 +1,91 @@
+#include "../common/dic.fc";
+#include "bridge_pool_liquidity_account-utils.fc";
+#include "bridge_receipt_account-utils.fc";
+
+;; handle onchain 'get' calls
+
+(int) handle_getter_messages(int op, int query_id, slice sender_address, slice in_msg_body) impure inline {
+    raw_reserve(0, 4);
+
+    if (op == getter_pool_data) { 
+        var payload = begin_cell()
+            .store_uint(storage::liquidity,256);
+        send_payload(sender_address, payload.end_cell());
+        return (true);
+    }
+    if (op == getter_pool_liquidity_account_address) {
+        slice owner_address = in_msg_body~load_msg_addr();
+        cell acc_state_init = calculate_bridge_pool_liquidity_account_state_init(owner_address, my_address(), storage::jetton_address,storage::pool_liquidity_account_code); 
+        slice brigde_pool_liquidity_account_address = calculate_bridge_pool_liquidity_account_address(acc_state_init);
+        var payload = begin_cell()
+            .store_slice(brigde_pool_liquidity_account_address);
+        send_payload(sender_address, payload.end_cell());
+        return (true);
+    }
+    if (op == getter_bridge_receipt_address){
+        slice owner_address = in_msg_body~load_msg_addr();
+        cell acc_state_init = calculate_bridge_receipt_account_state_init(owner_address, my_address(), storage::jetton_address, storage::bridge_address,storage::bridge_receipt_account_code); 
+        slice brigde_receipt_address = calculate_bridge_receipt_account_address(acc_state_init);
+        var payload = begin_cell()
+            .store_slice(brigde_receipt_address);
+        send_payload(sender_address, payload.end_cell());
+        return (true);
+    }
+    if (op == getter_receipt_daily_limit) {
+        int target_chain_id = in_msg_body~load_uint(32);
+        var key_builder = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_uint(0,1) ;; receipt:0
+            .end_cell();
+        int key_hash = cell_hash(key_builder);
+        (cell receipt_daily_limit,_) = storage::daily_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+        var payload = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_ref(receipt_daily_limit);
+        send_payload(sender_address, payload.end_cell());
+        return (true);
+    }
+    if (op == getter_swap_daily_limit) {
+        int target_chain_id = in_msg_body~load_uint(32);
+        var key_builder = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_uint(1,1) ;; swap:1
+            .end_cell();
+        var key_hash = cell_hash(key_builder);
+        (cell swap_daily_limit,_) = storage::daily_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+        var payload = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_ref(swap_daily_limit);
+        send_payload(sender_address, payload.end_cell());
+        return (true);
+    }
+    if (op == getter_receipt_rate_limit_state) {
+        int target_chain_id = in_msg_body~load_uint(32);
+        var key_builder = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_uint(0,1) ;; receipt:0
+            .end_cell();
+        var key_hash = cell_hash(key_builder);
+        (cell receipt_rate_limit,_) = storage::rate_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+        var payload = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_ref(receipt_rate_limit);
+        send_payload(sender_address, payload.end_cell());
+        return (true);
+    }
+    if (op == getter_swap_rate_limit_state) {
+        int target_chain_id = in_msg_body~load_uint(32);
+        var key_builder = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_uint(1,1) ;; swap:1
+            .end_cell();
+        var key_hash = cell_hash(key_builder);
+        (cell swap_rate_limit,_) = storage::rate_limit.idict_get_ref?(KEY_LENGTH,key_hash);
+        var payload = begin_cell()
+            .store_uint(target_chain_id,32)
+            .store_ref(swap_rate_limit);
+        send_payload(sender_address, payload.end_cell());
+        return (true);
+    }
+    return (false); ;; wrong op
+}

@@ -1,0 +1,8 @@
+;; global errors
+
+const WRONG_OP = 0xffff;
+
+const UNAUTHORIZED = 81;
+
+const WRONG_WORKCHAIN = 85;
+

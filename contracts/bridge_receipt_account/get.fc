@@ -1,0 +1,15 @@
+#include "storage.fc";
+
+
+(cell) get_receipt_info(int target_chain_id) method_id {
+    load_storage();
+    (var info,var found) = storage::receipt_info_dic.idict_get_ref?(CHAIN_ID_KEY_LENGTH,target_chain_id);
+    if (found) {
+        var receipt_info = info.begin_parse();
+        var total_amount = receipt_info~load_uint(256);
+        var index = receipt_info~load_uint(256);
+        info = begin_cell().store_slice(storage::owner).store_uint(target_chain_id,32).store_uint(total_amount,256).store_uint(index,256).end_cell();
+        return info;
+    }    
+    return info;
+}

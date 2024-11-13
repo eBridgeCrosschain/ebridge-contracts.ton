@@ -1,0 +1,7 @@
+(cell) get_swap_data(slice swap_id) method_id {
+    load_storage();
+    (var swap_info,var found) = storage::swap_dic.dict_get?(256,swap_id);
+    (var from_chain_id,var orgin_share,var target_share,var swapped_amount,var swapped_times) = 
+                (swap_info~load_uint(32),swap_info~load_uint(64),swap_info~load_uint(64),swap_info~load_uint(256),swap_info~load_uint(256));  
+    return begin_cell().store_slice(swap_id).store_ref(begin_cell().store_uint(from_chain_id,32).store_uint(orgin_share,64).store_uint(target_share,64).store_uint(swapped_amount,256).store_uint(swapped_times,256).end_cell()).end_cell();
+}

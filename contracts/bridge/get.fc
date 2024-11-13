@@ -1,0 +1,56 @@
+#include "storage.fc";
+#include "../common/dic.fc";
+#include "../common/utils.fc";
+
+(slice) get_bridge_swap_address(slice jetton_address) method_id {
+    load_storage();
+    (var jetton_swap_address,_) = dict_get?(storage::bridge_swap_address_dic,KEY_LENGTH,jetton_address); 
+    return jetton_swap_address;
+}
+
+(slice) get_bridge_pool_address(slice jetton_address) method_id {
+    load_storage();
+    (var jetton_pool_address,_) = dict_get?(storage::bridge_pool_address_dic,KEY_LENGTH,jetton_address); 
+    return jetton_pool_address;
+}
+
+(int) get_is_jetton_support(int target_chain_id,slice jetton_address) method_id {
+    load_storage();
+    (_, int hashpart) = parse_std_addr(jetton_address); 
+    var token_whitelist = storage::jetton_whitelist_dic;
+    (int wc, int jetton_address_hash) = parse_std_addr(jetton_address);
+    var key_builder = begin_cell()
+        .store_uint(wc,8)
+        .store_uint(target_chain_id,32)
+        .store_uint(jetton_address_hash,256)
+        .end_cell();
+    var key_hash = cell_hash(key_builder);
+    (_,int is_support) = idict_get?(token_whitelist, KEY_LENGTH, key_hash);
+    return is_support;
+}
+
+(int) is_bridge_paused() method_id {
+    load_storage();
+    return storage::is_pause;
+}
+
+(slice) get_target_contract_address(int target_chain_id) method_id {
+    load_storage();
+    (slice target_contract,_) = storage::target_contract_dic.udict_get?(32,target_chain_id);
+    return target_contract;
+}
+
+(slice) get_oracle_address() method_id {
+    load_storage();
+    return storage::oracle_address;
+}
+
+(slice) get_owner() method_id {
+    load_storage();
+    return storage::owner;
+}
+
+(slice) get_admin() method_id {
+    load_storage();
+    return storage::admin;
+}

@@ -1,0 +1,6 @@
+const KEY_LENGTH = 8 * 32 + 8; ;;account_id + wc
+const CHAIN_ID_KEY_LENGTH = 32; ;;account_id + wc
+
+(slice, int) dict_get?(cell dict, int key_len, slice index) asm(index dict key_len) "DICTGET" "NULLSWAPIFNOT";
+
+
