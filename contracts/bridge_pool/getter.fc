@@ -1,6 +1,11 @@
 #include "../common/dic.fc";
+#include "../common/stdlib.fc";
+#include "storage.fc";
+#include "op.fc";
 #include "bridge_pool_liquidity_account-utils.fc";
 #include "bridge_receipt_account-utils.fc";
+#include "limiter.fc";
+#include "params.fc";
 
 ;; handle onchain 'get' calls
 
@@ -33,58 +38,26 @@
     }
     if (op == getter_receipt_daily_limit) {
         int target_chain_id = in_msg_body~load_uint(32);
-        var key_builder = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_uint(0,1) ;; receipt:0
-            .end_cell();
-        int key_hash = cell_hash(key_builder);
-        (cell receipt_daily_limit,_) = storage::daily_limit.idict_get_ref?(KEY_LENGTH,key_hash);
-        var payload = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_ref(receipt_daily_limit);
-        send_payload(sender_address, payload.end_cell());
+        int key_hash = create_key(target_chain_id,RECEIPT);
+        _getter_daily_limit(key_hash, target_chain_id,sender_address);
         return (true);
     }
     if (op == getter_swap_daily_limit) {
         int target_chain_id = in_msg_body~load_uint(32);
-        var key_builder = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_uint(1,1) ;; swap:1
-            .end_cell();
-        var key_hash = cell_hash(key_builder);
-        (cell swap_daily_limit,_) = storage::daily_limit.idict_get_ref?(KEY_LENGTH,key_hash);
-        var payload = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_ref(swap_daily_limit);
-        send_payload(sender_address, payload.end_cell());
+        int key_hash = create_key(target_chain_id,SWAP);
+        _getter_daily_limit(key_hash, target_chain_id,sender_address);
         return (true);
     }
     if (op == getter_receipt_rate_limit_state) {
         int target_chain_id = in_msg_body~load_uint(32);
-        var key_builder = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_uint(0,1) ;; receipt:0
-            .end_cell();
-        var key_hash = cell_hash(key_builder);
-        (cell receipt_rate_limit,_) = storage::rate_limit.idict_get_ref?(KEY_LENGTH,key_hash);
-        var payload = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_ref(receipt_rate_limit);
-        send_payload(sender_address, payload.end_cell());
+        int key_hash = create_key(target_chain_id,RECEIPT);
+        _getter_rate_limit(key_hash, target_chain_id,sender_address);
         return (true);
     }
     if (op == getter_swap_rate_limit_state) {
         int target_chain_id = in_msg_body~load_uint(32);
-        var key_builder = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_uint(1,1) ;; swap:1
-            .end_cell();
-        var key_hash = cell_hash(key_builder);
-        (cell swap_rate_limit,_) = storage::rate_limit.idict_get_ref?(KEY_LENGTH,key_hash);
-        var payload = begin_cell()
-            .store_uint(target_chain_id,32)
-            .store_ref(swap_rate_limit);
-        send_payload(sender_address, payload.end_cell());
+        int key_hash = create_key(target_chain_id,SWAP);
+        _getter_rate_limit(key_hash, target_chain_id,sender_address);
         return (true);
     }
     return (false); ;; wrong op

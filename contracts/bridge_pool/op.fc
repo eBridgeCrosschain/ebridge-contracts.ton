@@ -29,6 +29,7 @@ const set_daily_limit_config = "set_daily_limit_config"c;
 const set_rate_limit_config = "set_rate_limit_config"c;
 const set_bridge_swap = "set_bridge_swap"c;
 const set_bridge = "set_bridge"c;
+const set_jetton_wallet_address = "set_jetton_wallet_address"c;
 
 const init_code_upgrade = "init_code_upgrade"c;
 const init_owner_upgrade = "init_owner_upgrade"c;

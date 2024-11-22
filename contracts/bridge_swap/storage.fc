@@ -6,7 +6,7 @@ global slice storage::bridge_address;
 global slice storage::oracle_address;
 global slice storage::admin;
 global slice storage::owner;
-;; `swap_dic` is HashMap with `swap_id` slice key, value is `from_chain_id:int;orgin_share:int;target_share:int;swapped_amount:int;swapped_times:int`
+;; `swap_dic` is HashMap with `swap_id_hash` int key, value is `from_chain_id:int;orgin_share:int;target_share:int;swapped_amount:int;swapped_times:int`
 global cell storage::swap_dic;
 global cell storage::temp_upgrade;
 ;; `receipt_record_dic` is HashMap with `receipt_hash` int key, value is `is_exist:bool`
@@ -24,9 +24,11 @@ global cell storage::receipt_record_dic;
     slice ds_slice1 = ds_1.begin_parse();
     storage::admin = ds_slice1~load_msg_addr();
     storage::owner = ds_slice1~load_msg_addr();
-    storage::swap_dic = ds~load_dict();
+    cell ds_2 = ds~load_ref();
+    slice ds_slice_2 = ds_2.begin_parse();
+    storage::swap_dic = ds_slice_2~load_dict();
+    storage::receipt_record_dic = ds_slice_2~load_dict();
     storage::temp_upgrade = ds~load_ref();
-    storage::receipt_record_dic = ds~load_dict();
 }
 
 () save_storage() impure inline {
@@ -42,8 +44,10 @@ global cell storage::receipt_record_dic;
                 .store_slice(storage::admin)
                 .store_slice(storage::owner)
                 .end_cell())
-            .store_dict(storage::swap_dic)
+            .store_ref(begin_cell()
+                .store_dict(storage::swap_dic)
+                .store_dict(storage::receipt_record_dic)
+                .end_cell())
             .store_ref(storage::temp_upgrade)
-            .store_dict(storage::receipt_record_dic)
             .end_cell());
 }

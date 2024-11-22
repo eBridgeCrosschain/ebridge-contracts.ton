@@ -1,7 +1,29 @@
-(cell) get_swap_data(slice swap_id) method_id {
+#include "op.fc";
+#include "storage.fc";
+#include "../common/dic.fc";
+#include "../common/stdlib.fc";
+
+(slice,int,int,int,int,int) get_swap_data(int from_chain_id) method_id {
     load_storage();
-    (var swap_info,var found) = storage::swap_dic.dict_get?(256,swap_id);
-    (var from_chain_id,var orgin_share,var target_share,var swapped_amount,var swapped_times) = 
+    cell swap_id_cell = begin_cell().store_uint(from_chain_id,32).store_slice(storage::jetton_address).end_cell();
+    int swap_id_hash = cell_hash(swap_id_cell);
+    (slice swap_info,var found) = storage::swap_dic.udict_get?( DEFAULT_KEY_LENGTH, swap_id_hash);
+    if(found) {
+        ;; slice swap_info = swap_info_cell.begin_parse();
+        (var chain_id,var origin_share,var target_share,var swapped_amount,var swapped_times) = 
                 (swap_info~load_uint(32),swap_info~load_uint(64),swap_info~load_uint(64),swap_info~load_uint(256),swap_info~load_uint(256));  
-    return begin_cell().store_slice(swap_id).store_ref(begin_cell().store_uint(from_chain_id,32).store_uint(orgin_share,64).store_uint(target_share,64).store_uint(swapped_amount,256).store_uint(swapped_times,256).end_cell()).end_cell();
+        var swap_id = begin_cell().store_uint(swap_id_hash,256).end_cell();
+        return (swap_id.begin_parse(),chain_id,origin_share,target_share,swapped_amount,swapped_times);
+    }
+    return (null(),0,0,0,0,0);
+}
+
+(slice) get_owner() method_id {
+    load_storage();
+    return storage::owner;
+}
+
+(slice) get_admin() method_id {
+    load_storage();
+    return storage::admin;
 }

@@ -1,13 +1,13 @@
 #include "common/stdlib.fc";
 #include "common/dic.fc";
 #include "common/utils.fc";
+#include "common/message.fc";
 #include "bridge_receipt_account/op.fc";
 #include "bridge_receipt_account/errors.fc";
-#include "common/message.fc";
-#include "bridge_receipt_account/params.fc";
 #include "bridge_receipt_account/get.fc";
 #include "bridge_receipt_account/getter.fc";
-
+#include "bridge_receipt_account/pool-calls.fc";
+#include "bridge_receipt_account/storage.fc";
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     if (in_msg_body.slice_empty?()) {
@@ -16,62 +16,21 @@
     }
     var cs = in_msg_full.begin_parse();
     var flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
-
-    slice sender_address = cs~load_msg_addr();
-
     load_storage();
 
     if (flags & 1) {
         return ();
     }
-    cs~load_msg_addr(); ;; skip dst
-    cs~load_coins(); ;; skip value
-    cs~skip_bits(1); ;; skip extracurrency collection
-    cs~load_coins(); ;; skip ihr_fee
-    int fwd_fee = cs~load_coins();
+    slice sender_address = cs~load_msg_addr();
 
     force_chain(WORKCHAIN, sender_address, WRONG_WORKCHAIN);
     (int op, int query_id) = (in_msg_body~load_uint(32), in_msg_body~load_uint(64));
-
-    if (op == record_receipt) {
-        throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::bridge_pool_address));
-        (var target_chain_id, var targer_address, var jetton_amount) = (in_msg_body~load_uint(32), in_msg_body~load_uint(256), in_msg_body~load_coins());
-        (var receipt_info_ref, var found) = storage::receipt_info_dic.idict_get_ref?(CHAIN_ID_KEY_LENGTH, target_chain_id);
-        var index_value = 0;
-        if (found) {
-            var receipt_info = receipt_info_ref.begin_parse();
-            var total_amount = receipt_info~load_uint(256);
-            var index = receipt_info~load_uint(256);
-            total_amount += jetton_amount;
-            index += 1;
-            index_value = index;
-        } else {
-            var dic = new_dict();
-            dic~idict_set_ref(CHAIN_ID_KEY_LENGTH, target_chain_id, begin_cell().store_uint(jetton_amount, 256).store_uint(1, 256).end_cell());
-            storage::receipt_info_dic = dic;
-            index_value = 1;
-        }
-        save_storage();
-        var token_key = begin_cell()
-            .store_uint(target_chain_id, 32)
-            .store_slice(storage::jetton_address)
-            .end_cell();
-        var key_hash = cell_hash(token_key);
-        var receipt_id = begin_cell()
-            .store_uint(key_hash, 256)
-            .store_uint(index_value, 256)
-            .end_cell();
-        var body = begin_cell()
-            .store_uint(receipt_ok, 32)
-            .store_uint(query_id, 32)
-            .store_slice(storage::jetton_address)
-            .store_uint(target_chain_id, 32)
-            .store_uint(targer_address, 256)
-            .store_coins(jetton_amount)
-            .store_ref(receipt_id)
-            .end_cell();
-        send_message_nobounce(0, storage::bridge_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+    
+    if (equal_slices(sender_address, storage::bridge_pool_address)) {
+        handle_pool_messages(op, query_id, my_balance, msg_value, in_msg_body);
+        return ();
     }
+    
     if (handle_getter_messages(op, query_id, sender_address, in_msg_body)) {
         return ();
     }

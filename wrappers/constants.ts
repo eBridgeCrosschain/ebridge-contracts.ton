@@ -1,4 +1,11 @@
 export abstract class Op {
+    static readonly jetton = {
+        excesses: 0xd53276db,
+        internal_transfer: 0x178d4519,
+        transfer_notification: 0x7362d09c,
+        burn : 0x595f07bc,
+        burn_notification : 0x7bdd97de,
+    }
     static readonly bridge = {
         create_receipt: 0x71a12142,
         create_native_receipt: 0xb8b38761,
@@ -27,6 +34,19 @@ export abstract class Op {
         cancel_admin_upgrade: 0xa4ed9981,
         finalize_upgrades: 0x6378509f
     }
+    static readonly bridge_event = {
+        JETTON_ADDED:0xe6be20d5,
+        JETTON_REMOVED:0xfc2f070b,
+        NEW_RECEIPT:0xfcaf1515,
+        RESTARTED:0xcd6f0669,
+        PAUSED:0xb649891d,
+        SWAP_OK:0xc14bc81f,
+        TEST_TRANSMIT:0x38692d08,
+        SWAP_FAILED:0x47f02f76,
+        CODE_UPGRADED:0x38342daf,
+        ADMIN_UPGRADED:0x98712a5a,
+        OWNER_UPGRADED:0x1a31949f
+    }
     static readonly bridge_swap = {
         swap: 0x25938561,
         release: 0x9e47031d,
@@ -42,6 +62,9 @@ export abstract class Op {
         cancel_owner_upgrade: 0xeca79dd7,
         cancel_admin_upgrade: 0xa4ed9981,
         finalize_upgrades: 0x6378509f
+    }
+    static readonly bridge_swap_event = {
+        SWAP_CREATED:0xfe8ddc6a
     }
     static readonly bridge_pool = {
         lock: 0x878f9b0e,
@@ -61,6 +84,7 @@ export abstract class Op {
         set_rate_limit_config: 0x227c7ee6,
         set_bridge_swap: 0xaf78c1e,
         set_bridge: 0xcd3d3a0e,
+        set_jetton_wallet_address: 0x288b5223,
         init_code_upgrade: 0xdf1e233d,
         init_owner_upgrade: 0x67f347d2,
         init_admin_upgrade: 0x2fb94384,
@@ -69,7 +93,14 @@ export abstract class Op {
         cancel_admin_upgrade: 0xa4ed9981,
         finalize_upgrades: 0x6378509f
     }
-
+    static readonly bridge_pool_event = {
+        DAILY_LIMIT_CONSUMED : 0xc3de3da2,
+        RATE_LIMIT_CONSUMED : 0xef662842,
+        DAILY_LIMIT_CHANGED : 0x40839634,
+        RATE_LIMIT_CHANGED : 0xef662842,
+        LOCKED : 0x1a2a0f17,
+        RELEASED : 0x3d76fd5a
+    }
     static readonly bridge_receipt_account = {
         record_receipt: 0xe446b638,
         receipt_ok: 0xedb91281,
@@ -84,7 +115,7 @@ export abstract class Op {
 }
 
 export abstract class Errors {
-    static readonly multisig = {
+    static readonly bridge = {
         unauthorized_new_order: 1007,
         invalid_new_order: 1008,
         not_enough_ton: 100,
@@ -93,24 +124,24 @@ export abstract class Errors {
         invalid_dictionary_sequence: 103,
         expired: 111
     }
-    static readonly order = {
-        unauthorized_init: 104,
-        already_approved: 107,
-        already_inited: 105,
-        unauthorized_sign: 106,
-        expired: 111,
-        unknown_op: 0xffff,
-        already_executed: 112
+    static readonly bridge_swap = {
+        UNAUTHORIZED: 81,
+        INVALID_CALL : 80,
+        SWAP_NOT_FOUND : 95,
+        ALREADY_RECORDED : 96,
+        WRONG_OP: 0xffff,
+    }
+    static readonly bridge_pool = {
+        UNAUTHORIZED: 81,
+        WRONG_OP: 0xffff,
+        INVALID_AMOUNT: 82,
+        INVALID_REFRESH_TIME: 86,
+        NOT_SUPPORT_REFRESH_TIME: 87,
+        DAILY_LIMIT_EXCEEDED: 88,
+        DAILY_LIMIT_NOT_EXISTED: 89,
+        BUCKET_OVERFILLED: 90,
+        MAX_CAPACITY_EXCEEDED: 91,
+        TOKEN_RATE_LIMIT_REACHED: 92,
+        LIQUIDITY_NOT_ENOUGH: 93
     }
 };
-
-export abstract class Params {
-    static readonly bitsize = {
-        op: 32,
-        queryId: 64,
-        orderSeqno: 256,
-        signerIndex: 8,
-        actionIndex: 8,
-        time: 48
-    }
-}

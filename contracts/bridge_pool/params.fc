@@ -13,5 +13,8 @@ const LOCKED = "LOCKED"c;
 
 const RELEASED = "RELEASED"c;
 
-const REMOVE_LIQUIDITY_OK = "REMOVE_LIQUIDITY_OK"c;
+const CODE_UPGRADED = "CODE_UPGRADED"c;
+const ADMIN_UPGRADED = "ADMIN_UPGRADED"c;
+const OWNER_UPGRADED = "OWNER_UPGRADED"c;
 
+const remove_liquidity_ok = "remove_liquidity_ok"c;

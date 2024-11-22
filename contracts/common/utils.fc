@@ -18,6 +18,7 @@ const TWODAYS = 172800; ;; 24 * 60 * 60 * 2
 const SEVENDAYS = 604800; ;; 24 * 60 * 60 * 7
 const ONEDAY = 86400; ;; 24 * 60 * 60
 const HALF_ONE_DAY = 43200; ;; 12 * 60 * 60
+const ONEMINUTES = 60; ;; 1 * 60
 
 (cell) pack_temp_upgrade(int end_code, cell code, int end_owner, slice owner,int end_admin,slice admin) inline {
     cell data = begin_cell()
@@ -45,4 +46,12 @@ const HALF_ONE_DAY = 43200; ;; 12 * 60 * 60
 () force_chain(int workchain, slice address, int error_code) impure inline {
   (int wc) = get_workchain(address);
   throw_unless(error_code, wc == workchain);
+}
+
+slice create_address(int wc, int address_hash) inline {
+    return begin_cell().store_uint(4, 3)
+        .store_int(wc, 8)
+        .store_uint(address_hash, 256)
+        .end_cell()
+        .begin_parse();
 }

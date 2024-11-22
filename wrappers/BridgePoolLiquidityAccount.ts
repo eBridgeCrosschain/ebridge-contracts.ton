@@ -1,9 +1,20 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
+import {Op} from "./constants";
+import {Bridge} from "./Bridge";
 
-export type BridgePoolLiquidityAccountConfig = {};
+export type BridgePoolLiquidityAccountConfig = {
+    owner: Address,
+    bridgePoolAddress: Address,
+    jettonAddress: Address
+};
 
 export function BridgePoolLiquidityAccountConfigToCell(config: BridgePoolLiquidityAccountConfig): Cell {
-    return beginCell().endCell();
+    return beginCell()
+        .storeAddress(config.owner)
+        .storeAddress(config.bridgePoolAddress)
+        .storeAddress(config.jettonAddress)
+        .storeUint(0, 256)
+        .endCell();
 }
 
 export class BridgePoolLiquidityAccount implements Contract {
@@ -18,6 +29,16 @@ export class BridgePoolLiquidityAccount implements Contract {
         const init = { code, data };
         return new BridgePoolLiquidityAccount(contractAddress(workchain, init), init);
     }
+    
+    static packRemoveLiquidityBody(amount:number|bigint){
+        let queryId = Bridge.getQueryId();
+        return beginCell()
+            .storeUint(Op.bridge_pool_liquidity_account.account_remove_liquidity, 32)
+            .storeUint(queryId,64)
+            .storeCoins(amount)
+            .storeBit(false)
+            .endCell();
+    }
 
     async sendDeploy(provider: ContractProvider, via: Sender, value: bigint) {
         await provider.internal(via, {
@@ -25,6 +46,24 @@ export class BridgePoolLiquidityAccount implements Contract {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell().endCell(),
         });
+    }
+    
+    async sendRemoveLiquidity(provider: ContractProvider, via: Sender, value: bigint, amount: bigint) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: BridgePoolLiquidityAccount.packRemoveLiquidityBody(amount),
+        });
+    
+    }
+    async getLiquidity(provider: ContractProvider){
+        const {stack} = await provider.get('get_lp_account_data',[]);
+        return {
+            owner:stack.readAddress(),
+            bridgePoolAddress:stack.readAddress(),
+            jettonAddress:stack.readAddress(),
+            liquidity:stack.readBigNumber()
+        }
     }
 }
 

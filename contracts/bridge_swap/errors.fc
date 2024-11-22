@@ -1,6 +1,6 @@
 ;; global errors
 
-const WRONG_OP = 0xffff;
+const WRONG_OP = 0xffff; ;; 65535
 const UNAUTHORIZED = 81;
 const INVALID_CALL = 80;
 
