@@ -15,7 +15,6 @@ export type BridgeSwapConfig = {
     bridgePoolAddress: Address,
     jettonAddress: Address,
     bridgeAddress: Address,
-    oracleAddress: Address,
     admin: Address,
     owner: Address,
     tempUpgrade: Cell,
@@ -29,7 +28,6 @@ export function BridgeSwapConfigToCell(config: BridgeSwapConfig): Cell {
         .storeRef(beginCell()
             .storeAddress(config.bridgePoolAddress)
             .storeAddress(config.bridgeAddress)
-            .storeAddress(config.oracleAddress)
             .endCell())
         .storeRef(beginCell()
             .storeAddress(config.admin)
@@ -213,6 +211,12 @@ export class BridgeSwap implements Contract {
             swappedAmount: stack.readBigNumber(),
             swappedTimes: stack.readBigNumber()
         }
+    }
+    
+    async getFeeData(provider: ContractProvider) {
+        const res = await provider.get('get_gas_fee', [
+        ]);
+        return res.stack.readBigNumber();
     }
 
 

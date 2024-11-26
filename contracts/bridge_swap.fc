@@ -49,51 +49,23 @@
                 throw(ALREADY_RECORDED);
             }
         }
-
+        
         var swap_id = swap_id_cell.begin_parse();
         (var swap_info, int found_swap) = storage::swap_dic.udict_get?(DEFAULT_KEY_LENGTH, swap_id~load_uint(256));
         ifnot (found_swap) {
             throw(SWAP_NOT_FOUND);
         }
-        ;; emit_log_simple(111,begin_cell().store_slice(swap_info).end_cell(),1);
         (var from_chain_id, var orgin_share, var target_share, _, _) = (swap_info~load_uint(32), swap_info~load_uint(64), swap_info~load_uint(64), swap_info~load_uint(256), swap_info~load_uint(256));
-        emit_log_simple(111, begin_cell().store_uint(amount, 256).store_uint(orgin_share, 64).store_uint(target_share, 64).end_cell(), 1);
         int swap_amount = amount * target_share / orgin_share;
-
+        
         var info = begin_cell().store_int(-1, 1);
         storage::receipt_record_dic~udict_set_builder(DEFAULT_KEY_LENGTH, receipt_hash, info);
         save_storage();
         var body = begin_cell();
         if (equal_slices(storage::jetton_address, HOLE_ADDRESS)) {
             body = body.store_uint(release_native_token, 32);
-            ;; var body = begin_cell()
-            ;;     .store_uint(release_native_token, 32)
-            ;;     .store_uint(query_id, 64)
-            ;;     .store_ref(swap_id_cell)
-            ;;     .store_uint(message_id, 256)
-            ;;     .store_ref(begin_cell()
-            ;;         .store_ref(receipt_id)
-            ;;         .store_uint(receipt_hash, 256)
-            ;;         .store_slice(target_address)
-            ;;         .end_cell())
-            ;;     .store_uint(from_chain_id, 32)
-            ;;     .store_coins(swap_amount);
-            ;; emit_log_simple(111, body.end_cell(), 1);
         } else {
             body = body.store_uint(release, 32);
-            ;; var body = begin_cell()
-            ;;     .store_uint(release, 32)
-            ;;     .store_uint(query_id, 64)
-            ;;     .store_uint(from_chain_id, 32)
-            ;;     .store_uint(swap_amount,256)
-            ;;     .store_ref(swap_id_cell)
-            ;;     .store_ref(begin_cell()
-            ;;         .store_ref(receipt_id)
-            ;;         .store_uint(receipt_hash, 256)
-            ;;         .store_slice(target_address)
-            ;;         .store_uint(message_id, 256)
-            ;;         .end_cell());
-            ;; emit_log_simple(111, body.end_cell(), 1);
         }
         body = body
             .store_uint(query_id, 64)

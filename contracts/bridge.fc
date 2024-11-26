@@ -1,3 +1,4 @@
+#include "gas.fc";
 #include "bridge/storage.fc";
 #include "bridge/op.fc";
 #include "bridge/errors.fc";
@@ -43,49 +44,36 @@
     if (op == transmit) {
         ;; Handler oracle call
         throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::oracle_address));
-        receive_from_oracle(in_msg_body);
-        ;; test for oracle
-        ;; var data = begin_cell()
-        ;;     .store_uint(message_id, 256)
-        ;;     .store_uint(source_chain_id, 32)
-        ;;     .store_uint(target_chain_id, 32)
-        ;;     .store_ref(
-        ;;         begin_cell()
-        ;;             .store_slice(sender)
-        ;;             .store_slice(receiver)
-        ;;             .store_slice(message)
-        ;;             .end_cell())
-        ;;     .store_ref(
-        ;;         begin_cell()
-        ;;             .store_slice(jetton_address)
-        ;;             .store_ref(swap_id_ref)
-        ;;             .end_cell())
-        ;;     .end_cell();
-        ;; emit_log_simple(TEST_TRANSMIT,
-        ;;     data,
-        ;;     1
-        ;; );
+        throw_unless(INSUFFICIENT_FEES, msg_value >= ORACLE_TON);
+        receive_from_oracle(in_msg_body, SWAP_FEE);
         return ();
     }
 
     int query_id = in_msg_body~load_uint(64);
+    if (op == excesses) {
+        ;; just accept ton
+        return ();
+    }
     if (op == transfer_notification) {
         (int jetton_amount, slice from_sender) = (in_msg_body~load_coins(), in_msg_body~load_msg_addr());
         cell ref_cs = in_msg_body~load_ref();
+        throw_unless(INSUFFICIENT_FEES, msg_value >= calculate_create_receipt_process_fee());
         handle_transfer_notification(sender_address, query_id, jetton_amount, from_sender, ref_cs, fwd_fee, msg_value);
         return ();
     }
     if (op == create_native_receipt) {
         (int target_chain_id, slice target_address, int amount) = (in_msg_body~load_uint(32), in_msg_body~load_bits(256), in_msg_body~load_coins());
         (var jetton_pool_address, _) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, HOLE_ADDRESS);
+        throw_unless(INSUFFICIENT_TONS, msg_value >= calculate_create_native_receipt_process_fee() + amount);
         var body = begin_cell()
             .store_uint(lock_native_token, 32)
+            .store_uint(query_id, 64)
             .store_uint(target_chain_id, 32)
             .store_slice(target_address)
             .store_slice(sender_address)
             .store_coins(amount)
             .end_cell();
-        send_simple_message(amount, jetton_pool_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE + SEND_MODE_BOUNCE_TRANSACTION);
+        send_simple_message(0, jetton_pool_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE + SEND_MODE_BOUNCE_TRANSACTION);
         return ();
     }
     if (op == receipt_ok) {
@@ -99,6 +87,7 @@
         (var jetton_pool_address, _) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton_address);
         cell acc_state_init = calculate_bridge_receipt_account_state_init(owner_address, jetton_pool_address, jetton_address, my_address(), storage::bridge_receipt_account_code);
         throw_unless(UNAUTHORIZED, equal_slices(sender_address, calculate_bridge_receipt_account_address(acc_state_init)));
+        throw_unless(INSUFFICIENT_FEES, msg_value >= ORACLE_TON);
         encode_message_and_send_to_oracle(target_chain_id, jetton_address, receipt_id, jetton_amount, target_address);
         emit_log_simple(NEW_RECEIPT, begin_cell()
             .store_uint(NEW_RECEIPT, 32)

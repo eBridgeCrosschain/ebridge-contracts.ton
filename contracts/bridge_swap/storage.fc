@@ -3,7 +3,6 @@
 global slice storage::bridge_pool_address;
 global slice storage::jetton_address;
 global slice storage::bridge_address;
-global slice storage::oracle_address;
 global slice storage::admin;
 global slice storage::owner;
 ;; `swap_dic` is HashMap with `swap_id_hash` int key, value is `from_chain_id:int;orgin_share:int;target_share:int;swapped_amount:int;swapped_times:int`
@@ -19,7 +18,6 @@ global cell storage::receipt_record_dic;
     slice ds_slice = ds_0.begin_parse();
     storage::bridge_pool_address = ds_slice~load_msg_addr();
     storage::bridge_address = ds_slice~load_msg_addr();
-    storage::oracle_address = ds_slice~load_msg_addr();
     cell ds_1 = ds~load_ref();
     slice ds_slice1 = ds_1.begin_parse();
     storage::admin = ds_slice1~load_msg_addr();
@@ -38,7 +36,6 @@ global cell storage::receipt_record_dic;
             .store_ref(begin_cell()
                 .store_slice(storage::bridge_pool_address)
                 .store_slice(storage::bridge_address)
-                .store_slice(storage::oracle_address)
                 .end_cell())
             .store_ref(begin_cell()
                 .store_slice(storage::admin)

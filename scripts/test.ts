@@ -14,7 +14,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
 
     const jetton_minter_address = "EQD2YshOlwLKD62kAUwPZaV4W01FpRCQzevjQjmn9Ie107XG";
     const jetton_minter = provider.open(JettonMinter.createFromAddress(Address.parseFriendly(jetton_minter_address).address));
-    
+
     const userWallet = async (address: Address) => provider.open(
         JettonWallet.createFromAddress(
             await jetton_minter.getWalletAddress(address)
@@ -22,7 +22,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     );
 
     let initialAccountJettonBalance = toNano('1000.23');
-    
+
     const deployJettonWallet = await userWallet(provider.sender().address!);
     // await jetton_minter.sendMint(
     //     provider.sender(),
@@ -40,15 +40,13 @@ export async function run(provider: NetworkProvider, args: string[]) {
     let payload = Bridge.PackCreateReceiptBody(
         chainId, deployJettonWallet.address,
         Buffer.from(targetAddressBuffer), jetton_minter.address);
-    let to = Address.parseFriendly("0QDsJj94gXdTrsUGFHM-KVFT-RPUFAe4TIVS-EM7ip9cGyV2");
-    let a = beginCell().endCell();
     await deployJettonWallet.sendTransfer(
         provider.sender(),
         toNano('0.2'),
         receipt_amount,
-        to.address,
+        bridge.address,
         provider.sender().address!,
         beginCell().storeUint(0,1).endCell(),
         forwardAmount,
-        a);
+        payload);
 }

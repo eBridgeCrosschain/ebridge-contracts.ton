@@ -364,16 +364,16 @@ describe('Bridge', () => {
             to: bridge.address,
             success: true,
         });
-        let body = res.transactions[1].outMessages.get(0)?.body;
-        console.log(res.transactions[1].outMessages);
-        if (body != undefined) {
-            let a = body.asSlice();
-            let chain_id = a.loadUint(32);
-            let jetton_address = a.loadAddress();
-            console.log(chain_id);
-            console.log(jetton_address);
-            console.log(body);
-        }
+        // let body = res.transactions[1].outMessages.get(0)?.body;
+        // console.log(res.transactions[1].outMessages);
+        // if (body != undefined) {
+        //     let a = body.asSlice();
+        //     let chain_id = a.loadUint(32);
+        //     let jetton_address = a.loadAddress();
+        //     console.log(chain_id);
+        //     console.log(jetton_address);
+        //     console.log(body);
+        // }
         expect(await bridge.getIsJettonSupport(chainId, testJettonAddress1)).toBe(true);
         expect(await bridge.getIsJettonSupport(chainId, testJettonAddress)).toBe(false);
 
@@ -406,7 +406,7 @@ describe('Bridge', () => {
         let initialJettonBalance = await testAccountJettonWallet.getJettonBalance();
         expect(initialJettonBalance).toEqual(toNano('1000.23'));
         let receipt_amount = toNano('10');
-        let forwardAmount = toNano('0.05');
+        let forwardAmount = toNano('0.15');
         let payload = Bridge.PackCreateReceiptBody(
             chainId, testAccountJettonWallet.address,
             targetAddressBuffer, jettonMinter.address);
@@ -507,7 +507,7 @@ describe('Bridge', () => {
 
     });
     it('parse', async () => {
-        let body = "te6cckECFwEAA08AAosAAAAD9wNTTGG2mBU+qsgWARxS401mn01wKiS4zLq3pDz0Z6eAAcAGjwbmoIq6yiXXV+hBsNzNWuizIv+auXN/ct6twbVQAQIEIAAAAAAAHXqYAAAAAAAABEwDBAUGAQHADABECiAnVYqioDbqrPp0DblFmpKQlOhf8haPvsKR0K0QlRGwoQBDgAHABo8G5qCKusol11foQbDczVrosyL/mrlzf3LercG1UAHGAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGIi6IxiXfRYRHW0AEncFjb60PN7SuWbeDo6qBqcm/ZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMS0ABBwRQAAAAAAAABEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgJCgsAjgIgkJ3e/D0A2U4FXjcpmCOWOdAo+RJjpbuUJFx8bkQGRWkRAOwmP3iBd1OuxQYUcz4pUVP5E9QUB7hMhVL4QzuKn1wbwzkAAIAzZDA3MTZhMDYxZDYzZmNmMzliZTJkMmVlNDg4ODUyOTA4ODc1Yzc5YTRmNTlhM2VmODJkZWRjZTAwODk4MGI2AGBFUUFPQURSNE56VUVWZFpSTHJxL1FnMkc1bXJYUlprWC9OWExtL3VXOVc0TnFvazQAQ4AWInUylqBJQs4z7SJyZR1usrLYcUS+sgUWKN/ZuGxDv9AACFVTRFQCA8/oDQ4CASAPEAIBIBMUAQEgEQEBIBIAgP+v7jD/wJr+/UOUJTLWuc88+HXDW2pyh36zWNPOSfYs6Q7GP5yaamCga69xrgQIS6EWnSLh/QrJZUR3UtfxhgsAgF+t+BrhF9CE8SVc1v43mMy4qAY4zWYAY3qZEMW0UcHJkn6NJuoW7nSO3vI0CDwmVULFRdjEFPz5wZ7Ekf5lAQkBASAVAQEgFgCAwbgYzMLyU+tc/0Y+VXhGnfyvjH4fYE0AHwjw8WzhOcS/L9Yd6Hk8DCbP3s9D08HatwqYfNuNH2rpCjVauZffBACABqwO7PhG7aCU1amSJt3ifO82sdmNWircqaD6FRLAnDjl5Uqt6RweOdWx2+2gv21jJO8C8f9Xo7UhFNOunYsbCanKwoI=";
+        let body = "te6cckECCwEAAf4AAUgAAAADSkqsp/MaHUcm2kDQPeYMubm99K94GjAucjwNh6xG8aYBBCAAAAAAAB16mAAAAAAAAARMAgMEBQBAJ1WKoqA26qz6dA25RZqSkJToX/IWj77CkdCtEJURsKEAQ4Aar7GjyUNLQl+duFpAr+zWggWAiZLsLV48AuxOluUKvXABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQYEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCAkKAI4CIN4wTiM5ZetlWb1OM5YsTjUzGyFAOaiQS2JOmD286qKBEQDsJj94gXdTrsUGFHM+KVFT+RPUFAe4TIVS+EM7ip9cG8M5AACAZTlhOTA5Zjk2MzRkZmZiYjk4MDA3ZDk4MWM3OGRiNzM1ZDVkOGRhMTI0YzczYTU2M2M4ZjYwMmJmOGRkMGU3YgBgRVFEVmZZMGVTaHBhRXZ6dHd0SUZmMmEwRUN3RVRKZGhhdkhnRjJKMHR5aFY2OU9KAEOACkUpb7JtoNn4jUN3rjLRVPm4KPboY6tBqpOs5kpyu/6QAAhVU0RUCoLC9w==";
         let c = Cell.fromBase64(body);
         let sli = c.asSlice();
         let op = sli.loadUint(32);
@@ -518,8 +518,19 @@ describe('Bridge', () => {
         let targetChainId = originDataSlice.loadUint(64);
         let sender1 = originDataSlice.loadRef();
         let sender1Slice = sender1.asSlice();
-        let sender = sender1Slice.loadBuffer(34);
-        console.log(Buffer.from(sender).toString('base64'));
+        let sender = sender1Slice.loadBuffer(32);
+        console.log(aelf.utils.base58.encode(sender));
+        let message = originDataSlice.loadRef();
+        let convert = originDataSlice.loadRef();
+        let convertSlice = convert.asSlice();
+       console.log(convertSlice);
+        let swapId = convertSlice.loadRef();
+        let swapIdSlice = swapId.asSlice();
+        console.log(swapIdSlice);
+        console.log(Buffer.from(swapIdSlice.loadBuffer(32)).toString('hex'));
+        let swapId1 = swapIdSlice.loadUintBig(256);
+        console.log(swapId1);
+        
     });
     
 });

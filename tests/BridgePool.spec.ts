@@ -10,6 +10,7 @@ import {Buffer} from "buffer";
 import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 import {BridgePoolLiquidityAccount} from "../wrappers/BridgePoolLiquidityAccount";
 import aelf from "aelf-sdk";
+import exp from "constants";
 
 
 describe('BridgePool', () => {
@@ -36,6 +37,8 @@ describe('BridgePool', () => {
     let initialState: BlockchainSnapshot;
     let curTime: number;
     const chainId = 9992731;
+    let bridgePoolTonCoin: SandboxContract<BridgePool>;
+    let HOLEADDRESS: Address;
 
 
     beforeAll(async () => {
@@ -56,6 +59,7 @@ describe('BridgePool', () => {
         bridge = await blockchain.treasury('Bridge');
         admin = await blockchain.treasury('admin');
         owner = await blockchain.treasury('admin');
+        HOLEADDRESS = Address.parse("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
 
         tempUpgrade = beginCell().endCell();
         // let dailyLimit = Dictionary.empty(Dictionary.Keys.BigUint(256),Dictionary.Values.Cell());
@@ -222,6 +226,33 @@ describe('BridgePool', () => {
             to: bridgePool.address,
             success: true,
         });
+        bridgePoolTonCoin = blockchain.openContract(BridgePool.createFromConfig({
+            bridge_address: bridge.address,
+            bridge_receipt_account_code: bridgeReceiptAccountCode,
+            bridge_swap_address: swap.address,
+            jetton_address: HOLEADDRESS,
+            daily_limit: dic,
+            rate_limit: dic,
+            pool_liquidity_account_code: bridgeLiquidityAccountCode,
+            admin: admin.address,
+            owner: owner.address,
+            temp_upgrade: tempUpgrade
+        }, code));
+        const deployPoolTonCoinResult = await bridgePoolTonCoin.sendDeploy(deployer.getSender(), toNano('0.1'));
+
+        expect(deployPoolTonCoinResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: bridgePoolTonCoin.address,
+            deploy: true,
+            success: true,
+        });
+
+        let res11 = await bridgePoolTonCoin.sendSetBridge(admin.getSender(), toNano('0.5'), bridge.address);
+        expect(res11.transactions).toHaveTransaction({
+            from: admin.address,
+            to: bridgePoolTonCoin.address,
+            success: true,
+        });
 
         initialState = blockchain.snapshot();
 
@@ -320,12 +351,14 @@ describe('BridgePool', () => {
         let body = result.transactions[1].outMessages.get(0)?.body;
         if (body != undefined) {
             let limitInfo = body.asSlice();
+            let op = limitInfo.loadUint(32);
             let chainIdLog = limitInfo.loadUint(32);
             let limitType = limitInfo.loadUint(1);
-            let value = limitInfo.loadUintBig(256);
-            let tokenCapacity = limitInfo.loadUintBig(256);
-            let status = limitInfo.loadBoolean();
-            let rate = limitInfo.loadUintBig(256);
+            let valueInfo = limitInfo.loadRef().asSlice();
+            let value = valueInfo.loadUintBig(256);
+            let tokenCapacity = valueInfo.loadUintBig(256);
+            let status = valueInfo.loadBoolean();
+            let rate = valueInfo.loadUintBig(256);
             expect(chainIdLog).toBe(chainId);
             expect(limitType).toBe(1);
             expect(value).toBe(1000000000000000n);
@@ -381,7 +414,7 @@ describe('BridgePool', () => {
         let initialJettonBalance = await bridgeJettonWallet.getJettonBalance();
         expect(initialJettonBalance).toEqual(toNano('1000.23'));
         let lock_amount = toNano('10');
-        let forwardAmount = toNano('0.05');
+        let forwardAmount = toNano('0.1');
         let payload = BridgePool.packLockBody(chainId, targetAddressBuffer, testAccount.address);
         const result = await bridgeJettonWallet.sendTransfer(
             bridge.getSender(),
@@ -481,6 +514,8 @@ describe('BridgePool', () => {
             from: testAccountJettonWallet.address,
             to: jettonMinter.address
         });
+
+
         expect(await testAccountJettonWallet.getJettonBalance()).toEqual(mintAmount);
 
         let liquidityBefore = await bridgePool.getPoolLiquidity();
@@ -523,6 +558,76 @@ describe('BridgePool', () => {
         expect(await testAccountJettonWallet.getJettonBalance()).toEqual(mintAmount - amount_add_liquidity);
         expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(amount_add_liquidity);
 
+    });
+
+    it('add native liquidity', async () => {
+        let res = await bridgePoolTonCoin.sendAddNativeLiquidity(testAccount.getSender(), toNano('20.05'), toNano('20'));
+        expect(res.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridgePoolTonCoin.address,
+            success: true,
+        });
+        const liquidityAccountAddress = await bridgePoolTonCoin.getPoolLiquidityAccountAddress(testAccount.address);
+        expect(res.transactions).toHaveTransaction({
+            from: bridgePoolTonCoin.address,
+            to: liquidityAccountAddress,
+            success: true,
+            deploy: true
+        });
+        let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
+        expect(liquidityAfter).toBe(toNano('20'));
+        let balance = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+        expect(balance).toBeGreaterThanOrEqual(toNano('20'));
+        let liquidityAccount = blockchain.openContract(BridgePoolLiquidityAccount.createFromAddress(liquidityAccountAddress));
+        let liquidity = await liquidityAccount.getLiquidity();
+        expect(liquidity.owner).toEqualAddress(testAccount.address);
+        expect(liquidity.liquidity).toBe(toNano('20'));
+    });
+
+    it('remove native liquidity', async () => {
+        let res = await bridgePoolTonCoin.sendAddNativeLiquidity(testAccount.getSender(), toNano('20.05'), toNano('20'));
+        expect(res.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridgePoolTonCoin.address,
+            success: true,
+        });
+        let poolLiquidityBefore = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+        expect(poolLiquidityBefore).toBeGreaterThanOrEqual(toNano('20'));
+        let userLiquidityAddress = await bridgePoolTonCoin.getPoolLiquidityAccountAddress(testAccount.address);
+        let user_liq = blockchain.openContract(
+            BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
+        let liquidity = await user_liq.getLiquidity();
+        expect(liquidity.owner).toEqualAddress(testAccount.address);
+        expect(liquidity.bridgePoolAddress).toEqualAddress(bridgePoolTonCoin.address);
+        expect(liquidity.jettonAddress).toEqualAddress(HOLEADDRESS);
+        expect(liquidity.liquidity).toBe(toNano('20'));
+        let account_before = await testAccount.getBalance();
+
+        let remove_result = await user_liq.sendRemoveLiquidity(
+            testAccount.getSender(),
+            toNano('0.05'),
+            toNano('1'),
+            true
+        );
+        expect(remove_result.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: userLiquidityAddress,
+            success: true,
+        });
+        expect(remove_result.transactions).toHaveTransaction({
+            from: userLiquidityAddress,
+            to: bridgePoolTonCoin.address,
+            success: true,
+        });
+        liquidity = await user_liq.getLiquidity();
+        expect(liquidity.liquidity).toBe(toNano('19'));
+        let poolLiquidityAfter = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+        expect(poolLiquidityAfter).toBeGreaterThanOrEqual(toNano('19'));
+        expect(poolLiquidityAfter).toBeLessThanOrEqual(poolLiquidityBefore);
+        let liquidityAfter1 = await bridgePoolTonCoin.getPoolLiquidity();
+        expect(liquidityAfter1).toBe(toNano('19'));
+        let account_after = await testAccount.getBalance();
+        // expect(account_after - account_before).toBeGreaterThanOrEqual(toNano('1'));
     });
 
     it('remove liquidity', async () => {

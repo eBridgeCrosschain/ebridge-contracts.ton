@@ -55,7 +55,6 @@ global cell storage::temp_upgrade;
                 .store_slice(storage::jetton_address)
                 .store_slice(storage::jetton_pool_wallet_address)
                 .end_cell())
-            .store_slice(storage::jetton_address)
             .end_cell())
         .store_ref(begin_cell()
             .store_ref(storage::bridge_receipt_account_code)

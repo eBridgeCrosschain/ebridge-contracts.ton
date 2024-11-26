@@ -1,5 +1,6 @@
 const transfer = 0xf8a7ea5;
 const transfer_notification = 0x7362d09c;
+const excesses = 0xd53276db;
 
 ;; bridge pool
 const lock = "lock"c;

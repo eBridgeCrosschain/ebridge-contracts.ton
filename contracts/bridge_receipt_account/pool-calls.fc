@@ -2,9 +2,11 @@
 #include "../common/dic.fc";
 #include "../common/message.fc";
 #include "../common/utils.fc";
+#include "../common/stdlib.fc";
 #include "op.fc";
 #include "storage.fc";
 #include "errors.fc";
+#include "../gas.fc";
 
 () handle_pool_messages(int op, int query_id, int my_balance, int msg_value, slice in_msg_body) impure inline {
     if (op == record_receipt) {
@@ -50,7 +52,10 @@
                 .end_cell())
             .store_ref(receipt_id)
             .end_cell();
-        send_simple_message(0, storage::bridge_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_IGNORE_ERRORS);
+        int to_leave_on_balance = my_balance - msg_value + my_storage_due();
+        int amount = max(to_leave_on_balance, calculate_bridge_receipt_account_min_storage_fee());
+        raw_reserve(amount, RESERVE_AT_MOST);
+        send_simple_message(0, storage::bridge_address, body, SEND_MODE_CARRY_ALL_BALANCE | SEND_MODE_IGNORE_ERRORS);
         return ();
     }
 

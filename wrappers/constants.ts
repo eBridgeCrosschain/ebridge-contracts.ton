@@ -3,6 +3,7 @@ export abstract class Op {
         excesses: 0xd53276db,
         internal_transfer: 0x178d4519,
         transfer_notification: 0x7362d09c,
+        transfer: 0xf8a7ea5,
         burn : 0x595f07bc,
         burn_notification : 0x7bdd97de,
     }
@@ -11,7 +12,8 @@ export abstract class Op {
         create_native_receipt: 0xb8b38761,
         pause: 0xd79a92ed,
         restart: 0xe7f92207,
-        swap: 0x25938561,
+        swap: 0xfed264fb,
+        swap_ok: 0xc64370e5,
         receipt_ok: 0xedb91281,
         send_bridge_info_to_oracle: 0x00000004,
         transmit: 0x00000003,
@@ -48,11 +50,12 @@ export abstract class Op {
         OWNER_UPGRADED:0x1a31949f
     }
     static readonly bridge_swap = {
-        swap: 0x25938561,
+        swap: 0xfed264fb,
         release: 0x9e47031d,
         swap_failed: 0x54e8402,
         record_swap: 0xc02414b5,
         create_swap: 0xa4321808,
+        swap_ok: 0xc64370e5,
         resend_to_oracle: 0x1f55bd2e,
         release_native_token: 0xd0df706,
         init_code_upgrade: 0xdf1e233d,

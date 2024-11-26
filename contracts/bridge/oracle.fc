@@ -4,6 +4,7 @@
 #include "storage.fc";
 #include "op.fc";
 #include "errors.fc";
+#include "../gas.fc";
 #include "../common/stdlib.fc";
 
 (int) calculate_leaf_hash(int receipt_index, int key_hash, int jetton_amount, slice target_address) impure inline {
@@ -101,7 +102,7 @@
     return (receipt_index, key_hash, receipt_amount, leaf_hash, target_address);
 }
 
-() receive_from_oracle(slice in_msg_body) impure inline {
+() receive_from_oracle(slice in_msg_body,int fee) impure inline {
     var message_id = in_msg_body~load_uint(256);
     if (storage::is_pause) {
         resend_receipt_info(message_id, ONEDAY);
@@ -147,5 +148,5 @@
             .end_cell())
         .store_coins(receipt_amount)
         .end_cell();
-    send_simple_message(0, jetton_swap_address, payload, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+    send_simple_message(fee, jetton_swap_address, payload, SEND_MODE_PAY_FEES_SEPARETELY | SEND_MODE_BOUNCE_TRANSACTION);
 }

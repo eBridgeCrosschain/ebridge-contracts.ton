@@ -51,10 +51,10 @@ export function BridgePoolConfigToCell(config: BridgePoolConfig): Cell {
             .storeDict(config.rate_limit)
             .endCell())
         .storeRef(beginCell()
-            .storeAddress(null)
+            .storeAddress(config.bridge_address)
             .storeAddress(config.bridge_swap_address)
             .storeRef(beginCell()
-                .storeAddress(config.bridge_address)
+                .storeAddress(config.jetton_address)
                 .storeAddress(null)
                 .endCell())
             .endCell())
@@ -129,6 +129,16 @@ export class BridgePool implements Contract {
     static packAddLiquidityBody() {
         let payload = beginCell()
             .storeUint(Op.bridge_pool.add_liquidity, 32)
+            .endCell();
+        return payload;
+    }
+
+    static packAddNativeLiquidityBody(amount: bigint | number) {
+        let queryId = Bridge.getQueryId();
+        let payload = beginCell()
+            .storeUint(Op.bridge_pool.add_native_token_liquidity, 32)
+            .storeUint(queryId, 64)
+            .storeCoins(amount)
             .endCell();
         return payload;
     }
@@ -258,7 +268,7 @@ export class BridgePool implements Contract {
         });
     }
 
-    async sendSetRateLimit(provider: ContractProvider, via: Sender, value: bigint, config:rateLimitConfig[]) {
+    async sendSetRateLimit(provider: ContractProvider, via: Sender, value: bigint, config: rateLimitConfig[]) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
@@ -281,7 +291,15 @@ export class BridgePool implements Contract {
             body: BridgePool.PackReleaseBody(swapId, receiptId, receiptHash, targetAddress, chainId)
         });
     }
-
+    
+    async sendAddNativeLiquidity(provider: ContractProvider, via: Sender, value: bigint, amount: bigint | number) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: BridgePool.packAddNativeLiquidityBody(amount)
+        });
+    }
+    
 
     async getAdmin(provider: ContractProvider) {
         const result = await provider.get('get_admin', []);
@@ -299,8 +317,7 @@ export class BridgePool implements Contract {
     }
 
     async getJettonAddress(provider: ContractProvider) {
-        const {stack} = await provider.get('get_jetton_address', [
-        ]);
+        const {stack} = await provider.get('get_jetton_address', []);
         // return stack.readNumber();
         return {
             jettonAddress: stack.readAddress(),

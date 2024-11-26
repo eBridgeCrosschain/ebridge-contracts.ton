@@ -209,6 +209,17 @@ export class Bridge implements Contract {
         return payload;
     }
 
+    static PackCreateNativeReceiptBody(targetChainId: number, targetAddress: Buffer, amount: number | bigint) {
+        let queryId = Bridge.getQueryId();
+        let payload = beginCell()
+            .storeUint(Op.bridge.create_native_receipt, 32)
+            .storeUint(queryId, 64)
+            .storeUint(targetChainId, 32)
+            .storeBuffer(targetAddress, 32)
+            .storeCoins(amount)
+            .endCell();
+        return payload;
+    }
 
     static packReceiptOk(targetChainId: number, owner: Address, jetton: Address, targetAddress: Buffer, amount: number | bigint, receiptId: Cell): Cell {
         let queryId = Bridge.getQueryId();
@@ -469,6 +480,21 @@ export class Bridge implements Contract {
 
     }
 
+    async sendCreateNativeReceipt(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        targetChainId: number,
+        targetAddress: Buffer,
+        amount: number | bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.PackCreateNativeReceiptBody(targetChainId, targetAddress,amount)
+        });
+    }
+
     // get
 
     async getIsJettonSupport(provider: ContractProvider, targetChainId: number, address: Address) {
@@ -548,6 +574,34 @@ export class Bridge implements Contract {
         return result.stack.readAddress();
     }
 
+    async getEstimateCreateReceiptFee(provider: ContractProvider) {
+        const result = await provider.get('get_estimate_create_receipt_fee', []);
+        return result.stack.readBigNumber()
+    }
+
+    async getEstimateRecordReceiptFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_record_receipt_fee', []);
+        return res.stack.readBigNumber();
+    }
+
+    async getEstimateSwapFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_swap_fee', []);
+        return res.stack.readBigNumber();
+    }
+
+    async getEstimateStorageFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_storage_fee', []);
+        return res.stack.readBigNumber();
+    }
+    async getEstimateRecordSwapFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_record_swap_fee', []);
+        return res.stack.readBigNumber();
+    }
+    
+    async getEstimateLockFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_lock_fee', []);
+        return res.stack.readBigNumber();
+    }
 }
 
 

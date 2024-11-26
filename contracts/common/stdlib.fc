@@ -26,7 +26,7 @@ forall X -> tuple cons(X head, tuple tail) asm "CONS";
 forall X -> (X, tuple) uncons(tuple list) asm "UNCONS";
 
 ;;; Extracts the tail and the head of lisp-style list.
-forall X -> (tuple, X) list_next(tuple list) asm( -> 1 0) "UNCONS";
+forall X -> (tuple, X) list_next(tuple list) asm(-> 1 0) "UNCONS";
 
 ;;; Returns the head of lisp-style list.
 forall X -> X car(tuple list) asm "CAR";
@@ -285,12 +285,12 @@ slice begin_parse(cell c) asm "CTOS";
 () end_parse(slice s) impure asm "ENDS";
 
 ;;; Loads the first reference from the slice.
-(slice, cell) load_ref(slice s) asm( -> 1 0) "LDREF";
+(slice, cell) load_ref(slice s) asm(-> 1 0) "LDREF";
 
 ;;; Preloads the first reference from the slice.
 cell preload_ref(slice s) asm "PLDREF";
 
-  {- Functions below are commented because are implemented on compilator level for optimisation -}
+{- Functions below are commented because are implemented on compilator level for optimisation -}
 
 ;;; Loads a signed [len]-bit integer from a slice [s].
 ;; (slice, int) ~load_int(slice s, int len) asm(s len -> 1 0) "LDIX";
@@ -311,8 +311,8 @@ cell preload_ref(slice s) asm "PLDREF";
 ;; slice preload_bits(slice s, int len) asm "PLDSLICEX";
 
 ;;; Loads serialized amount of TonCoins (any unsigned integer up to `2^128 - 1`).
-(slice, int) load_grams(slice s) asm( -> 1 0) "LDGRAMS";
-(slice, int) load_coins(slice s) asm( -> 1 0) "LDGRAMS";
+(slice, int) load_grams(slice s) asm(-> 1 0) "LDGRAMS";
+(slice, int) load_coins(slice s) asm(-> 1 0) "LDGRAMS";
 
 ;;; Returns all but the first `0 ≤ len ≤ 1023` bits of `slice` [s].
 slice skip_bits(slice s, int len) asm "SDSKIPFIRST";
@@ -330,7 +330,7 @@ slice slice_last(slice s, int len) asm "SDCUTLAST";
 
 ;;; Loads a dictionary `D` (HashMapE) from `slice` [s].
 ;;; (returns `null` if `nothing` constructor is used).
-(slice, cell) load_dict(slice s) asm( -> 1 0) "LDDICT";
+(slice, cell) load_dict(slice s) asm(-> 1 0) "LDDICT";
 
 ;;; Preloads a dictionary `D` from `slice` [s].
 cell preload_dict(slice s) asm "PLDDICT";
@@ -342,7 +342,7 @@ slice skip_dict(slice s) asm "SKIPDICT";
 ;;; In other words loads 1 bit and if it is true
 ;;; loads first ref and return it with slice remainder
 ;;; otherwise returns `null` and slice remainder
-(slice, cell) load_maybe_ref(slice s) asm( -> 1 0) "LDOPTREF";
+(slice, cell) load_maybe_ref(slice s) asm(-> 1 0) "LDOPTREF";
 
 ;;; Preloads (Maybe ^Cell) from `slice` [s].
 cell preload_maybe_ref(slice s) asm "PLDOPTREF";
@@ -485,7 +485,7 @@ builder store_maybe_ref(builder b, cell c) asm(c b) "STOPTREF";
 
 ;;; Loads from slice [s] the only prefix that is a valid `MsgAddress`,
 ;;; and returns both this prefix `s'` and the remainder `s''` of [s] as slices.
-(slice, slice) load_msg_addr(slice s) asm( -> 1 0) "LDMSGADDR";
+(slice, slice) load_msg_addr(slice s) asm(-> 1 0) "LDMSGADDR";
 
 ;;; Decomposes slice [s] containing a valid `MsgAddress` into a `tuple t` with separate fields of this `MsgAddress`.
 ;;; If [s] is not a valid `MsgAddress`, a cell deserialization exception is thrown.
@@ -623,3 +623,33 @@ int equal_slices(slice a, slice b) asm "SDEQ";
 
 ;;; Concatenates two builders
 builder store_builder(builder to, builder from) asm "STBR";
+
+;;; Retrieves code of smart-contract from c7
+cell my_code() asm "MYCODE";
+
+;;; Creates an output action and returns a fee for creating a message. Mode has the same effect as in the case of SENDRAWMSG
+int send_message(cell msg, int mode) impure asm "SENDMSG";
+
+int gas_consumed() asm "GASCONSUMED";
+
+;; TVM V6 https://github.com/ton-blockchain/ton/blob/testnet/doc/GlobalVersions.md#version-6
+
+int get_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEE";
+int get_storage_fee(int workchain, int seconds, int bits, int cells) asm(cells bits seconds workchain) "GETSTORAGEFEE";
+int get_forward_fee(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDFEE";
+int get_precompiled_gas_consumption() asm "GETPRECOMPILEDGAS";
+
+int get_simple_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEESIMPLE";
+int get_simple_forward_fee(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDFEESIMPLE";
+int get_original_fwd_fee(int workchain, int fwd_fee) asm(fwd_fee workchain) "GETORIGINALFWDFEE";
+int my_storage_due() asm "DUEPAYMENT";
+
+tuple get_fee_cofigs() asm "UNPACKEDCONFIGTUPLE";
+
+;;; Creates an output action which would reserve exactly x nanograms (if y = 0).
+const int RESERVE_REGULAR = 0;
+;;; Creates an output action which would reserve at most x nanograms (if y = 2).
+;;; Bit +2 in y means that the external action does not fail if the specified amount cannot be reserved; instead, all remaining balance is reserved.
+const int RESERVE_AT_MOST = 2;
+;;; in the case of action fail - bounce transaction. No effect if RESERVE_AT_MOST (+2) is used. TVM UPGRADE 2023-07. https://docs.ton.org/learn/tvm-instructions/tvm-upgrade-2023-07#sending-messages
+const int RESERVE_BOUNCE_ON_ACTION_FAIL = 16;

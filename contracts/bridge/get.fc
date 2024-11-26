@@ -4,6 +4,7 @@
 #include "../common/utils.fc";
 #include "bridge_receipt_account-utils.fc";
 #include "utils.fc";
+#include "../gas.fc";
 
 (slice) get_bridge_swap_address(slice jetton_address) method_id {
     load_storage();
@@ -68,3 +69,27 @@
     load_storage();
     return storage::temp_upgrade;
 }
+
+;; (int) get_estimate_create_receipt_fee() method_id {
+;;     return calculate_create_receipt_process_fee();
+;; }
+;; 
+;; (int) get_estimate_swap_fee() method_id {
+;;     return calculate_swap_process_fee();
+;; }
+;; 
+;; (int) get_estimate_record_receipt_fee() method_id {
+;;     return calculate_receipt_process_fee();
+;; }
+;; 
+;; (int) get_estimate_lock_fee() method_id {
+;;     return calculate_lock_process_fee();
+;; }
+;; 
+;; (int) get_estimate_record_swap_fee() method_id {
+;;     return calculate_record_swap_process_fee();
+;; }
+
+;; (int) get_estimate_storage_fee() method_id {
+;;     return calculate_bridge_receipt_account_min_storage_fee();
+;; }

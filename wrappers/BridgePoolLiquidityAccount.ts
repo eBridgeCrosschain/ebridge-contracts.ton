@@ -30,13 +30,13 @@ export class BridgePoolLiquidityAccount implements Contract {
         return new BridgePoolLiquidityAccount(contractAddress(workchain, init), init);
     }
     
-    static packRemoveLiquidityBody(amount:number|bigint){
+    static packRemoveLiquidityBody(amount:number|bigint,isNative:boolean=false){
         let queryId = Bridge.getQueryId();
         return beginCell()
             .storeUint(Op.bridge_pool_liquidity_account.account_remove_liquidity, 32)
             .storeUint(queryId,64)
             .storeCoins(amount)
-            .storeBit(false)
+            .storeBit(isNative)
             .endCell();
     }
 
@@ -48,14 +48,14 @@ export class BridgePoolLiquidityAccount implements Contract {
         });
     }
     
-    async sendRemoveLiquidity(provider: ContractProvider, via: Sender, value: bigint, amount: bigint) {
+    async sendRemoveLiquidity(provider: ContractProvider, via: Sender, value: bigint, amount: bigint,isNative:boolean=false) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: BridgePoolLiquidityAccount.packRemoveLiquidityBody(amount),
+            body: BridgePoolLiquidityAccount.packRemoveLiquidityBody(amount,isNative),
         });
-    
     }
+    
     async getLiquidity(provider: ContractProvider){
         const {stack} = await provider.get('get_lp_account_data',[]);
         return {

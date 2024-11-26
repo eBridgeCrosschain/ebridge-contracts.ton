@@ -1,5 +1,6 @@
 #include "op.fc";
 #include "storage.fc";
+#include "../gas.fc";
 #include "../common/dic.fc";
 #include "../common/stdlib.fc";
 

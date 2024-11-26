@@ -52,7 +52,6 @@ describe('BridgeSwap', () => {
             bridgePoolAddress: bridgePool.address,
             jettonAddress: testJettonAddress,
             bridgeAddress: bridge.address,
-            oracleAddress: oracle,
             admin: admin.address,
             owner: owner,
             tempUpgrade: tempUpgrade,
@@ -92,7 +91,7 @@ describe('BridgeSwap', () => {
             let fromChainId = swapInfo.loadUint(32);
             let swapId_log = swapInfo.loadRef();
             console.log(fromChainId);
-            console.log(swapId_log.asSlice().loadBuffer(32).toString('hex'));
+            console.log(swapId_log.asSlice().loadBuffer(32).toString('base64'));
             swapId = swapId_log;
         }
     });
@@ -134,7 +133,7 @@ describe('BridgeSwap', () => {
                 let fromChainId = swapInfo.loadUint(32);
                 let swapId = swapInfo.loadRef().asSlice();
                 console.log(fromChainId);
-                console.log(swapId.loadBuffer(32).toString('hex'));
+                console.log(swapId.loadBuffer(32).toString('base64'));
             }
         }
         let res1 = await swap.getSwapData(chainIdSide2);
