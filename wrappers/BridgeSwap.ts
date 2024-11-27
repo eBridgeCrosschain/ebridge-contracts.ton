@@ -10,6 +10,7 @@ import {
     SendMode
 } from '@ton/core';
 import {Errors, Op} from "./constants";
+import {Bridge} from "./Bridge";
 
 export type BridgeSwapConfig = {
     bridgePoolAddress: Address,
@@ -190,6 +191,42 @@ export class BridgeSwap implements Contract {
         });
     }
 
+    async sendInitCodeUpgrade(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        code: Cell
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packInitCodeUpgradeBody(code)
+        });
+    }
+
+    async sendCancelUpgrade(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint
+    ){
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packCancelUpgradeBody()
+        });
+    }
+
+    async sendFinalizeUpgradeCode(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packFinalizeUpgradeBody()
+        });
+    }
     async getAdmin(provider: ContractProvider) {
         const result = await provider.get('get_admin', []);
         return result.stack.readAddress();

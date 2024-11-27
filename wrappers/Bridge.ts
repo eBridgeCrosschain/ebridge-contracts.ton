@@ -254,6 +254,14 @@ export class Bridge implements Contract {
             .endCell();
     }
 
+    static packCancelUpgradeBody(): Cell {
+        let queryId = Bridge.getQueryId();
+        return beginCell()
+            .storeUint(Op.bridge.cancel_code_upgrade, 32)
+            .storeUint(queryId, 64)
+            .endCell();
+    }
+
     static packTransmit(messageId: bigint, sourceChainId: number, targetChainId: number, sender: Buffer, receiver: Address, data: Buffer, dataOther: Buffer, swapId: Cell, jetton: Address): Cell {
         let originToken = Buffer.from("USDT");
         let message = beginCell()
@@ -445,6 +453,18 @@ export class Bridge implements Contract {
             body: Bridge.packInitCodeUpgradeBody(code)
         });
     }
+    
+    async sendCancelUpgrade(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint
+    ){
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packCancelUpgradeBody()
+        });
+    }
 
     async sendFinalizeUpgradeCode(
         provider: ContractProvider,
@@ -521,7 +541,6 @@ export class Bridge implements Contract {
         const result = await provider.get('get_bridge_swap_address', [{
             type: 'slice',
             cell: beginCell().storeAddress(address).endCell()
-
         }]);
         return result.stack.readAddress();
     }

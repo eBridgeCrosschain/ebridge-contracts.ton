@@ -62,10 +62,14 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // await setBridgePool(bridge, admin, jettonMinter.address, bridgePool.address);
     // // 4. set target contract
     // await setTargetContract(bridge, admin, targetContract, chainId);
+    
     // // 5. create swap
     // await createSwap(bridgeSwap, admin, chainId);
+    
     // // 6. set bridge
     // await setBridge(bridgePool, admin, bridge.address);
+    // // 6'. set bridge swap
+    // await setBridgePoolSwap(bridgePool, admin, bridgeSwap.address);
     // // 7. set jetton
     // await setJetton(bridgePool, admin, jettonMinter.address, bridgePoolJettonWallet.address);
     // // 8. set daily limit
@@ -82,9 +86,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // let pool = await bridge.getBridgePool(jettonMinter.address);
     // console.log(pool);
     // // get swap info
-    let swapInfo = await bridgeSwap.getSwapData(chainId);
+    // let swapInfo = await bridgeSwap.getSwapData(chainId);
     // // swapId:6akJ+WNN/7uYAH2YHHjbc11djaEkxzpWPI9gK/jdDns=
-    console.log(swapInfo.swapId.toString('base64'));
+    // console.log(swapInfo.swapId.toString('base64'));
     // console.log(swapInfo.fromChainId);
     // console.log(swapInfo.originShare);
     // console.log(swapInfo.targetShare);
@@ -93,6 +97,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // // get bridge
     // let bridgeGet = await bridgePool.getBridgeAddress();
     // console.log(bridgeGet);
+    // get bridge swap
+    let bridgeswapget = await bridgePool.getBridgeSwapAddress();
+    console.log(bridgeswapget);
     // // get jetton
     // let jetton = await bridgePool.getJettonAddress();
     // console.log(jetton.jettonAddress);
@@ -186,6 +193,9 @@ async function setBridge(bridgePool: OpenedContract<BridgePool>, admin: Sender, 
     await bridgePool.sendSetBridge(admin, toNano('0.01'), bridgeAddress);
 }
 
+async function setBridgePoolSwap(bridgePool: OpenedContract<BridgePool>, admin: Sender, swap: Address) {
+    await bridgePool.sendSetBridgeSwap(admin, toNano('0.004'), swap);
+}
 async function setJetton(bridgePool: OpenedContract<BridgePool>, admin: Sender, jettonAddress: Address, bridgePoolJettonWallet: Address) {
     await bridgePool.sendSetJetton(admin, toNano('0.01'), jettonAddress, bridgePoolJettonWallet);
 }

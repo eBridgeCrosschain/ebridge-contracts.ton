@@ -73,7 +73,7 @@
             .store_uint(jetton_amount, 256)
             .end_cell())
         .end_cell();
-    send_simple_message(0, storage::oracle_address, tx, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+    send_simple_message(TO_ORACLE_TON, storage::oracle_address, tx, SEND_MODE_REGULAR | SEND_MODE_IGNORE_ERRORS);
 }
 
 (int, int, int, int, slice) decode_message_and_verification(slice message) impure inline {

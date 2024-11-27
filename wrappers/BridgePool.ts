@@ -299,7 +299,42 @@ export class BridgePool implements Contract {
             body: BridgePool.packAddNativeLiquidityBody(amount)
         });
     }
-    
+    async sendInitCodeUpgrade(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        code: Cell
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packInitCodeUpgradeBody(code)
+        });
+    }
+
+    async sendCancelUpgrade(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint
+    ){
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packCancelUpgradeBody()
+        });
+    }
+
+    async sendFinalizeUpgradeCode(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packFinalizeUpgradeBody()
+        });
+    }
 
     async getAdmin(provider: ContractProvider) {
         const result = await provider.get('get_admin', []);

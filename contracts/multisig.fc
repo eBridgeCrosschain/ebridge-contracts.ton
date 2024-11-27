@@ -38,7 +38,6 @@
 
     load_storage();
     if (op == new_order) {
-        storage::next_order_seqno += 1;
         int signer? = in_msg_body~load_bool();
         int index = in_msg_body~load_index();
         int expiration_date = in_msg_body~load_timestamp();
@@ -52,7 +51,7 @@
         int minimal_value = calculate_order_processing_cost(order_body, storage::signers_info, expiration_date - now());
         throw_unless(error::not_enough_ton, msg_value >= minimal_value);
 
-        cell state_init = calculate_order_state_init(my_address(), (storage::next_order_seqno - 1),storage::order_code);
+        cell state_init = calculate_order_state_init(my_address(), storage::next_order_seqno,storage::order_code);
         slice order_address = calculate_address_by_state_init(BASECHAIN, state_init);
         builder init_body = begin_cell()
             .store_body_header(init, query_id)
@@ -67,7 +66,8 @@
             init_body.end_cell(),
             SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_BOUNCE_TRANSACTION
         );
-
+        storage::next_order_seqno += 1;
+        save_storage();
     } elseif (op == execute) {
         int order_seqno = in_msg_body~load_order_seqno();
         int expiration_date = in_msg_body~load_timestamp();

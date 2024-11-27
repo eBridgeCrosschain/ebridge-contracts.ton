@@ -10,7 +10,7 @@ const restart = "restart"c;
 
 ;; bridge swap
 const swap = "swap_token"c;
-const swap_ok = "swap_ok"c;
+const swap_ok = "swap_token_ok"c;
 
 ;; bridge receipt
 const receipt_ok = "receipt_ok"c;

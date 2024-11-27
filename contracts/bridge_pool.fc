@@ -179,7 +179,7 @@
         (var success, var error, var min_wait_seconds) = consume_limit(chain_id, SWAP, amount);
         if (success) {
             var ton_amount_to_record_swap = ONE_TON / 100;
-            var body0 = create_simple_transfer_body(query_id, 0, my_address(), amount, receiver);
+            var body0 = create_simple_transfer_body(query_id, 0, storage::bridge_address, amount, receiver);
             body0 = body0.store_uint(swap_ok, 32);
             storage::liquidity -= amount;
             send_simple_message(msg_value - ton_amount_to_record_swap, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_REGULAR | SEND_MODE_IGNORE_ERRORS);

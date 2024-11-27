@@ -15,13 +15,25 @@ global int storage::sent_for_execution;
     slice ds = get_data().begin_parse();
     storage::multisig_address = ds~load_msg_addr();
     storage::order_seqno = ds~load_order_seqno();
-    storage::threshold = ds~load_index();
-    storage::signers_info = ds~load_nonempty_dict();
-    storage::approvals_mask = ds~load_uint(MASK_SIZE);
-    storage::approvals_num = ds~load_index();
-    storage::expiration_time = ds~load_timestamp();
-    storage::order = ds~load_ref();
-    storage::sent_for_execution = ds~load_bool();
+    if (ds.slice_bits() == 0) {
+        ;; not initialized yet
+        storage::threshold = null();
+        storage::signers_info = null();
+        storage::approvals_mask = null();
+        storage::approvals_num = null();
+        storage::expiration_time = null();
+        storage::order = null();
+        storage::sent_for_execution = null();
+    } else {
+        storage::threshold = ds~load_index();
+        storage::signers_info = ds~load_nonempty_dict();
+        storage::approvals_mask = ds~load_uint(MASK_SIZE);
+        storage::approvals_num = ds~load_index();
+        storage::expiration_time = ds~load_timestamp();
+        storage::order = ds~load_ref();
+        storage::sent_for_execution = ds~load_bool();
+        ds.end_parse();
+    }
 }
 
 () save_storage() impure inline {

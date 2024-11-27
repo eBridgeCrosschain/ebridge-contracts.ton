@@ -13,7 +13,7 @@ export abstract class Op {
         pause: 0xd79a92ed,
         restart: 0xe7f92207,
         swap: 0xfed264fb,
-        swap_ok: 0xc64370e5,
+        swap_ok: 0x7079feb3,
         receipt_ok: 0xedb91281,
         send_bridge_info_to_oracle: 0x00000004,
         transmit: 0x00000003,
@@ -55,7 +55,7 @@ export abstract class Op {
         swap_failed: 0x54e8402,
         record_swap: 0xc02414b5,
         create_swap: 0xa4321808,
-        swap_ok: 0xc64370e5,
+        swap_ok: 0x7079feb3,
         resend_to_oracle: 0x1f55bd2e,
         release_native_token: 0xd0df706,
         init_code_upgrade: 0xdf1e233d,
@@ -79,7 +79,7 @@ export abstract class Op {
         remove_liquidity: 0x14626b95,
         remove_native_token_liquidity: 0xbbb48325,
         record_receipt: 0xe446b638,
-        swap_ok: 0xc64370e5,
+        swap_ok: 0x7079feb3,
         swap_failed: 0x54e8402,
         record_swap: 0xc02414b5,
         provider_liquidity: 0x5e7e727c,
@@ -114,6 +114,23 @@ export abstract class Op {
         remove_native_token_liquidity: 0xbbb48325,
         remove_liquidity: 0x14626b95,
         account_remove_liquidity: 0x7284d741
+    }
+
+    static readonly multisig = {
+        new_order : 0xdbfd045,
+        execute: 0xff6310de,
+        execute_internal: 0xdbd70e57
+    }
+
+    static readonly order = {
+        approve: 0x845dda8c,
+        approve_rejected : 0x7c055e53,
+        approved: 0x845dda8c,
+        init: 0xc674e474
+    }
+    static readonly actions = {
+        send_message: 0x5757d6f8,
+        update_multisig_params: 0x1b7cbf7d,
     }
 }
 

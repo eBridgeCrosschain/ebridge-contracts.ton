@@ -16,7 +16,7 @@ const remove_native_token_liquidity = "remove_native_token_liquidity"c;
 const record_receipt = "record_receipt"c;
 
 ;; bridge swap
-const swap_ok = "swap_ok"c;
+const swap_ok = "swap_token_ok"c;
 const swap_failed = "swap_failed"c;
 const record_swap = "record_swap"c;
 

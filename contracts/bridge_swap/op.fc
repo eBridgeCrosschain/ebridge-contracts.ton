@@ -16,7 +16,7 @@ const create_swap = "create_swap"c;
 
 ;; bridge
 const resend_to_oracle = "resend_to_oracle"c;
-const swap_ok = "swap_ok"c;
+const swap_ok = "swap_token_ok"c;
 
 
 ;; async "get" calls
