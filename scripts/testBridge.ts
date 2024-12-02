@@ -10,32 +10,43 @@ import {JettonWallet} from "../wrappers/JettonWallet";
 import {BridgeSwap} from "../wrappers/BridgeSwap";
 import {BridgePool} from "../wrappers/BridgePool";
 
+
+const bridgeAddress = Address.parseFriendly("EQDZV48b9MC5w1DQsUPTZcmKpGzt13sbMvHrWqcQqTQUVdrR");
+const bridgePoolAddress = Address.parseFriendly("EQAOWkc0ArTeXP6MkgVx1-Zelk21uRq5flcjwBmw2Tjt5yey");
+const nativePoolAddress = Address.parseFriendly("EQBcYW6bUy77wlQFLRBGl2aaYhFgliD_Jfcx7AUPv-ii-Ati");
+const bridgeSwapAddress = Address.parseFriendly("EQB6PCFSgqSkv0308G2ZQsZPjS63375DXKQ_Bs_vBiAqSK3l");
+const nativeSwapAddress = Address.parseFriendly("EQBun5DRg-z0z9SZiMp6_PaTqtcJSt6pCOTfr_O2tGeMLQuE");
+const jettonMinter = Address.parseFriendly("EQBSKUt9k20Gz8RqG71xloqnzcFHt0MdWg1UnWcyU5Xf9CsU");
+const testAccount = Address.parseFriendly("EQA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qDb2");
+const nativeToken = Address.parseFriendly("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
+
+const chainId = 1931928;
+const targetContract = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+
+const chainIdMain = 9992731;
+const targetContractMain = "foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz";
 export async function run(provider: NetworkProvider, args: string[]) {
 
-    const address = "EQDVfY0eShpaEvztwtIFf2a0ECwETJdhavHgF2J0tyhV69OJ";
-    const bridge = provider.open(Bridge.createFromAddress(Address.parseFriendly(address).address));
-    const bridgePoolAddress = Address.parseFriendly("EQAP_4H05mqqQBuBT0cJR9zbEOhIEHuhNVFb0hJDg_35BIe-");
+    const bridge = provider.open(Bridge.createFromAddress(bridgeAddress.address));
     const bridgePool = provider.open(BridgePool.createFromAddress(bridgePoolAddress.address));
-    const bridgeSwapAddress = Address.parseFriendly("EQC9DDj1FWAdrENyT4tCGL975mshr8nsaIPnfoODe3DdoBdY");
+    const nativePool = provider.open(BridgePool.createFromAddress(nativePoolAddress.address));
     const bridgeSwap = provider.open(BridgeSwap.createFromAddress(bridgeSwapAddress.address));
-
-    const jetton_address = Address.parseFriendly("EQBSKUt9k20Gz8RqG71xloqnzcFHt0MdWg1UnWcyU5Xf9CsU");
-    const jetton_minter = provider.open(JettonMinter.createFromAddress(jetton_address.address));
+    const nativeSwap = provider.open(BridgeSwap.createFromAddress(nativeSwapAddress.address));
+    const jetton_minter = provider.open(JettonMinter.createFromAddress(jettonMinter.address));
 
     const userWallet = async (address: Address) => provider.open(
         JettonWallet.createFromAddress(
             await jetton_minter.getWalletAddress(address)
         )
     );
-    let receipt_amount = BigInt(500000);
+    let receipt_amount = BigInt(1500000);
     let forwardAmount = toNano('0.15');
-    const chainId = 1931928;
     let targetAddress = "ZVJHCVCzixThco58iqe4qnE79pmxeDuYtMsM8k71RhLLxdqB5";
     let targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
     const deployJettonWallet = await userWallet(provider.sender().address!);
     console.log(targetAddressBuffer.toString('hex'));
     let payload = Bridge.PackCreateReceiptBody(
-        chainId, deployJettonWallet.address,
+        chainIdMain, deployJettonWallet.address,
         Buffer.from(targetAddressBuffer), jetton_minter.address);
     await deployJettonWallet.sendTransfer(
         provider.sender(),

@@ -678,7 +678,7 @@ describe('Pipeline', () => {
 
             const result = await accountJettonWallet.sendTransfer(
                 testAccount.getSender(),
-                toNano('0.5'),
+                toNano('0.2'),
                 receipt_amount,
                 bridge.address,
                 testAccount.address,

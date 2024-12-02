@@ -5,8 +5,9 @@ import {BridgePool} from "../wrappers/BridgePool";
 
 export async function run(provider: NetworkProvider) {
     console.log(provider.sender().address);
-    const bridgeAddress = Address.parseFriendly("EQDVfY0eShpaEvztwtIFf2a0ECwETJdhavHgF2J0tyhV69OJ");
+    const bridgeAddress = Address.parseFriendly("EQDZV48b9MC5w1DQsUPTZcmKpGzt13sbMvHrWqcQqTQUVdrR");
     const jettonAddress = Address.parseFriendly("EQBSKUt9k20Gz8RqG71xloqnzcFHt0MdWg1UnWcyU5Xf9CsU");
+    const nativeToken = Address.parseFriendly("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
     let dic = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
     let tempUpgrade = beginCell()
         .storeUint(0, 64)
@@ -22,7 +23,7 @@ export async function run(provider: NetworkProvider) {
         bridge_address: bridgeAddress.address,
         bridge_receipt_account_code: bridgeReceiptAccountCode,
         bridge_swap_address: null,
-        jetton_address: jettonAddress.address,
+        jetton_address: nativeToken.address,
         daily_limit: dic,
         rate_limit: dic,
         pool_liquidity_account_code: await compile("BridgePoolLiquidityAccount"),

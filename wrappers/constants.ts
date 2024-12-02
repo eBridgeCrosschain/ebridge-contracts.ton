@@ -98,7 +98,7 @@ export abstract class Op {
     }
     static readonly bridge_pool_event = {
         DAILY_LIMIT_CONSUMED : 0xc3de3da2,
-        RATE_LIMIT_CONSUMED : 0xef662842,
+        RATE_LIMIT_CONSUMED : 0x7a170c15,
         DAILY_LIMIT_CHANGED : 0x40839634,
         RATE_LIMIT_CHANGED : 0xef662842,
         LOCKED : 0x1a2a0f17,

@@ -33,7 +33,7 @@ export async function run(provider: NetworkProvider) {
         target_contract_dic: targetContractDicDefault
     }, await compile('Bridge')));
 
-    await bridge.sendDeploy(provider.sender(), toNano('0.05'));
+    await bridge.sendDeploy(provider.sender(), toNano('1'));
 
     await provider.waitForDeploy(bridge.address);
 
