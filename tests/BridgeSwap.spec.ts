@@ -3,8 +3,9 @@ import {Address, beginCell, BitString, Cell, Dictionary, toNano, Slice} from '@t
 import {BridgeSwap, SwapConfig} from '../wrappers/BridgeSwap';
 import '@ton/test-utils';
 import {compile} from '@ton/blueprint';
-import {randomAddress} from "@ton/test-utils";
+import {findTransactionRequired, randomAddress} from "@ton/test-utils";
 import {Buffer} from "buffer";
+import {Op} from "../wrappers/constants";
 
 describe('BridgeSwap', () => {
     let code: Cell;
@@ -84,7 +85,14 @@ describe('BridgeSwap', () => {
             success: true,
         });
 
-        let body = result.transactions[1].outMessages.get(0)?.body;
+        // let body = result.transactions[1].outMessages.get(0)?.body;
+        let tx = findTransactionRequired(result.transactions,{
+            on: swap.address,
+            from:admin.address,
+            op: Op.bridge_swap.create_swap,
+            success: true
+        } );
+        let body = tx.outMessages.get(0)?.body;
         if (body != undefined) {
             let info = body.asSlice();
             let swapInfo = info.loadRef().asSlice();
@@ -171,6 +179,10 @@ describe('BridgeSwap', () => {
             console.log(fromChainId);
             console.log(amount);
         }
+
+        let res1 = await swap.getSwapData(chainId);
+        console.log(res1.swappedAmount);
+        console.log(res1.swappedTimes);
     });
     
     it('swap failed resend', async () => {

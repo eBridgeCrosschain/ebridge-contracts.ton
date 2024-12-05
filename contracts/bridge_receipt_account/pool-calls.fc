@@ -30,8 +30,10 @@
         }
         save_storage();
         (int wc, int address_hash) = parse_std_addr(storage::jetton_address);
+        (int wc, int my_address_hash) = parse_std_addr(my_address());
         var token_key = begin_cell()
             .store_uint(WORKCHAIN, 32)
+            .store_uint(my_address_hash, 256)
             .store_uint(target_chain_id, 32)
             .store_uint(address_hash, 256).end_cell();
         int key_hash = string_hash(token_key.begin_parse());
@@ -55,7 +57,7 @@
         int to_leave_on_balance = my_balance - msg_value + my_storage_due();
         int amount = max(to_leave_on_balance, calculate_bridge_receipt_account_min_storage_fee());
         raw_reserve(amount, RESERVE_AT_MOST);
-        send_simple_message(0, storage::bridge_address, body, SEND_MODE_CARRY_ALL_BALANCE | SEND_MODE_IGNORE_ERRORS);
+        send_simple_message(0, storage::bridge_address, body, SEND_MODE_CARRY_ALL_BALANCE);
         return ();
     }
 

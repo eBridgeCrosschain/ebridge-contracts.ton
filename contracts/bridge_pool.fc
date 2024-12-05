@@ -24,9 +24,9 @@
         .store_slice(target_address)
         .store_coins(amount);
     if (fee == 0) {
-        send_message_with_stateinit(0, calculate_bridge_receipt_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_IGNORE_ERRORS);
+        send_message_with_stateinit(0, calculate_bridge_receipt_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
     } else {
-        send_message_with_stateinit(fee, calculate_bridge_receipt_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_REGULAR | SEND_MODE_IGNORE_ERRORS);
+        send_message_with_stateinit(fee, calculate_bridge_receipt_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_REGULAR);
     }
 
     emit_log_simple(LOCKED,
@@ -55,7 +55,7 @@
         .store_uint(error, 32)
         .store_uint(min_wait, 64)
         .end_cell();
-    send_simple_message(0, storage::bridge_swap_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_IGNORE_ERRORS);
+    send_simple_message(0, storage::bridge_swap_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
 }
 
 () emit_and_send_to_swap(slice receiver, int amount, int chain_id, int query_id, cell swap_id, cell receipt_id, int msg_amount) impure inline {
@@ -75,7 +75,7 @@
         .store_ref(receipt_id)
         .store_coins(amount)
         .end_cell();
-    send_message_nobounce(msg_amount, storage::bridge_swap_address, body_record_swap, SEND_MODE_REGULAR | SEND_MODE_IGNORE_ERRORS);
+    send_message_nobounce(msg_amount, storage::bridge_swap_address, body_record_swap, SEND_MODE_REGULAR);
 
 }
 
@@ -144,7 +144,7 @@
                 .store_uint(provider_liquidity, 32)
                 .store_uint(query_id, 64)
                 .store_coins(jetton_amount);
-            send_message_with_stateinit(0, calculate_bridge_pool_liquidity_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE + SEND_MODE_IGNORE_ERRORS);
+            send_message_with_stateinit(0, calculate_bridge_pool_liquidity_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             save_storage();
         }
         return ();
@@ -182,7 +182,7 @@
             var body0 = create_simple_transfer_body(query_id, 0, storage::bridge_address, amount, receiver);
             body0 = body0.store_uint(swap_ok, 32);
             storage::liquidity -= amount;
-            send_simple_message(msg_value - ton_amount_to_record_swap, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_REGULAR | SEND_MODE_IGNORE_ERRORS);
+            send_simple_message(msg_value - ton_amount_to_record_swap, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_REGULAR);
             emit_and_send_to_swap(receiver, amount, chain_id, query_id, swap_id, receipt_id, ton_amount_to_record_swap);
         } else {
             resend_to_swap(query_id, receipt_id, receipt_hash, message_id, error, min_wait_seconds);
@@ -226,7 +226,7 @@
             .store_uint(provider_liquidity, 32)
             .store_uint(query_id, 64)
             .store_coins(amount);
-        send_message_with_stateinit(msg_value, calculate_bridge_pool_liquidity_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_REGULAR | SEND_MODE_IGNORE_ERRORS);
+        send_message_with_stateinit(msg_value, calculate_bridge_pool_liquidity_account_address(acc_state_init), acc_state_init, body.end_cell(), SEND_MODE_REGULAR);
         save_storage();
         return ();
     }
@@ -244,7 +244,7 @@
         } else {
             var body0 = create_simple_transfer_body(query_id, 0, owner, liquidity, owner);
             body0 = body0.store_uint(remove_liquidity_ok, 32); ;; append exit code
-            send_simple_message(0, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_IGNORE_ERRORS);
+            send_simple_message(0, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         }
         save_storage();
         return ();

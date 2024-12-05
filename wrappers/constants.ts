@@ -4,8 +4,8 @@ export abstract class Op {
         internal_transfer: 0x178d4519,
         transfer_notification: 0x7362d09c,
         transfer: 0xf8a7ea5,
-        burn : 0x595f07bc,
-        burn_notification : 0x7bdd97de,
+        burn: 0x595f07bc,
+        burn_notification: 0x7bdd97de,
     }
     static readonly bridge = {
         create_receipt: 0x71a12142,
@@ -34,20 +34,21 @@ export abstract class Op {
         cancel_code_upgrade: 0x357ccc67,
         cancel_owner_upgrade: 0xeca79dd7,
         cancel_admin_upgrade: 0xa4ed9981,
-        finalize_upgrades: 0x6378509f
+        finalize_upgrades: 0x6378509f,
+        set_bridge_receipt_account_code: 0x4c54a403
     }
     static readonly bridge_event = {
-        JETTON_ADDED:0xe6be20d5,
-        JETTON_REMOVED:0xfc2f070b,
-        NEW_RECEIPT:0xfcaf1515,
-        RESTARTED:0xcd6f0669,
-        PAUSED:0xb649891d,
-        SWAP_OK:0xc14bc81f,
-        TEST_TRANSMIT:0x38692d08,
-        SWAP_FAILED:0x47f02f76,
-        CODE_UPGRADED:0x38342daf,
-        ADMIN_UPGRADED:0x98712a5a,
-        OWNER_UPGRADED:0x1a31949f
+        JETTON_ADDED: 0xe6be20d5,
+        JETTON_REMOVED: 0xfc2f070b,
+        NEW_RECEIPT: 0xfcaf1515,
+        RESTARTED: 0xcd6f0669,
+        PAUSED: 0xb649891d,
+        SWAP_OK: 0xc14bc81f,
+        TEST_TRANSMIT: 0x38692d08,
+        SWAP_FAILED: 0x47f02f76,
+        CODE_UPGRADED: 0x38342daf,
+        ADMIN_UPGRADED: 0x98712a5a,
+        OWNER_UPGRADED: 0x1a31949f
     }
     static readonly bridge_swap = {
         swap: 0xfed264fb,
@@ -67,7 +68,7 @@ export abstract class Op {
         finalize_upgrades: 0x6378509f
     }
     static readonly bridge_swap_event = {
-        SWAP_CREATED:0xfe8ddc6a
+        SWAP_CREATED: 0xfe8ddc6a
     }
     static readonly bridge_pool = {
         lock: 0x878f9b0e,
@@ -97,12 +98,12 @@ export abstract class Op {
         finalize_upgrades: 0x6378509f
     }
     static readonly bridge_pool_event = {
-        DAILY_LIMIT_CONSUMED : 0xc3de3da2,
-        RATE_LIMIT_CONSUMED : 0x7a170c15,
-        DAILY_LIMIT_CHANGED : 0x40839634,
-        RATE_LIMIT_CHANGED : 0xef662842,
-        LOCKED : 0x1a2a0f17,
-        RELEASED : 0x3d76fd5a
+        DAILY_LIMIT_CONSUMED: 0xc3de3da2,
+        RATE_LIMIT_CONSUMED: 0x7a170c15,
+        DAILY_LIMIT_CHANGED: 0x40839634,
+        RATE_LIMIT_CHANGED: 0xef662842,
+        LOCKED: 0x1a2a0f17,
+        RELEASED: 0x3d76fd5a
     }
     static readonly bridge_receipt_account = {
         record_receipt: 0xe446b638,
@@ -117,14 +118,14 @@ export abstract class Op {
     }
 
     static readonly multisig = {
-        new_order : 0xdbfd045,
+        new_order: 0xdbfd045,
         execute: 0xff6310de,
         execute_internal: 0xdbd70e57
     }
 
     static readonly order = {
         approve: 0x845dda8c,
-        approve_rejected : 0x7c055e53,
+        approve_rejected: 0x7c055e53,
         approved: 0x845dda8c,
         init: 0xc674e474
     }
@@ -146,9 +147,9 @@ export abstract class Errors {
     }
     static readonly bridge_swap = {
         UNAUTHORIZED: 81,
-        INVALID_CALL : 80,
-        SWAP_NOT_FOUND : 95,
-        ALREADY_RECORDED : 96,
+        INVALID_CALL: 80,
+        SWAP_NOT_FOUND: 95,
+        ALREADY_RECORDED: 96,
         WRONG_OP: 0xffff,
     }
     static readonly bridge_pool = {

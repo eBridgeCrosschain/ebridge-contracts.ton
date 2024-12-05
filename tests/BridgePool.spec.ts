@@ -3,7 +3,7 @@ import {Address, beginCell, BitString, Cell, Dictionary, toNano} from '@ton/core
 import {BridgePool} from '../wrappers/BridgePool';
 import '@ton/test-utils';
 import {compile} from '@ton/blueprint';
-import {randomAddress} from "@ton/test-utils";
+import {findTransactionRequired, randomAddress} from "@ton/test-utils";
 import {JettonMinter} from "../wrappers/JettonMinter";
 import {JettonWallet} from "../wrappers/JettonWallet";
 import {Buffer} from "buffer";
@@ -11,6 +11,7 @@ import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 import {BridgePoolLiquidityAccount} from "../wrappers/BridgePoolLiquidityAccount";
 import aelf from "aelf-sdk";
 import exp from "constants";
+import {Op} from "../wrappers/constants";
 
 
 describe('BridgePool', () => {
@@ -442,14 +443,37 @@ describe('BridgePool', () => {
         expect(balance).toEqual(toNano('990.23'));
         let balance1 = await bridgePoolJettonWallet.getJettonBalance();
         expect(balance1).toEqual(toNano('10'));
-
-        console.log(result.transactions[4].outMessages.get(0)?.body);
-        let body = result.transactions[4].outMessages.get(0)?.body;
-        console.log(testAccount.address);
-        if (body != undefined) {
-            let lockInfo = body.asSlice();
-            let address = lockInfo.loadUint(32);
-            console.log(address);
+        
+        let tx = findTransactionRequired(result.transactions, {
+            on: bridgePool.address,
+            from: bridgePoolJettonWallet.address,
+            success: true
+        });
+        console.log(tx);
+        for (let i = 0; i < tx.outMessages.size; i++) {
+            // console.log(tx.outMessages.get(i));
+            // console.log(tx.outMessages.get(i)?.info);
+            // console.log(tx.outMessages.get(i)?.info?.dest.value);
+            if (tx.outMessages.get(i)?.info?.dest.value != undefined && tx.outMessages.get(i)?.info?.dest.value == Op.bridge_pool_event.LOCKED) {
+                let body = tx.outMessages.get(i)?.body;
+                if (body != undefined) {
+                    let lockInfo = body.asSlice();
+                    let eventId = lockInfo.loadUint(32);
+                    console.log(eventId);
+                    let targetChainId = lockInfo.loadUint(32);
+                    console.log(targetChainId);
+                    let amount = lockInfo.loadCoins();
+                    console.log(amount);
+                    let addressInfo = lockInfo.loadRef().asSlice();
+                    let owner = addressInfo.loadAddress();
+                    console.log(owner);
+                    let jettonAddress = addressInfo.loadAddress();
+                    console.log(jettonAddress);
+                    let targetAddress = addressInfo.loadBuffer(32);
+                    let add = aelf.utils.base58.encode(targetAddress);
+                    console.log(add);
+                }
+            }
         }
         let liquidityAfter = await bridgePool.getPoolLiquidity();
         expect(liquidityAfter).toBe(BigInt(10000000000));

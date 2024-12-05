@@ -429,7 +429,7 @@ describe('Bridge', () => {
             null,
             forwardAmount,
             payload);
-       
+
         expect(result.transactions).toHaveTransaction({
             from: testAccountJettonWallet.address,
             to: bridgeJettonWallet.address,
@@ -507,7 +507,7 @@ describe('Bridge', () => {
 
     });
     it('parse', async () => {
-        let body = "te6cckECCwEAAf4AAUgAAAADSkqsp/MaHUcm2kDQPeYMubm99K94GjAucjwNh6xG8aYBBCAAAAAAAB16mAAAAAAAAARMAgMEBQBAJ1WKoqA26qz6dA25RZqSkJToX/IWj77CkdCtEJURsKEAQ4Aar7GjyUNLQl+duFpAr+zWggWAiZLsLV48AuxOluUKvXABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQYEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCAkKAI4CIN4wTiM5ZetlWb1OM5YsTjUzGyFAOaiQS2JOmD286qKBEQDsJj94gXdTrsUGFHM+KVFT+RPUFAe4TIVS+EM7ip9cG8M5AACAZTlhOTA5Zjk2MzRkZmZiYjk4MDA3ZDk4MWM3OGRiNzM1ZDVkOGRhMTI0YzczYTU2M2M4ZjYwMmJmOGRkMGU3YgBgRVFEVmZZMGVTaHBhRXZ6dHd0SUZmMmEwRUN3RVRKZGhhdkhnRjJKMHR5aFY2OU9KAEOACkUpb7JtoNn4jUN3rjLRVPm4KPboY6tBqpOs5kpyu/6QAAhVU0RUCoLC9w==";
+        let body = "te6cckECCwEAAd4AAUgAAAAD+ML6rD4UgeJKMLOcD2CiIzwQ7Z+0ytSJUEgVfr23YzsBBCAAAAAAAJh6GwAAAAAAAARMAgMEBQBAWBfCYYlzePDF8yYAeSyLXCisAS9NP1rmeDJT37OODaIAQ4AbKvHjfpgXOGoaFih6bLkxVI2duu9jZl49a1TiFSaCirABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAw8wpqYCZZG5MIbyfyvpbsblcJFUHEPaZLBIKhNPfY3oQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQYEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCAkKAI4CICMuS5Uinq3GQqvcNFgdWdro33NaFkqAQRX29yHGSAeVkQDYnId//pLw2tqEK6TQs30lMYWECEX+bwpNrwfFGpr2dpU8AABA6akJ+WNN/7uYAH2YHHjbc11djaEkxzpWPI9gK/jdDnsAYEVRRFpWNDhiOU1DNXcxRFFzVVBUWmNtS3BHenQxM3NiTXZIcldxY1FxVFFVVmRyUgBDgApFKW+ybaDZ+I1Dd64y0VT5uCj26GOrQaqTrOZKcrv+kAAIVVNEVPTtCJI=";
         let c = Cell.fromBase64(body);
         let sli = c.asSlice();
         let op = sli.loadUint(32);
@@ -520,19 +520,29 @@ describe('Bridge', () => {
         let sender1Slice = sender1.asSlice();
         let sender = sender1Slice.loadBuffer(32);
         console.log(aelf.utils.base58.encode(sender));
+        let receiver1 = originDataSlice.loadRef();
+        let receiver1Slice = receiver1.asSlice();
+        let receiver = receiver1Slice.loadAddress();
+        console.log(receiver);
         let message = originDataSlice.loadRef();
+        let messageSlice = message.asSlice();
+        let sliceBits = messageSlice.loadUint(16);
+        console.log(sliceBits);
+        let data = messageSlice.loadBits(sliceBits);
+        console.log(data);
+        
         let convert = originDataSlice.loadRef();
         let convertSlice = convert.asSlice();
-       console.log(convertSlice);
+        console.log(convertSlice);
         let swapId = convertSlice.loadRef();
-        let swapIdSlice = swapId.asSlice();
-        console.log(swapIdSlice);
-        console.log(Buffer.from(swapIdSlice.loadBuffer(32)).toString('hex'));
-        let swapId1 = swapIdSlice.loadUintBig(256);
-        console.log(swapId1);
-        
+        console.log(swapId.asSlice().loadBuffer(32).toString('base64'));
+        let targetChainId1 = convertSlice.loadUint(64);
+        let contract = convertSlice.loadRef();
+        let jetton = convertSlice.loadRef().asSlice();
+        console.log(jetton.loadAddress())
+
     });
-    
+
 });
 
 

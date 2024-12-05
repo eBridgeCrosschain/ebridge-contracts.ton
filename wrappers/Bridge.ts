@@ -304,6 +304,23 @@ export class Bridge implements Contract {
             )
             .endCell()
     }
+    
+    static PackSetReceiptAccountBody(receiptAccountCode: Cell): Cell {
+        let queryId = Bridge.getQueryId();
+        return beginCell()
+            .storeUint(Op.bridge.set_bridge_receipt_account_code, 32)
+            .storeUint(queryId, 64)
+            .storeRef(receiptAccountCode)
+            .endCell();
+    }
+    
+    async sendSetReceiptAccount(provider: ContractProvider, via: Sender, value: bigint, receiptAccountCode: Cell) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.PackSetReceiptAccountBody(receiptAccountCode)
+        });
+    }
 
     // send
     async sendAddJetton(

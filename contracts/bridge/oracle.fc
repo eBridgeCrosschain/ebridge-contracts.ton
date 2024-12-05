@@ -29,7 +29,7 @@
         .store_int(0x01, 8)
         .store_int(resend_time_span, 32)
         .end_cell();
-    send_message_nobounce(0, storage::oracle_address, payload, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_IGNORE_ERRORS);
+    send_message_nobounce(0, storage::oracle_address, payload, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
 }
 
 () encode_message_and_send_to_oracle(int target_chain_id, slice jetton_address, slice receipt_id, int jetton_amount, slice target_address) impure inline {
@@ -73,7 +73,7 @@
             .store_uint(jetton_amount, 256)
             .end_cell())
         .end_cell();
-    send_simple_message(TO_ORACLE_TON, storage::oracle_address, tx, SEND_MODE_REGULAR | SEND_MODE_IGNORE_ERRORS);
+    send_simple_message(TO_ORACLE_TON, storage::oracle_address, tx, SEND_MODE_REGULAR);
 }
 
 (int, int, int, int, slice) decode_message_and_verification(slice message) impure inline {

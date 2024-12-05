@@ -20,7 +20,7 @@
             .store_uint(exit_code, 32)
             .store_ref(receipt_id)
             .end_cell();
-        send_simple_message(0, storage::bridge_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_IGNORE_ERRORS);
+        send_simple_message(0, storage::bridge_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         save_storage();
         return ();
     }
@@ -49,7 +49,7 @@
                 .store_coins(amount)
                 .store_ref(receipt_id)
                 .end_cell()
-            , SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE | SEND_MODE_IGNORE_ERRORS);
+            , SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         save_storage();
         return ();
     }

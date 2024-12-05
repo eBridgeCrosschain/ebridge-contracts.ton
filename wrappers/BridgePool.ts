@@ -242,6 +242,14 @@ export class BridgePool implements Contract {
         return root.endCell();
     }
 
+    async sendSetReceiptAccount(provider: ContractProvider, via: Sender, value: bigint, receiptAccountCode: Cell) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.PackSetReceiptAccountBody(receiptAccountCode)
+        });
+    }
+
     // send
     async sendSetBridge(provider: ContractProvider, via: Sender, value: bigint, bridge: Address) {
         await provider.internal(via, {

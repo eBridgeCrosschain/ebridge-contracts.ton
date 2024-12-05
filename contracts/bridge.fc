@@ -136,6 +136,7 @@
                 .store_uint(SWAP_OK, 32)
                 .store_uint(chain_id, 32)
                 .store_slice(owner)
+                .store_slice(jetton_address)
                 .store_coins(amount)
                 .store_ref(receipt_id)
                 .end_cell(),
