@@ -409,6 +409,7 @@ describe('BridgePool', () => {
         // first test account wallet - transfer
         const bridgeJettonWallet = await userWallet(bridge.address);
         const bridgePoolJettonWallet = await userWallet(bridgePool.address);
+        const testAccountJettonWallet = await userWallet(testAccount.address);
 
         let liquidityBefore = await bridgePool.getPoolLiquidity();
         expect(liquidityBefore).toBe(BigInt(0));
@@ -417,6 +418,7 @@ describe('BridgePool', () => {
         let lock_amount = toNano('10');
         let forwardAmount = toNano('0.1');
         let payload = BridgePool.packLockBody(chainId, targetAddressBuffer, testAccount.address);
+        
         const result = await bridgeJettonWallet.sendTransfer(
             bridge.getSender(),
             toNano('2'),
@@ -511,7 +513,28 @@ describe('BridgePool', () => {
         expect(receipt.totalAmount).toBe(toNano('10'));
         expect(receipt.index).toBe(BigInt(1));
 
+        await jettonMinter.sendMint(
+            deployer.getSender(),
+            testAccount.address,
+            initialJettonBalance,
+            toNano('0.05'),
+            toNano('1'));
 
+        const result_failed = await testAccountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('2'),
+            lock_amount,
+            bridgePool.address,
+            bridge.address,
+            null,
+            forwardAmount,
+            payload);
+        expect(result_failed.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            success: false,
+            exitCode:81
+        });
     });
 
     it('add liquidity', async () => {
