@@ -591,7 +591,7 @@ describe('Bridge', () => {
 
     });
     it('parse', async () => {
-        let body = "te6cckECCwEAAd4AAUgAAAADLvqyMo2MovIR7+AYPHVw7wSMX5XHUT3zZmPdMFGyPs0BBCAAAAAAAB16mAAAAAAAAARMAgMEBQBAJ1WKoqA26qz6dA25RZqSkJToX/IWj77CkdCtEJURsKEAQ4AbKvHjfpgXOGoaFih6bLkxVI2duu9jZl49a1TiFSaCirABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADXF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQYEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCAkKAI4CIGDB0QB0eCZ7ExL0idS1Kl1uJbu4DomdOjEkrFwjVxb40QBIbxiddA3u6gNFJqJEFymcnGkeinIdwuksLy8Uu2YrH2J5AABA6akJ+WNN/7uYAH2YHHjbc11djaEkxzpWPI9gK/jdDnsAYEVRRFpWNDhiOU1DNXcxRFFzVVBUWmNtS3BHenQxM3NiTXZIcldxY1FxVFFVVmRyUgBDgApFKW+ybaDZ+I1Dd64y0VT5uCj26GOrQaqTrOZKcrv+kAAIVVNEVGGf/nQ=";
+        let body = "te6cckECCwEAAd4AAUgAAAADas3a1zm80gRLKasMV3nFdOe9pP3MM6DtvsTuTMaBKt0BBCAAAAAAAB16mAAAAAAAAARMAgMEBQBAJ1WKoqA26qz6dA25RZqSkJToX/IWj77CkdCtEJURsKEAQ4AbKvHjfpgXOGoaFih6bLkxVI2duu9jZl49a1TiFSaCirABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADvF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAmJaAAQYEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCAkKAI4CIFnQFwiBUY3kILgEp48D/cot7wXzZjIbtRFkOwAKf0nR0QAE3Pe/crm24aW5NdyhbKWw3l3bOgm0EYTlq+VHJbCDr7ZyAABA6akJ+WNN/7uYAH2YHHjbc11djaEkxzpWPI9gK/jdDnsAYEVRRFpWNDhiOU1DNXcxRFFzVVBUWmNtS3BHenQxM3NiTXZIcldxY1FxVFFVVmRyUgBDgApFKW+ybaDZ+I1Dd64y0VT5uCj26GOrQaqTrOZKcrv+kAAIVVNEVIKPl4M=";
         let c = Cell.fromBase64(body);
         let sli = c.asSlice();
         let op = sli.loadUint(32);
@@ -621,7 +621,7 @@ describe('Bridge', () => {
         console.log(sliceBits);
         let data1 = refInfoSlice.loadBuffer(sliceBits / 8);
         console.log(data1.toString('base64'));
-        //
+        // //
         //
         // let convert = originDataSlice.loadRef();
         // let convertSlice = convert.asSlice();
@@ -648,7 +648,7 @@ describe('Bridge', () => {
         // console.log(keyHash.toString('hex'));
         // console.log(index);
 
-        // let body = "te6cckEBAQEAKwAAUgAAAAkZgG0tcykc56aIzJnHAcpIhDOGHASvPnhVNY3JDNkUVwEAAAMVo+qtJg==";
+        // let body = "te6cckEBAQEAKwAAUgAAAAlqzdrXObzSBEspqwxXecV0572k/cwzoO2+xO5MxoEq3QEAAAL5HIduxQ==";
         // let c = Cell.fromBase64(body);
         // let b = c.asSlice();
         // let op = b.loadInt(32);

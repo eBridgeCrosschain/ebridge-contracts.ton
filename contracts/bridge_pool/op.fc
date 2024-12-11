@@ -32,6 +32,9 @@ const set_bridge_swap = "set_bridge_swap"c;
 const set_bridge = "set_bridge"c;
 const set_jetton_wallet_address = "set_jetton_wallet_address"c;
 
+;; for testnet
+const set_bridge_receipt_account_code = "set_bridge_receipt_account_code"c;
+
 const init_code_upgrade = "init_code_upgrade"c;
 const init_owner_upgrade = "init_owner_upgrade"c;
 const init_admin_upgrade = "init_admin_upgrade"c;

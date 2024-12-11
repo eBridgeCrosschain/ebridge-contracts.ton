@@ -8,6 +8,8 @@ const create_native_receipt = "create_native_receipt"c;
 const pause = "pause"c;
 const restart = "restart"c;
 
+const set_bridge_receipt_account_code = "set_bridge_receipt_account_code"c;
+
 ;; bridge swap
 const swap = "swap_token"c;
 const swap_ok = "swap_token_ok"c;

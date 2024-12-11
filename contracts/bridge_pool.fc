@@ -307,6 +307,13 @@
         save_storage();
         return ();
     }
+    
+    if (op == set_bridge_receipt_account_code){
+        throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::admin));
+        storage::bridge_receipt_account_code = in_msg_body~load_ref();
+        save_storage();
+        return ();
+    }
 
     if (equal_slices(sender_address, storage::owner)) {
         handle_owner_messages(op, query_id, my_balance, msg_value, in_msg_body);

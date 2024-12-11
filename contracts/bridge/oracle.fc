@@ -23,8 +23,8 @@
 }
 
 () resend_receipt_info(int message_id, int resend_time_span) impure inline_ref {
-    int resend_minutes = 0;
-    if (resend_time_span > 0) {
+    int resend_minutes = ONEMINUTES;
+    if (resend_time_span > ONEMINUTES) {
         resend_minutes = resend_time_span / ONEMINUTES;
     }
     var payload = begin_cell()
