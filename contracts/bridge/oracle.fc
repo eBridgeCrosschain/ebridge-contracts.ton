@@ -23,13 +23,17 @@
 }
 
 () resend_receipt_info(int message_id, int resend_time_span) impure inline_ref {
+    int resend_minutes = 0;
+    if (resend_time_span > 0) {
+        resend_minutes = resend_time_span / ONEMINUTES;
+    }
     var payload = begin_cell()
         .store_uint(resend, 32)
         .store_int(message_id, 256)
         .store_int(0x01, 8)
-        .store_int(resend_time_span, 32)
+        .store_int(resend_minutes, 32)
         .end_cell();
-    send_message_nobounce(0, storage::oracle_address, payload, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+    send_message_nobounce(TO_ORACLE_TON, storage::oracle_address, payload, SEND_MODE_REGULAR);
 }
 
 () encode_message_and_send_to_oracle(int target_chain_id, slice jetton_address, slice receipt_id, int jetton_amount, slice target_address) impure inline {
@@ -103,9 +107,9 @@
 }
 
 () receive_from_oracle(slice in_msg_body,int fee) impure inline {
-    var message_id = in_msg_body~load_uint(256);
+    var message_id = in_msg_body~load_int(256);
     if (storage::is_pause) {
-        resend_receipt_info(message_id, ONEDAY);
+        resend_receipt_info(message_id, TENMINUTES * 2);
     }
     var origin_data = in_msg_body~load_ref();
     var data = origin_data.begin_parse();
@@ -136,7 +140,7 @@
         .store_uint(swap, 32)
         .store_uint(query_id, 64)
         .store_ref(swap_id_ref)
-        .store_uint(message_id, 256)
+        .store_int(message_id, 256)
         .store_ref(begin_cell()
             .store_ref(
                 begin_cell()

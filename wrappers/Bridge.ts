@@ -440,6 +440,24 @@ export class Bridge implements Contract {
         });
     }
 
+    async sendGetterBridgeSwap(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        jetton:Address
+    ) {
+        let queryId = Bridge.getQueryId();
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(Op.bridge.getter_bridge_swap_address, 32)
+                .storeUint(queryId, 64)
+                .storeAddress(jetton)
+                .endCell()
+        });
+    }
+
     async sendReceiptOk(
         provider: ContractProvider,
         via: Sender,

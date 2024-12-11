@@ -15,7 +15,7 @@
             .store_uint(resend_to_oracle, 32)
             .store_uint(query_id, 64)
             .store_slice(storage::jetton_address)
-            .store_uint(message_id, 256)
+            .store_int(message_id, 256)
             .store_uint(seconds, 64)
             .store_uint(exit_code, 32)
             .store_ref(receipt_id)
@@ -25,7 +25,7 @@
         return ();
     }
     if (op == record_swap) {
-        (var swap_id, cell receipt_id, var amount) = (in_msg_body~load_ref().begin_parse(), in_msg_body~load_ref(), in_msg_body~load_coins());
+        (var swap_id, cell receipt_id, var amount,slice receiver) = (in_msg_body~load_ref().begin_parse(), in_msg_body~load_ref(), in_msg_body~load_coins(), in_msg_body~load_msg_addr());
         int swap_id_hash = swap_id~load_uint(256);
         (var swap_info, int found_swap) = storage::swap_dic.udict_get?(DEFAULT_KEY_LENGTH, swap_id_hash);
         (int from_chain_id, int orgin_share, int target_share, int swapped_amount, int swapped_times) =
@@ -44,7 +44,7 @@
                 .store_uint(swap_ok, 32)
                 .store_uint(query_id, 64)
                 .store_uint(from_chain_id, 32)
-                .store_slice(storage::owner)
+                .store_slice(receiver)
                 .store_slice(storage::jetton_address)
                 .store_coins(amount)
                 .store_ref(receipt_id)

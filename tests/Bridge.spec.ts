@@ -3,13 +3,14 @@ import {Address, beginCell, BitString, Cell, Dictionary, toNano} from '@ton/core
 import {Bridge} from '../wrappers/Bridge';
 import '@ton/test-utils';
 import {compile, sleep} from '@ton/blueprint';
-import {randomAddress} from "@ton/test-utils";
+import {findTransactionRequired, randomAddress} from "@ton/test-utils";
 import {Buffer} from "buffer";
 import {JettonMinter} from "../wrappers/JettonMinter";
 import {JettonWallet} from "../wrappers/JettonWallet";
 import {BridgePool} from "../wrappers/BridgePool";
 import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 import aelf from "aelf-sdk";
+import {Op} from "../wrappers/constants";
 
 describe('Bridge', () => {
     let code: Cell;
@@ -397,6 +398,27 @@ describe('Bridge', () => {
     });
 
     it('create_receipt', async () => {
+        let res = await bridge.sendGetterBridgeSwap(testAccount.getSender(), toNano('0.5'),testJettonAddress);
+        expect(res.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: testAccount.address,
+            success: true,
+        });
+        let body = res.transactions[1].outMessages.get(0)?.body;
+        if (body != undefined) {
+            let bodySlice = body.asSlice();
+            let op = bodySlice.loadUint(32);
+            let queryId = bodySlice.loadUint(64);
+            let jetton = bodySlice.loadAddress();
+            let swap = bodySlice.loadAddress();
+            console.log(swap);
+            expect(swap).toEqualAddress(swapAddress.address);
+        }
         let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
         const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
 
@@ -443,6 +465,68 @@ describe('Bridge', () => {
         });
         let balance = await testAccountJettonWallet.getJettonBalance();
         expect(balance).toEqual(toNano('990.23'));
+    });
+    
+    it('create_receipt failed token not support', async () => {
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+
+        const testAccountJettonWallet = await userWallet(testAccount.address);
+        const bridgeJettonWallet = await userWallet(bridge.address);
+
+        let initialJettonBalance = await testAccountJettonWallet.getJettonBalance();
+        expect(initialJettonBalance).toEqual(toNano('1000.23'));
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('0.15');
+        let payload = Bridge.PackCreateReceiptBody(
+            12345, testAccountJettonWallet.address,
+            targetAddressBuffer, jettonMinter.address);
+        const result = await testAccountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('2'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            null,
+            forwardAmount,
+            payload);
+        
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: testAccountJettonWallet.address,
+            success: true,
+        });
+        let tx = findTransactionRequired(result.transactions, {
+            on: bridge.address,
+            from: bridgeJettonWallet.address,
+            success: true
+        });
+        console.log(tx);
+        for (let i = 0; i < tx.outMessages.size; i++) {
+            console.log(tx.outMessages.get(i));
+            console.log(tx.outMessages.get(i)?.info);
+            console.log(tx.outMessages.get(i)?.info?.dest.value);
+            // if (tx.outMessages.get(i)?.info?.dest.value != undefined && tx.outMessages.get(i)?.info?.dest.value == Op.bridge_pool_event.LOCKED) {
+            //     let body = tx.outMessages.get(i)?.body;
+            //     if (body != undefined) {
+            //         let lockInfo = body.asSlice();
+            //         let eventId = lockInfo.loadUint(32);
+            //         console.log(eventId);
+            //         let targetChainId = lockInfo.loadUint(32);
+            //         console.log(targetChainId);
+            //         let amount = lockInfo.loadCoins();
+            //         console.log(amount);
+            //         let addressInfo = lockInfo.loadRef().asSlice();
+            //         let owner = addressInfo.loadAddress();
+            //         console.log(owner);
+            //         let jettonAddress = addressInfo.loadAddress();
+            //         console.log(jettonAddress);
+            //         let targetAddress = addressInfo.loadBuffer(32);
+            //         let add = aelf.utils.base58.encode(targetAddress);
+            //         console.log(add);
+            //     }
+            // }
+        }
     });
     it('create_native_receipt', async () => {
     });
@@ -507,7 +591,7 @@ describe('Bridge', () => {
 
     });
     it('parse', async () => {
-        let body = "te6cckECCwEAAd4AAUgAAAAD+ML6rD4UgeJKMLOcD2CiIzwQ7Z+0ytSJUEgVfr23YzsBBCAAAAAAAJh6GwAAAAAAAARMAgMEBQBAWBfCYYlzePDF8yYAeSyLXCisAS9NP1rmeDJT37OODaIAQ4AbKvHjfpgXOGoaFih6bLkxVI2duu9jZl49a1TiFSaCirABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAw8wpqYCZZG5MIbyfyvpbsblcJFUHEPaZLBIKhNPfY3oQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQYEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCAkKAI4CICMuS5Uinq3GQqvcNFgdWdro33NaFkqAQRX29yHGSAeVkQDYnId//pLw2tqEK6TQs30lMYWECEX+bwpNrwfFGpr2dpU8AABA6akJ+WNN/7uYAH2YHHjbc11djaEkxzpWPI9gK/jdDnsAYEVRRFpWNDhiOU1DNXcxRFFzVVBUWmNtS3BHenQxM3NiTXZIcldxY1FxVFFVVmRyUgBDgApFKW+ybaDZ+I1Dd64y0VT5uCj26GOrQaqTrOZKcrv+kAAIVVNEVPTtCJI=";
+        let body = "te6cckECCwEAAd4AAUgAAAADLvqyMo2MovIR7+AYPHVw7wSMX5XHUT3zZmPdMFGyPs0BBCAAAAAAAB16mAAAAAAAAARMAgMEBQBAJ1WKoqA26qz6dA25RZqSkJToX/IWj77CkdCtEJURsKEAQ4AbKvHjfpgXOGoaFih6bLkxVI2duu9jZl49a1TiFSaCirABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADXF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQYEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCAkKAI4CIGDB0QB0eCZ7ExL0idS1Kl1uJbu4DomdOjEkrFwjVxb40QBIbxiddA3u6gNFJqJEFymcnGkeinIdwuksLy8Uu2YrH2J5AABA6akJ+WNN/7uYAH2YHHjbc11djaEkxzpWPI9gK/jdDnsAYEVRRFpWNDhiOU1DNXcxRFFzVVBUWmNtS3BHenQxM3NiTXZIcldxY1FxVFFVVmRyUgBDgApFKW+ybaDZ+I1Dd64y0VT5uCj26GOrQaqTrOZKcrv+kAAIVVNEVGGf/nQ=";
         let c = Cell.fromBase64(body);
         let sli = c.asSlice();
         let op = sli.loadUint(32);
@@ -528,19 +612,134 @@ describe('Bridge', () => {
         let messageSlice = message.asSlice();
         let sliceBits = messageSlice.loadUint(16);
         console.log(sliceBits);
-        let data = messageSlice.loadBits(sliceBits);
-        console.log(data);
-        
-        let convert = originDataSlice.loadRef();
-        let convertSlice = convert.asSlice();
-        console.log(convertSlice);
-        let swapId = convertSlice.loadRef();
-        console.log(swapId.asSlice().loadBuffer(32).toString('base64'));
-        let targetChainId1 = convertSlice.loadUint(64);
-        let contract = convertSlice.loadRef();
-        let jetton = convertSlice.loadRef().asSlice();
-        console.log(jetton.loadAddress())
+        let data = messageSlice.loadBuffer(sliceBits / 8);
+        console.log(data.toString('base64'));
+        let ref = messageSlice.loadUint(8);
+        let refInfo = messageSlice.loadRef();
+        let refInfoSlice = refInfo.asSlice();
+        sliceBits = refInfoSlice.loadUint(16);
+        console.log(sliceBits);
+        let data1 = refInfoSlice.loadBuffer(sliceBits / 8);
+        console.log(data1.toString('base64'));
+        //
+        //
+        // let convert = originDataSlice.loadRef();
+        // let convertSlice = convert.asSlice();
+        // console.log(convertSlice);
+        // let swapId = convertSlice.loadRef();
+        // console.log(swapId.asSlice().loadBuffer(32).toString('base64'));
+        // let targetChainId1 = convertSlice.loadUint(64);
+        // let contract = convertSlice.loadRef();
+        // let jetton = convertSlice.loadRef().asSlice();
+        // console.log(jetton.loadAddress())
+        // let body = "te6cckEBAgEAlAABncFLyB8AHXqYgAeKwY30STYJ9mOceh+JMoEOz65bwvvvMhLqU2smDI+VEAFIpS32TbQbPxGobvXGWiqfNwUe3Qx1aDVSdZzJTld/0NMS0CABAIDF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlnIFxHg==";
+        // let c = Cell.fromBase64(body);
+        // let b = c.asSlice();
+        // let eventId = b.loadUint(32);
+        // let fromChainId = b.loadUint(32);
+        // let toAddress = b.loadAddress();
+        // console.log(toAddress);
+        // let tokenAddress = b.loadAddress();
+        // let amount = b.loadCoins();
+        // let receipt = b.loadRef();
+        // let receiptSlice = receipt.asSlice();
+        // let keyHash = receiptSlice.loadBuffer(32);
+        // let index = receiptSlice.loadUintBig(256);
+        // console.log(keyHash.toString('hex'));
+        // console.log(index);
 
+        // let body = "te6cckEBAQEAKwAAUgAAAAkZgG0tcykc56aIzJnHAcpIhDOGHASvPnhVNY3JDNkUVwEAAAMVo+qtJg==";
+        // let c = Cell.fromBase64(body);
+        // let b = c.asSlice();
+        // let op = b.loadInt(32);
+        // let messageId = b.loadIntBig(256);
+        // let type = b.loadInt(8);
+        // let min = b.loadInt(32);
+        // console.log(min);
+        // console.log(type);
+        // console.log(messageId);
+
+        
+        // let body = "te6cckEBAwEAoAABcAVOhAIAAAAAAAAAACsZwiAjlExKm0chGJ3klCFMflbbRJ7baWjsEo+LW525AAAAXQAAAAAAAKjAAQFAZtKouC1Y+2hcZNOGsRxW+dgLmj1g4yro5sKyisN5beQCAIDF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa/wSFVw==";
+        // let c = Cell.fromBase64(body);
+        // let b = c.asSlice();
+        //
+        // let queryId = b.loadIntBig(256);
+        //
+        
+        // let body ="te6cckEBAgEAnwABsx9VvS4AAAAAAAAAAIAKRSlvsm2g2fiNQ3euMtFU+bgo9uhjq0Gqk6zmSnK7/oRvQsELsH9GLRX5QBSIVhqVGNKiCsUy9plkYSiDqbXUYAAAAAAAFTjgAAALEAEAgMXn8rgaMs6DXgS38stbrH0DVEGKufFlFjYsROLCJC1rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADHySbvV";
+        // let c = Cell.fromBase64(body);
+        // let b = c.asSlice();
+        // let op = b.loadUint(32);
+        // let queryId = b.loadUintBig(64);
+        // let tokenAddress = b.loadAddress();
+        // let messageId = b.loadUintBig(256);
+        // let second = b.loadUint(64);
+        // let exitCode = b.loadUint(32);
+        // let receipt = b.loadRef();
+        // let receiptSlice = receipt.asSlice();
+        // let keyHash = receiptSlice.loadBuffer(32);
+        // let index = receiptSlice.loadUintBig(256);
+        // console.log(keyHash.toString('hex'));
+        // console.log(index);
+        // console.log(exitCode);
+        // console.log(second);
+        // console.log(messageId);
+        // console.log(tokenAddress);
+        // console.log(queryId);
+        // console.log(op);
+
+        // let body = "te6cckEBAQEAKwAAUgAAAAkZgG0tcykc56aIzJnHAcpIhDOGHASvPnhVNY3JDNkUVwEAAAMP9AURXQ==";
+        // let c = Cell.fromBase64(body);
+        // let b = c.asSlice();
+        // let op = b.loadUint(32);
+        // let messageId = b.loadIntBig(256);
+        // let exitCode = b.loadUint(32);
+        // let time = b.loadUint(64);
+        // console.log(time);
+        // console.log(exitCode);
+        // console.log(messageId);
+        // let receipt = b.loadRef();
+        // let receiptSlice = receipt.asSlice();
+        // let keyHash = receiptSlice.loadBuffer(32);
+        // let index = receiptSlice.loadUintBig(256);
+        // console.log(keyHash.toString('hex'));
+        // console.log(index);
+        
+        // let body = "te6cckEBAgEAlAABncFLyB8AHXqYgAeKwY30STYJ9mOceh+JMoEOz65bwvvvMhLqU2smDI+VEAFIpS32TbQbPxGobvXGWiqfNwUe3Qx1aDVSdZzJTld/0MBhqCABAIDF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeQCzV8w==";
+        // let c = Cell.fromBase64(body);
+        // let b = c.asSlice();
+        // let op = b.loadUint(32);
+        // let chainId = b.loadUint(32);
+        // let owner = b.loadAddress();
+        // let jetton = b.loadAddress();
+        // let amount = b.loadCoins();
+        // let receipt = b.loadRef();
+        // let receiptSlice = receipt.asSlice();
+        // let keyHash = receiptSlice.loadBuffer(32);
+        // let index = receiptSlice.loadUintBig(256);
+        // console.log(keyHash.toString('hex'));
+        // console.log(index);
+        // console.log(amount);
+        // console.log(jetton);
+        // console.log(owner);
+        // console.log(chainId);
+        
+        // let body = "te6cckEBAgEAawABcdNCAoAAAAAAAAAHiwAdepgAAAAAM6sZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcnDgQAEAWQAdepiAAAAAM6sZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcnDgQPpfq+8=";
+        // let c = Cell.fromBase64(body);
+        // let b = c.asSlice();
+        // let op = b.loadUint(32);
+        // let queryId = b.loadUintBig(64);
+        // let chainId = b.loadUint(32);
+        // let limitType = b.loadUint(1);
+        // let refreshTime = b.loadUint(64);
+        // let dailyLimit = b.loadUint(256);
+        // console.log(dailyLimit);
+        // console.log(refreshTime);
+        // console.log(chainId);
+        // console.log(queryId);
+        // console.log(op);
+        // console.log(limitType);
     });
 
 });

@@ -427,7 +427,10 @@ export class BridgePool implements Contract {
             rate: stack.readBigNumber()
         }
     }
-
+    async getUpdate(provider: ContractProvider) {
+        const result = await provider.get('get_upgrade_status', []);
+        return result.stack.readCell();
+    }
     async getPoolLiquidityAccountAddress(provider: ContractProvider, address: Address) {
         const result = await provider.get('get_pool_liquidity_account_address', [
             {

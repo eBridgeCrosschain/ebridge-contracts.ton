@@ -35,7 +35,8 @@ export abstract class Op {
         cancel_owner_upgrade: 0xeca79dd7,
         cancel_admin_upgrade: 0xa4ed9981,
         finalize_upgrades: 0x6378509f,
-        set_bridge_receipt_account_code: 0x4c54a403
+        set_bridge_receipt_account_code: 0x4c54a403,
+        getter_bridge_swap_address:0x48f05db4
     }
     static readonly bridge_event = {
         JETTON_ADDED: 0xe6be20d5,

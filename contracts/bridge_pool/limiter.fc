@@ -128,7 +128,7 @@
         last_refresh_time = last_refresh_time + count * ONEDAY;
         remain_token_amount = default_amount;
     }
-    return (last_refresh_time,token_amount);
+    return (last_refresh_time,remain_token_amount);
 }
 
 (int, int) consume_daily_limit(int chain_id, int limit_type, int amount) impure inline {
@@ -176,18 +176,18 @@
         var current_token_capacity = amount_info_slice~load_uint(256);
         var current_rate = amount_info_slice~load_uint(256);
         if (~ current_state) {
-            return (true, 0, 0);
+            return (true, 0, HALF_ONE_DAY);
         }
         var time_diff = now() - last_updated_time;
         if (time_diff > 0) {
             if (current_token_amount > current_token_capacity) {
-                return (false, BUCKET_OVERFILLED, 0);
+                return (false, BUCKET_OVERFILLED, HALF_ONE_DAY);
             }
             current_token_amount = _calculate_token_refill(current_token_capacity, current_token_amount, current_rate, time_diff);
             last_updated_time = now();
         }
         if (current_token_capacity < amount) {
-            return (false, MAX_CAPACITY_EXCEEDED, 0);
+            return (false, MAX_CAPACITY_EXCEEDED, HALF_ONE_DAY);
         }
         if (current_token_amount < amount) {
             var minWaitInSeconds = ((amount - current_token_amount) + (current_rate - 1)) / current_rate;
@@ -225,12 +225,16 @@
     if (success_daily_limit) {
         (var success_rate_limit, var error_rate_limit, var min_wait_seconds) = consume_rate_limit(chain_id, limit_type, amount);
         if (success_rate_limit) {
-            return (true, 0, 0);
+            return (true, 0, HALF_ONE_DAY);
         } else {
             return (false, error_rate_limit, min_wait_seconds);
         }
     } else {
-        return (false, error, 0);
+        int currentTime = now();
+        int secondsInADay = ONEDAY;
+        int startOfNextDay = currentTime - (currentTime % secondsInADay) + secondsInADay;
+        int minWaitInSeconds = startOfNextDay - currentTime;
+        return (false, error, minWaitInSeconds);
     }
 }
 

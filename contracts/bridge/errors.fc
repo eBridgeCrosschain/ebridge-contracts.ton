@@ -22,6 +22,7 @@ const INSUFFICIENT_TONS = 103;
 
 ;; transfer bounce error
 const transfer_bounce_paused = "transfer_bounce_paused"c;
+;; 0x9bc62628
 const transfer_bounce_token_not_support = "transfer_bounce_token_not_support"c;
 const transfer_bounce_token_pool_not_exist = "transfer_bounce_token_pool_not_exist"c;
 const transfer_bounce_lock_failed = "transfer_bounce_lock_failed"c;

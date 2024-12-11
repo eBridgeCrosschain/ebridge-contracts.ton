@@ -38,7 +38,7 @@
 
     if (op == swap) {
         throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::bridge_address));
-        (cell swap_id_cell, var message_id) = (in_msg_body~load_ref(), in_msg_body~load_uint(256));
+        (cell swap_id_cell, var message_id) = (in_msg_body~load_ref(), in_msg_body~load_int(256));
         slice receipt_slice = in_msg_body~load_ref().begin_parse();
         cell receipt_id = receipt_slice~load_ref();
         (int receipt_hash, var target_address) = (receipt_slice~load_uint(256), receipt_slice~load_msg_addr());
@@ -70,7 +70,7 @@
         body = body
             .store_uint(query_id, 64)
             .store_ref(swap_id_cell)
-            .store_uint(message_id, 256)
+            .store_int(message_id, 256)
             .store_ref(begin_cell()
                 .store_ref(receipt_id)
                 .store_uint(receipt_hash, 256)

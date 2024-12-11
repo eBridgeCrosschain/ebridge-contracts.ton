@@ -51,7 +51,7 @@
             .store_ref(receipt_id)
             .store_uint(receipt_hash, 256)
             .end_cell())
-        .store_uint(message_id, 256)
+        .store_int(message_id, 256)
         .store_uint(error, 32)
         .store_uint(min_wait, 64)
         .end_cell();
@@ -74,6 +74,7 @@
         .store_ref(swap_id)
         .store_ref(receipt_id)
         .store_coins(amount)
+        .store_slice(receiver)
         .end_cell();
     send_message_nobounce(msg_amount, storage::bridge_swap_address, body_record_swap, SEND_MODE_REGULAR);
 
@@ -129,7 +130,7 @@
                 } else {
                     body.store_uint(0, 64);
                 }
-                send_simple_message(0, owner, body.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+                send_simple_message(0, sender_address, body.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             }
             save_storage();
             return ();
@@ -168,12 +169,12 @@
 
     if (op == release) {
         throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::bridge_swap_address));
-        (var swap_id, var message_id, var receipt_cell, var chain_id, var amount) =
-        (in_msg_body~load_ref(), in_msg_body~load_uint(256), in_msg_body~load_ref(), in_msg_body~load_uint(32), in_msg_body~load_coins());
+        (var swap_id, int message_id, var receipt_cell, var chain_id, var amount) =
+        (in_msg_body~load_ref(), in_msg_body~load_int(256), in_msg_body~load_ref(), in_msg_body~load_uint(32), in_msg_body~load_coins());
         var receipt_info = receipt_cell.begin_parse();
         (var receipt_id, int receipt_hash, slice receiver) = (receipt_info~load_ref(), receipt_info~load_uint(256), receipt_info~load_msg_addr());
         if (storage::liquidity < amount) {
-            resend_to_swap(query_id, receipt_id, receipt_hash, message_id, LIQUIDITY_NOT_ENOUGH, HALF_ONE_DAY);
+            resend_to_swap(query_id, receipt_id, receipt_hash, message_id, LIQUIDITY_NOT_ENOUGH, TENMINUTES);
             return ();
         }
         (var success, var error, var min_wait_seconds) = consume_limit(chain_id, SWAP, amount);
