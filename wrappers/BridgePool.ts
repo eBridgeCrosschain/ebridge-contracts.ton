@@ -13,18 +13,19 @@ import {Bridge} from "./Bridge";
 import {Op} from "./constants";
 import now = jest.now;
 import {Buffer} from "buffer";
+import {SwapConfig} from "./BridgeSwap";
 
 export type BridgePoolConfig = {
     bridge_address: Address,
-    bridge_receipt_account_code: Cell,
-    bridge_swap_address: Address | null,
     jetton_address: Address,
     daily_limit: Dictionary<any, any>,
     rate_limit: Dictionary<any, any>,
     pool_liquidity_account_code: Cell,
     admin: Address,
     owner: Address,
-    temp_upgrade: Cell
+    temp_upgrade: Cell,
+    swap_dict: Dictionary<any, any>,
+    receipt_dict: Dictionary<any, any>
 };
 
 export type dailyLimitConfig = {
@@ -44,25 +45,27 @@ export type rateLimitConfig = {
 export function BridgePoolConfigToCell(config: BridgePoolConfig): Cell {
     return beginCell()
         .storeUint(0, 256)
-        .storeAddress(config.admin)
-        .storeAddress(config.owner)
         .storeRef(beginCell()
             .storeDict(config.daily_limit)
             .storeDict(config.rate_limit)
             .endCell())
         .storeRef(beginCell()
             .storeAddress(config.bridge_address)
-            .storeAddress(config.bridge_swap_address)
             .storeRef(beginCell()
                 .storeAddress(config.jetton_address)
                 .storeAddress(null)
                 .endCell())
             .endCell())
         .storeRef(beginCell()
-            .storeRef(config.bridge_receipt_account_code)
-            .storeRef(config.pool_liquidity_account_code)
+            .storeDict(config.receipt_dict)
+            .storeDict(config.swap_dict)
             .endCell())
-        .storeRef(config.temp_upgrade)
+        .storeRef(beginCell()
+            .storeRef(config.pool_liquidity_account_code)
+            .storeAddress(config.admin)
+            .storeAddress(config.owner)
+            .storeRef(config.temp_upgrade)
+            .endCell())
         .endCell();
 }
 
@@ -97,12 +100,11 @@ export class BridgePool implements Contract {
             .endCell();
     }
 
-    static PackSetJettonBody(jetton: Address, jettonWalletAddress: Address) {
+    static PackSetJettonBody(jettonWalletAddress: Address) {
         let query_id = Bridge.getQueryId();
         return beginCell()
             .storeUint(Op.bridge_pool.set_jetton_wallet_address, 32)
             .storeUint(query_id, 64)
-            .storeAddress(jetton)
             .storeAddress(jettonWalletAddress)
             .endCell();
     }
@@ -242,6 +244,42 @@ export class BridgePool implements Contract {
         return root.endCell();
     }
 
+    static PackCreateSwapBody(swapInfos: SwapConfig[]): Cell {
+        let queryId = 0;
+        const root = beginCell()
+            .storeUint(Op.bridge_swap.create_swap, 32) // op
+            .storeUint(queryId, 64) // query_id;
+            .storeUint(swapInfos[0].fromChainId, 32)
+            .storeUint(swapInfos[0].originShare, 64)
+            .storeUint(swapInfos[0].targetShare, 64);
+
+        let cell: Cell | null = null;
+
+        for (let i = swapInfos.length - 1; i >= 1; i--) {
+            const newCell = beginCell().storeUint(swapInfos[i].fromChainId, 32).storeUint(swapInfos[i].originShare, 64).storeUint(swapInfos[i].targetShare, 64);
+
+            if (cell) {
+                newCell.storeRef(cell);
+            }
+
+            cell = newCell.endCell();
+        }
+
+        if (cell) {
+            root.storeRef(cell);
+        }
+
+        return root.endCell();
+    }
+    
+    async sendCreateSwap(provider: ContractProvider, via: Sender, value: bigint, swapInfos: SwapConfig[]) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: BridgePool.PackCreateSwapBody(swapInfos)
+        });
+    }
+
     async sendSetReceiptAccount(provider: ContractProvider, via: Sender, value: bigint, receiptAccountCode: Cell) {
         await provider.internal(via, {
             value: value,
@@ -259,11 +297,11 @@ export class BridgePool implements Contract {
         });
     }
 
-    async sendSetJetton(provider: ContractProvider, via: Sender, value: bigint, jetton: Address, jettonWalletAddress: Address) {
+    async sendSetJetton(provider: ContractProvider, via: Sender, value: bigint, jettonWalletAddress: Address) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: BridgePool.PackSetJettonBody(jetton, jettonWalletAddress),
+            body: BridgePool.PackSetJettonBody(jettonWalletAddress),
         });
     }
 
@@ -299,7 +337,7 @@ export class BridgePool implements Contract {
             body: BridgePool.PackReleaseBody(swapId, receiptId, receiptHash, targetAddress, chainId)
         });
     }
-    
+
     async sendAddNativeLiquidity(provider: ContractProvider, via: Sender, value: bigint, amount: bigint | number) {
         await provider.internal(via, {
             value,
@@ -307,6 +345,7 @@ export class BridgePool implements Contract {
             body: BridgePool.packAddNativeLiquidityBody(amount)
         });
     }
+
     async sendInitCodeUpgrade(
         provider: ContractProvider,
         via: Sender,
@@ -324,7 +363,7 @@ export class BridgePool implements Contract {
         provider: ContractProvider,
         via: Sender,
         value: bigint
-    ){
+    ) {
         await provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
@@ -427,10 +466,12 @@ export class BridgePool implements Contract {
             rate: stack.readBigNumber()
         }
     }
+
     async getUpdate(provider: ContractProvider) {
         const result = await provider.get('get_upgrade_status', []);
         return result.stack.readCell();
     }
+
     async getPoolLiquidityAccountAddress(provider: ContractProvider, address: Address) {
         const result = await provider.get('get_pool_liquidity_account_address', [
             {

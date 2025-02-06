@@ -1,6 +1,6 @@
 #include "../common/stdlib.fc";
 
-(builder) create_with_payload_transfer_body(int query_id, int fwd_amount, int jetton_amount, slice to,slice response_address, cell payload) inline {
+(builder) create_with_payload_transfer_body(int query_id, int jetton_amount, slice to, slice response_address, int fwd_amount, cell payload) inline {
     return begin_cell()
         .store_uint(0xf8a7ea5, 32)
         .store_uint(query_id, 64)
@@ -13,7 +13,7 @@
 }
 
 
-(builder) create_simple_transfer_body(int query_id, int fwd_amount,slice response_address, int jetton_amount, slice to) inline {
+(builder) create_simple_transfer_body(int query_id, int jetton_amount, slice to, slice response_address, int fwd_amount) inline {
     return begin_cell()
         .store_uint(0xf8a7ea5, 32)
         .store_uint(query_id, 64)

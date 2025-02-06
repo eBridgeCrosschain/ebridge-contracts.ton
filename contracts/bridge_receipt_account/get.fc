@@ -2,13 +2,18 @@
 #include "../common/stdlib.fc";
 #include "../common/dic.fc";
 
-(int, int) get_receipt_info(int target_chain_id) method_id {
+(int, int, slice) get_receipt_info(int target_chain_id) method_id {
     load_storage();
     (var receipt_info, var found) = storage::receipt_info_dic.udict_get?(CHAIN_ID_KEY_LENGTH, target_chain_id);
     if (found) {
         var total_amount = receipt_info~load_uint(256);
         var index = receipt_info~load_uint(256);
-        return (total_amount, index);
+        return (total_amount, index, storage::owner);
     }
-    return (0, 0);
+    return (0, 0, storage::owner);
+}
+
+(slice, slice, slice,slice) get_receipt_account_info() method_id {
+    load_storage();
+    return (storage::owner, storage::jetton_address, storage::bridge_pool_address, storage::bridge_address);
 }

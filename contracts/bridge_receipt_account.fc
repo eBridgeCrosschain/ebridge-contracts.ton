@@ -1,38 +1,68 @@
-#include "common/stdlib.fc";
-#include "common/dic.fc";
-#include "common/utils.fc";
-#include "common/message.fc";
-#include "bridge_receipt_account/op.fc";
-#include "bridge_receipt_account/errors.fc";
-#include "bridge_receipt_account/get.fc";
-#include "bridge_receipt_account/getter.fc";
-#include "bridge_receipt_account/pool-calls.fc";
-#include "bridge_receipt_account/storage.fc";
-
-() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
-    if (in_msg_body.slice_empty?()) {
-        ;; ignore empty messages
-        return ();
-    }
-    var cs = in_msg_full.begin_parse();
-    var flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
-    load_storage();
-
-    if (flags & 1) {
-        return ();
-    }
-    slice sender_address = cs~load_msg_addr();
-
-    force_chain(WORKCHAIN, sender_address, WRONG_WORKCHAIN);
-    (int op, int query_id) = (in_msg_body~load_uint(32), in_msg_body~load_uint(64));
-    
-    if (equal_slices(sender_address, storage::bridge_pool_address)) {
-        handle_pool_messages(op, query_id, my_balance, msg_value, in_msg_body);
-        return ();
-    }
-    
-    if (handle_getter_messages(op, query_id, sender_address, in_msg_body)) {
-        return ();
-    }
-    throw(WRONG_OP);
-}
+;; #include "common/stdlib.fc";
+;; #include "common/dic.fc";
+;; #include "common/utils.fc";
+;; #include "common/message.fc";
+;; #include "bridge_receipt_account/op.fc";
+;; #include "bridge_receipt_account/errors.fc";
+;; #include "bridge_receipt_account/get.fc";
+;; #include "bridge_receipt_account/getter.fc";
+;; #include "bridge_receipt_account/pool-calls.fc";
+;; #include "bridge_receipt_account/storage.fc";
+;; #include "mock_jetton/messages.func";
+;; 
+;; () on_bounce(slice in_msg_body) {
+;;     in_msg_body~skip_bits(32);
+;;     int op = in_msg_body~load_uint(32);
+;;     if (op == receipt_ok) {
+;;         int query_id = in_msg_body~load_uint(64);
+;;         int target_chain_id = in_msg_body~load_uint(32);
+;;         int jetton_amount = in_msg_body~load_coins();
+;;         (var receipt_info, var found) = storage::receipt_info_dic.udict_get?(CHAIN_ID_KEY_LENGTH, target_chain_id);
+;;         if (found) {
+;;             var total_amount = receipt_info~load_uint(256);
+;;             var index = receipt_info~load_uint(256);
+;;             total_amount -= jetton_amount;
+;;             index -= 1;
+;;             var payload = begin_cell()
+;;                 .store_uint(receipt_failed, 32)
+;;                 .store_uint(query_id, 64)
+;;                 .store_uint(target_chain_id, 32)
+;;                 .store_coins(jetton_amount)
+;;                 .store_slice(storage::owner)
+;;                 .end_cell();
+;;             send_message_nobounce(0, storage::bridge_pool_address, payload, CARRY_REMAINING_GAS);
+;;         }
+;;     }
+;;     save_storage();
+;;     return ();
+;; }
+;; 
+;; () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+;;     if (in_msg_body.slice_empty?()) {
+;;         ;; ignore empty messages
+;;         return ();
+;;     }
+;;     var cs = in_msg_full.begin_parse();
+;;     var flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
+;;     load_storage();
+;; 
+;;     if (flags & 1) {
+;;         ;; deal with bounced messages - receipt_ok from bridge
+;;         on_bounce(in_msg_body);
+;;         return ();
+;;     }
+;;     slice sender_address = cs~load_msg_addr();
+;; 
+;;     force_chain(WORKCHAIN, sender_address, WRONG_WORKCHAIN);
+;;     (int op, int query_id) = (in_msg_body~load_uint(32), in_msg_body~load_uint(64));
+;; 
+;;     if (equal_slices(sender_address, storage::bridge_pool_address)) {
+;;         handle_pool_messages(op, query_id, my_balance, msg_value, in_msg_body);
+;;         return ();
+;;     }
+;; 
+;;     if (handle_getter_messages(op, query_id, sender_address, in_msg_body)) {
+;;         return ();
+;;     }
+;;     throw(WRONG_OP);
+;; }

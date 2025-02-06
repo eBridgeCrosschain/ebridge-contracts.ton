@@ -5,7 +5,7 @@ global slice storage::jetton_address;
 global slice storage::bridge_address;
 global slice storage::admin;
 global slice storage::owner;
-;; `swap_dic` is HashMap with `swap_id_hash` int key, value is `from_chain_id:int;orgin_share:int;target_share:int;swapped_amount:int;swapped_times:int`
+;; `swap_dic` is HashMap with `swap_id_hash` int key, value is `from_chain_id:int;origin_share:int;target_share:int;swapped_amount:int;swapped_times:int`
 global cell storage::swap_dic;
 global cell storage::temp_upgrade;
 ;; `receipt_record_dic` is HashMap with `receipt_hash` int key, value is `is_exist:bool`

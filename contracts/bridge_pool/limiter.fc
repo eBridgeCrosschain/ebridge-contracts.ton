@@ -34,9 +34,13 @@
         var remain_token_amount = current_daily_limit~load_uint(256);
         var last_refresh_time = current_daily_limit~load_uint(64);
         var current_daily_limit_amount = current_daily_limit~load_uint(256);
-
-        var use_amount = current_daily_limit_amount - remain_token_amount;
-        var new_remain_token_amount = daily_limit <= use_amount ? 0 : daily_limit - use_amount;
+        var new_remain_token_amount = 0;
+        if (now() - last_refresh_time > ONEDAY) {
+            new_remain_token_amount = daily_limit;
+        } else {
+            var use_amount = current_daily_limit_amount - remain_token_amount;
+            new_remain_token_amount = daily_limit <= use_amount ? 0 : daily_limit - use_amount;
+        }
         log_token_amount = new_remain_token_amount;
         var new_value = begin_cell()
             .store_uint(new_remain_token_amount, 256)
@@ -61,7 +65,6 @@
             .end_cell(),
         1
     );
-    save_storage();
 }
 
 () _set_rate_limit_config(int chain_id, int limit_type, int is_enable, int token_capacity, int rate) impure inline {
@@ -116,7 +119,6 @@
             .end_cell(),
         1
     );
-    save_storage();
 }
 
 (int,int) _refresh_current_daily_limit(int refresh_time,int token_amount,int default_amount) impure inline {

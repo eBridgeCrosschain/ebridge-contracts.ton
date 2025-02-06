@@ -621,6 +621,7 @@ describe('Bridge', () => {
         console.log(sliceBits);
         let data1 = refInfoSlice.loadBuffer(sliceBits / 8);
         console.log(data1.toString('base64'));
+        
         // //
         //
         // let convert = originDataSlice.loadRef();
@@ -740,6 +741,20 @@ describe('Bridge', () => {
         // console.log(queryId);
         // console.log(op);
         // console.log(limitType);
+    });
+
+    it('parse message', async () => {
+        let body = "te6cckEBAQEAJgAASP////8FToQCAAAAAAAAAADyGdXePQDmvwaeSE4Vtj4LwmkW/jdr4gY=";
+        let c = Cell.fromBase64(body);
+        let sli = c.asSlice();
+        console.log(sli);
+        let op = sli.loadUint(32);
+        let opCode = sli.loadUint(32);
+        let queryId = sli.loadUint(64);
+        console.log(op);
+        console.log(opCode);
+        console.log(queryId);
+        
     });
 
 });

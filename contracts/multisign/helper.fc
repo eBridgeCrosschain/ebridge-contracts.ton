@@ -18,8 +18,6 @@ int validate_dictionary_sequence(cell dict) impure inline {
 }
 
 () execute_order(cell order_body) impure inline {
-
-    accept_message();
     slice action = order_body.begin_parse();
     int action_op = action~load_uint(32);
     if(action_op == actions::send_message) {
@@ -38,5 +36,7 @@ int validate_dictionary_sequence(cell dict) impure inline {
         storage::proposers = action~load_dict();
         validate_dictionary_sequence(storage::proposers);
         save_storage();
+    } else {
+        throw(error::unknown_op);
     }
 }

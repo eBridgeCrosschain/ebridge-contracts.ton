@@ -2,7 +2,6 @@
 #include "../common/dic.fc";
 #include "storage.fc";
 #include "bridge_pool_liquidity_account-utils.fc";
-#include "bridge_receipt_account-utils.fc";
 #include "limiter.fc";
 #include "params.fc";
 
@@ -16,13 +15,6 @@
     cell acc_state_init = calculate_bridge_pool_liquidity_account_state_init(owner_address, my_address(), storage::jetton_address, storage::pool_liquidity_account_code);
     slice brigde_pool_liquidity_account_address = calculate_bridge_pool_liquidity_account_address(acc_state_init);
     return brigde_pool_liquidity_account_address;
-}
-
-(slice) get_bridge_receipt_address(slice owner_address) method_id {
-    load_storage();
-    cell acc_state_init = calculate_bridge_receipt_account_state_init(owner_address, my_address(), storage::jetton_address, storage::bridge_address, storage::bridge_receipt_account_code);
-    slice brigde_receipt_address = calculate_bridge_receipt_account_address(acc_state_init);
-    return brigde_receipt_address;
 }
 
 (int, int, int) get_receipt_daily_limit(int target_chain_id) method_id {
@@ -78,11 +70,6 @@
 (slice) get_bridge_address() method_id {
     load_storage();
     return storage::bridge_address;
-}
-
-(slice) get_bridge_swap_address() method_id {
-    load_storage();
-    return storage::bridge_swap_address;
 }
 
 (slice, slice) get_jetton_address() method_id {

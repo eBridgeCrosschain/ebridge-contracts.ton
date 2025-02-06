@@ -14,7 +14,6 @@ import {BitString} from "@ton/core/dist/boc/BitString";
 import {Buffer} from "buffer";
 
 export type BridgeConfig = {
-    bridge_swap_address_dic: Dictionary<any, any>,
     bridge_pool_address_dic: Dictionary<any, any>,
     jetton_whitelist_dic: Dictionary<any, any>,
     oracle_address: Address,
@@ -23,8 +22,8 @@ export type BridgeConfig = {
     admin: Address,
     owner: Address,
     temp_upgrade: Cell,
-    bridge_receipt_account_code: Cell,
-    target_contract_dic: Dictionary<any, any>
+    target_contract_dic: Dictionary<any, any>,
+    receipt_record_dic: Dictionary<any, any>,
 };
 
 export type JettonContractConfig = {
@@ -39,12 +38,9 @@ export type TargetContractConfig = {
 export function BridgeConfigToCell(config: BridgeConfig): Cell {
     return beginCell()
         .storeRef(beginCell()
-            .storeDict(config.bridge_swap_address_dic)
             .storeDict(config.bridge_pool_address_dic)
             .storeDict(config.jetton_whitelist_dic)
-            // .storeRef(beginCell().storeDictDirect(config.bridge_swap_address_dic).endCell())
-            // .storeRef(beginCell().storeDictDirect(config.bridge_pool_address_dic).endCell())
-            // .storeRef(beginCell().storeDictDirect(config.jetton_whitelist_dic).endCell())
+            .storeDict(config.receipt_record_dic)
             .endCell())
         .storeBit(config.is_pause)
         .storeRef(beginCell()
@@ -60,7 +56,6 @@ export function BridgeConfigToCell(config: BridgeConfig): Cell {
             .endCell()
         )
         .storeRef(config.temp_upgrade)
-        .storeRef(config.bridge_receipt_account_code)
         .endCell();
 }
 

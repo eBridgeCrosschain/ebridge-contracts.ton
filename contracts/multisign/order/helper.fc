@@ -21,7 +21,7 @@
 
 () add_approval(int signer_index) impure inline {
     int mask = 1 << signer_index;
-    throw_if(error::already_approved, storage::approvals_mask & mask);
+    throw_if(error::already_approved, (storage::approvals_mask & mask) != 0);
     storage::approvals_num += 1;
     storage::approvals_mask |= mask;
     save_storage();
@@ -60,8 +60,6 @@
         );
 
         try_execute(query_id);
-
-        save_storage();
 
     } catch (_, exit_code) {
         send_simple_message(

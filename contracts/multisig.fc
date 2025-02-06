@@ -30,13 +30,8 @@
     int fwd_fee = cs~load_coins();
     force_chain(WORKCHAIN, sender_address, error::wrong_workchain);
 
-    if (in_msg_body.slice_bits() == 0) {
-        return (); ;; empty message - just accept TONs
-    }
-
     (int op, int query_id) = (in_msg_body~load_uint(32), in_msg_body~load_uint(64));
 
-    load_storage();
     if (op == new_order) {
         int signer? = in_msg_body~load_bool();
         int index = in_msg_body~load_index();
@@ -68,6 +63,7 @@
         );
         storage::next_order_seqno += 1;
         save_storage();
+        return ();
     } elseif (op == execute) {
         int order_seqno = in_msg_body~load_order_seqno();
         int expiration_date = in_msg_body~load_timestamp();
@@ -83,6 +79,7 @@
         throw_unless(error::singers_outdated, (signers_hash == storage::signers_info.cell_hash()) & (approvals_num >= storage::threshold));
         throw_unless(error::expired, expiration_date >= now());
         execute_order(order_body);
+        return ();
     } elseif (op == execute_internal) {
         ;; we always trust ourselves, this feature is used to make chains of executions
         ;; where last action of previous execution triggers new one.
@@ -91,5 +88,7 @@
         cell order_body = in_msg_body~load_ref();
         in_msg_body.end_parse();
         execute_order(order_body);
+        return ();
     }
+    throw(error::unknown_op);
 }

@@ -17,8 +17,14 @@ const INSUFFICIENT_FEES = 101;
 const STORAGE_FEE_NOT_ENOUGH = 102;
 
 const INSUFFICIENT_TONS = 103;
+const INVALID_MESSAGE = 104;
 
+const SWAP_ID_REF_IS_NULL = 106;
+const INVALID_TARGET_CHAIN_ID = 107;
 
+const EXPIRED_BRIDGE_MESSAGE = 108;
+const ALREADY_RECORD = 109;
+const NOT_FOUND_LEAF_HASH = 110;
 
 ;; transfer bounce error
 const transfer_bounce_paused = "transfer_bounce_paused"c;
@@ -26,3 +32,5 @@ const transfer_bounce_paused = "transfer_bounce_paused"c;
 const transfer_bounce_token_not_support = "transfer_bounce_token_not_support"c;
 const transfer_bounce_token_pool_not_exist = "transfer_bounce_token_pool_not_exist"c;
 const transfer_bounce_lock_failed = "transfer_bounce_lock_failed"c;
+const not_support_transfer_notification_op = "not_support_transfer_notification_op"c;
+const transfer_bounce = "transfer_bounce"c;

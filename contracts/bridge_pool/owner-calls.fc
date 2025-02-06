@@ -54,7 +54,7 @@
         save_storage();
         return ();
     }
-    ;; valid for both upgrades
+    ;; valid for all upgrades
     if (op == finalize_upgrades) {
         (int end_code, cell new_code, int end_owner, slice new_owner, int end_admin, slice new_admin) = unpack_temp_upgrade(storage::temp_upgrade);
         throw_unless(INVALID_CALL, (end_code + end_owner + end_admin) > 0); ;; make sure at least one upgrade process is in progress

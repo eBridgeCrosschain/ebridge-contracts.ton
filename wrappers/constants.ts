@@ -45,7 +45,6 @@ export abstract class Op {
         RESTARTED: 0xcd6f0669,
         PAUSED: 0xb649891d,
         SWAP_OK: 0xc14bc81f,
-        TEST_TRANSMIT: 0x38692d08,
         SWAP_FAILED: 0x47f02f76,
         CODE_UPGRADED: 0x38342daf,
         ADMIN_UPGRADED: 0x98712a5a,

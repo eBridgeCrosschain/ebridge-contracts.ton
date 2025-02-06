@@ -26,7 +26,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     const deployJettonWallet = await userWallet(provider.sender().address!);
     await jetton_minter.sendMint(
         provider.sender(),
-        Address.parseFriendly("0QD-9HEZpZpCkPzb2BXsm22-xliR7QO-nrCAyvLXvOGVodDb").address,
+        Address.parseFriendly("0QA0lOMwJ1Unpc3cOLvqHaz7WYYht9MPceAFz4qhpk89Sxek").address,
         initialAccountJettonBalance,
         toNano('0.05'),
         toNano('0.5'));

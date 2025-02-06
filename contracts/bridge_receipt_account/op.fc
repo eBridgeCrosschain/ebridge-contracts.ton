@@ -6,5 +6,8 @@ const record_receipt = "record_receipt"c;
 ;; to bridge
 const receipt_ok = "receipt_ok"c;
 
+const receipt_failed = "receipt_failed"c;
+
 ;; async "get" calls
 const getter_receipt = "getter_receipt"c;
+const getter_receipt_account = "getter_receipt_account"c;

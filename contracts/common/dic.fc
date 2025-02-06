@@ -1,4 +1,4 @@
-const KEY_LENGTH = 8 * 32 + 8; ;;account_id + wc
+const KEY_LENGTH = 8 * 32 + 8 + 3; ;;account_id + wc
 const CHAIN_ID_KEY_LENGTH = 32;
 const DEFAULT_KEY_LENGTH = 8 * 32; 
 

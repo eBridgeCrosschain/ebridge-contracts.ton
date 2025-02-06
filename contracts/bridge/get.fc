@@ -2,15 +2,10 @@
 #include "../common/dic.fc";
 #include "../common/stdlib.fc";
 #include "../common/utils.fc";
-#include "bridge_receipt_account-utils.fc";
+#include "../common/bridge_receipt_account-utils.fc";
 #include "utils.fc";
 #include "../gas.fc";
 
-(slice) get_bridge_swap_address(slice jetton_address) method_id {
-    load_storage();
-    (slice jetton_swap_address, _) = storage::bridge_swap_address_dic.dict_get?(KEY_LENGTH, jetton_address);
-    return jetton_swap_address;
-}
 
 (slice) get_bridge_pool_address(slice jetton_address) method_id {
     load_storage();
@@ -57,13 +52,6 @@
     return storage::pause_controller;
 }
 
-(slice) get_bridge_receipt_address(slice owner_address, slice jetton_address) method_id {
-    load_storage();
-    (slice jetton_pool_address, _) = storage::bridge_pool_address_dic.dict_get?(KEY_LENGTH, jetton_address);
-    cell acc_state_init = calculate_bridge_receipt_account_state_init(owner_address, jetton_pool_address, jetton_address, my_address(), storage::bridge_receipt_account_code);
-    slice brigde_receipt_address = calculate_bridge_receipt_account_address(acc_state_init);
-    return brigde_receipt_address;
-}
 
 (cell) get_upgrade_status() method_id {
     load_storage();

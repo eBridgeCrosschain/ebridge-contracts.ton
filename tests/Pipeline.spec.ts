@@ -41,7 +41,6 @@ let min_tons_for_storage: bigint;
 
 
 describe('Pipeline', () => {
-
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
     let initialState: BlockchainSnapshot;
@@ -61,19 +60,14 @@ describe('Pipeline', () => {
     let initialAccountJettonBalance = toNano('1000.23');
     // code
     let bridge_code: Cell;
-    let bridgeSwap_code: Cell;
     let bridgePool_code: Cell;
-    let bridgeReceiptAccountCode: Cell;
     let bridgeLiquidityAccountCode: Cell;
     // contract
     let bridge: SandboxContract<Bridge>;
-    let bridgeSwap: SandboxContract<BridgeSwap>;
-    let bridgeSwapTonCoin: SandboxContract<BridgeSwap>;
 
     let bridgePool: SandboxContract<BridgePool>;
     let bridgePoolTonCoin: SandboxContract<BridgePool>;
-
-    let bridgeReceiptAccount: SandboxContract<BridgeReceiptAccount>;
+    
     let bridgeLiquidityAccount: SandboxContract<BridgePoolLiquidityAccount>;
     // auth
     let admin: SandboxContract<TreasuryContract>;
@@ -113,9 +107,7 @@ describe('Pipeline', () => {
         testAccount = await blockchain.treasury('testAccount');
 
         bridge_code = await compile('Bridge');
-        bridgeSwap_code = await compile('BridgeSwap');
         bridgePool_code = await compile('BridgePool');
-        bridgeReceiptAccountCode = await compile('BridgeReceiptAccount');
         bridgeLiquidityAccountCode = await compile('BridgePoolLiquidityAccount');
         jwallet_code = await compile('JettonWallet');
         minter_code = await compile('JettonMinter');
@@ -164,11 +156,10 @@ describe('Pipeline', () => {
         oracle = await blockchain.treasury('oracle');
         pauseController = await blockchain.treasury('pauseController');
         let poolContractDicDefault = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.Address());
-        let swapContractDicDefault = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.Address());
+        let receiptRecordDic = Dictionary.empty(Dictionary.Keys.BigInt(16), Dictionary.Values.Cell());
         let jettonWhitelistDicDefault = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
         let targetContractDicDefault = Dictionary.empty();
         bridge = blockchain.openContract(Bridge.createFromConfig({
-            bridge_swap_address_dic: swapContractDicDefault,
             bridge_pool_address_dic: poolContractDicDefault,
             oracle_address: oracle.address,
             jetton_whitelist_dic: jettonWhitelistDicDefault,
@@ -177,8 +168,8 @@ describe('Pipeline', () => {
             admin: admin.address,
             owner: owner.address,
             temp_upgrade: tempUpgrade,
-            bridge_receipt_account_code: bridgeReceiptAccountCode,
-            target_contract_dic: targetContractDicDefault
+            target_contract_dic: targetContractDicDefault,
+            receipt_record_dic: receiptRecordDic
         }, bridge_code));
         const deployBridgeResult = await bridge.sendDeploy(deployer.getSender(), toNano('1'));
         expect(deployBridgeResult.transactions).toHaveTransaction({
@@ -189,17 +180,18 @@ describe('Pipeline', () => {
         });
         // 4. deploy bridge pool contract
         let dic = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
+        let receipt_dic = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Cell());
         bridgePool = blockchain.openContract(BridgePool.createFromConfig({
             bridge_address: bridge.address,
-            bridge_receipt_account_code: bridgeReceiptAccountCode,
-            bridge_swap_address: null,
             jetton_address: jettonMinter.address,
             daily_limit: dic,
             rate_limit: dic,
             pool_liquidity_account_code: bridgeLiquidityAccountCode,
             admin: admin.address,
             owner: owner.address,
-            temp_upgrade: tempUpgrade
+            temp_upgrade: tempUpgrade,
+            swap_dict: dic,
+            receipt_dict: receipt_dic
         }, bridgePool_code));
         const deployPoolResult = await bridgePool.sendDeploy(deployer.getSender(), toNano('0.1'));
 
@@ -213,15 +205,15 @@ describe('Pipeline', () => {
         // 4'. deploy bridge pool contract for toncoin
         bridgePoolTonCoin = blockchain.openContract(BridgePool.createFromConfig({
             bridge_address: bridge.address,
-            bridge_receipt_account_code: bridgeReceiptAccountCode,
-            bridge_swap_address: null,
             jetton_address: HOLEADDRESS,
             daily_limit: dic,
             rate_limit: dic,
             pool_liquidity_account_code: bridgeLiquidityAccountCode,
             admin: admin.address,
             owner: owner.address,
-            temp_upgrade: tempUpgrade
+            temp_upgrade: tempUpgrade,
+            swap_dict: dic,
+            receipt_dict: receipt_dic
         }, bridgePool_code));
         const deployPoolTonCoinResult = await bridgePoolTonCoin.sendDeploy(deployer.getSender(), toNano('0.1'));
 
@@ -232,51 +224,51 @@ describe('Pipeline', () => {
             success: true,
         });
 
-        // 5. deploy bridge swap contract
-        bridgeSwap = blockchain.openContract(BridgeSwap.createFromConfig({
-            bridgePoolAddress: bridgePool.address,
-            jettonAddress: jettonMinter.address,
-            bridgeAddress: bridge.address,
-            admin: admin.address,
-            owner: owner.address,
-            tempUpgrade: tempUpgrade,
-            swapDic: dic,
-            receiptDic: dic
-        }, bridgeSwap_code));
-        const deploySwapResult = await bridgeSwap.sendDeploy(deployer.getSender(), toNano('0.1'));
+        // // 5. deploy bridge swap contract
+        // bridgeSwap = blockchain.openContract(BridgeSwap.createFromConfig({
+        //     bridgePoolAddress: bridgePool.address,
+        //     jettonAddress: jettonMinter.address,
+        //     bridgeAddress: bridge.address,
+        //     admin: admin.address,
+        //     owner: owner.address,
+        //     tempUpgrade: tempUpgrade,
+        //     swapDic: dic,
+        //     receiptDic: dic
+        // }, bridgeSwap_code));
+        // const deploySwapResult = await bridgeSwap.sendDeploy(deployer.getSender(), toNano('0.1'));
+        //
+        // expect(deploySwapResult.transactions).toHaveTransaction({
+        //     from: deployer.address,
+        //     to: bridgeSwap.address,
+        //     deploy: true,
+        //     success: true,
+        // });
+        //
+        // // 5'. deploy bridge swap contract for toncoin
+        // bridgeSwapTonCoin = blockchain.openContract(BridgeSwap.createFromConfig({
+        //     bridgePoolAddress: bridgePoolTonCoin.address,
+        //     jettonAddress: HOLEADDRESS,
+        //     bridgeAddress: bridge.address,
+        //     admin: admin.address,
+        //     owner: owner.address,
+        //     tempUpgrade: tempUpgrade,
+        //     swapDic: dic,
+        //     receiptDic: dic
+        // }, bridgeSwap_code));
+        // const deploySwapTonCoinResult = await bridgeSwapTonCoin.sendDeploy(deployer.getSender(), toNano('0.1'));
+        //
+        // expect(deploySwapTonCoinResult.transactions).toHaveTransaction({
+        //     from: deployer.address,
+        //     to: bridgeSwapTonCoin.address,
+        //     deploy: true,
+        //     success: true,
+        // });
 
-        expect(deploySwapResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: bridgeSwap.address,
-            deploy: true,
-            success: true,
-        });
 
-        // 5'. deploy bridge swap contract for toncoin
-        bridgeSwapTonCoin = blockchain.openContract(BridgeSwap.createFromConfig({
-            bridgePoolAddress: bridgePoolTonCoin.address,
-            jettonAddress: HOLEADDRESS,
-            bridgeAddress: bridge.address,
-            admin: admin.address,
-            owner: owner.address,
-            tempUpgrade: tempUpgrade,
-            swapDic: dic,
-            receiptDic: dic
-        }, bridgeSwap_code));
-        const deploySwapTonCoinResult = await bridgeSwapTonCoin.sendDeploy(deployer.getSender(), toNano('0.1'));
-
-        expect(deploySwapTonCoinResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: bridgeSwapTonCoin.address,
-            deploy: true,
-            success: true,
-        });
-
-
-        // 6. open bridge receipt account - test account
-        const bridgeReceiptAddress = await bridgePool.getReceiptAddress(testAccount.address);
-        bridgeReceiptAccount = blockchain.openContract(
-            BridgeReceiptAccount.createFromAddress(bridgeReceiptAddress));
+        // // 6. open bridge receipt account - test account
+        // const bridgeReceiptAddress = await bridgePool.getReceiptAddress(testAccount.address);
+        // bridgeReceiptAccount = blockchain.openContract(
+        //     BridgeReceiptAccount.createFromAddress(bridgeReceiptAddress));
 
         // 7. open liquidity account - test account
         const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
@@ -319,23 +311,23 @@ describe('Pipeline', () => {
             to: bridge.address,
             success: true,
         });
-        // 2. set bridge swap
-        const res2 = await bridge.sendSetBridgeSwap(admin.getSender(), toNano('0.5'), [{
-            jetton_address: jettonMinter.address,
-            contract_address: bridgeSwap.address
-        }, {
-            jetton_address: HOLEADDRESS,
-            contract_address: bridgeSwapTonCoin.address
-        }]);
-        expect(res2.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridge.address,
-            success: true,
-        });
-        let get_res = await bridge.getBridgeSwap(jettonMinter.address);
-        expect(get_res).toEqualAddress(bridgeSwap.address);
-        let get_res_ton = await bridge.getBridgeSwap(HOLEADDRESS);
-        expect(get_res_ton).toEqualAddress(bridgeSwapTonCoin.address);
+        // // 2. set bridge swap
+        // const res2 = await bridge.sendSetBridgeSwap(admin.getSender(), toNano('0.5'), [{
+        //     jetton_address: jettonMinter.address,
+        //     contract_address: bridgeSwap.address
+        // }, {
+        //     jetton_address: HOLEADDRESS,
+        //     contract_address: bridgeSwapTonCoin.address
+        // }]);
+        // expect(res2.transactions).toHaveTransaction({
+        //     from: admin.address,
+        //     to: bridge.address,
+        //     success: true,
+        // });
+        // let get_res = await bridge.getBridgeSwap(jettonMinter.address);
+        // expect(get_res).toEqualAddress(bridgeSwap.address);
+        // let get_res_ton = await bridge.getBridgeSwap(HOLEADDRESS);
+        // expect(get_res_ton).toEqualAddress(bridgeSwapTonCoin.address);
         // 3. set bridge pool
         const res3 = await bridge.sendSetBridgePool(
             admin.getSender(), toNano('0.5'),
@@ -372,7 +364,7 @@ describe('Pipeline', () => {
         expect(aelf.utils.base58.encode(contractAddress)).toEqual(targetAddress);
         // bridge swap
         // 1. create swap
-        const result = await bridgeSwap.sendCreateSwap(
+        const result = await bridgePool.sendCreateSwap(
             admin.getSender(), toNano('0.5'), [{
                 fromChainId: chainId,
                 originShare: 1000,
@@ -381,7 +373,7 @@ describe('Pipeline', () => {
 
         expect(result.transactions).toHaveTransaction({
             from: admin.address,
-            to: bridgeSwap.address,
+            to: bridgePool.address,
             success: true,
         });
         let body = result.transactions[1].outMessages.get(0)?.body;
@@ -395,7 +387,7 @@ describe('Pipeline', () => {
             swapId = swapId_log;
         }
         // 1'. create toncoin swap
-        const resultTon = await bridgeSwapTonCoin.sendCreateSwap(
+        const resultTon = await bridgePoolTonCoin.sendCreateSwap(
             admin.getSender(), toNano('0.5'), [{
                 fromChainId: chainId,
                 originShare: 100,
@@ -404,7 +396,7 @@ describe('Pipeline', () => {
 
         expect(resultTon.transactions).toHaveTransaction({
             from: admin.address,
-            to: bridgeSwapTonCoin.address,
+            to: bridgePoolTonCoin.address,
             success: true,
         });
         let bodyTon = resultTon.transactions[1].outMessages.get(0)?.body;
@@ -428,17 +420,17 @@ describe('Pipeline', () => {
         });
         const bridge1 = await bridgePool.getBridgeAddress();
         expect(bridge1).toEqualAddress(bridge.address);
-        // 1.' set bridge swap address
-        let r = await bridgePool.sendSetBridgeSwap(
-            admin.getSender(), toNano('0.5'), bridgeSwap.address);
-        expect(r.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridgePool.address,
-            success: true,
-        });
-        // 2. set jetton 
+        // // 1.' set bridge swap address
+        // let r = await bridgePool.sendSetBridgeSwap(
+        //     admin.getSender(), toNano('0.5'), bridgeSwap.address);
+        // expect(r.transactions).toHaveTransaction({
+        //     from: admin.address,
+        //     to: bridgePool.address,
+        //     success: true,
+        // });
+        // 2. set jetton wallet
         let res5 = await bridgePool.sendSetJetton(
-            admin.getSender(), toNano('0.5'), jettonMinter.address, bridgePoolJettonWallet.address);
+            admin.getSender(), toNano('0.5'), bridgePoolJettonWallet.address);
         expect(res5.transactions).toHaveTransaction({
             from: admin.address,
             to: bridgePool.address,
@@ -558,17 +550,17 @@ describe('Pipeline', () => {
         });
         const bridge2 = await bridgePoolTonCoin.getBridgeAddress();
         expect(bridge2).toEqualAddress(bridge.address);
-        // 1.' set bridge swap address
-        let r1 = await bridgePoolTonCoin.sendSetBridgeSwap(
-            admin.getSender(), toNano('0.5'), bridgeSwapTonCoin.address);
-        expect(r1.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridgePoolTonCoin.address,
-            success: true,
-        });
+        // // 1.' set bridge swap address
+        // let r1 = await bridgePoolTonCoin.sendSetBridgeSwap(
+        //     admin.getSender(), toNano('0.5'), bridgeSwapTonCoin.address);
+        // expect(r1.transactions).toHaveTransaction({
+        //     from: admin.address,
+        //     to: bridgePoolTonCoin.address,
+        //     success: true,
+        // });
         // 2. set jetton 
         let res6ton = await bridgePoolTonCoin.sendSetJetton(
-            admin.getSender(), toNano('0.5'), HOLEADDRESS, HOLEADDRESS);
+            admin.getSender(), toNano('0.5'), HOLEADDRESS);
         expect(res6ton.transactions).toHaveTransaction({
             from: admin.address,
             to: bridgePoolTonCoin.address,
@@ -671,14 +663,14 @@ describe('Pipeline', () => {
             const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
 
             let receipt_amount = toNano('10');
-            let forwardAmount = toNano('0.15');
+            let forwardAmount = toNano('5');
             let payload = Bridge.PackCreateReceiptBody(
                 chainId, accountJettonWallet.address,
                 Buffer.from(targetAddressBuffer), jettonMinter.address);
 
             const result = await accountJettonWallet.sendTransfer(
                 testAccount.getSender(),
-                toNano('0.2'),
+                toNano('10'),
                 receipt_amount,
                 bridge.address,
                 testAccount.address,
@@ -717,86 +709,87 @@ describe('Pipeline', () => {
                 success: true,
             });
 
-            const bridgeReceiptAddress = await bridgePool.getReceiptAddress(testAccount.address);
-            bridgeReceiptAccount = blockchain.openContract(
-                BridgeReceiptAccount.createFromAddress(bridgeReceiptAddress));
-            console.log(bridgeReceiptAddress);
-            expect(result.transactions).toHaveTransaction({
-                from: bridgePool.address,
-                to: bridgeReceiptAddress,
-                success: true,
-            });
+            // const bridgeReceiptAddress = await bridgePool.getReceiptAddress(testAccount.address);
+            // bridgeReceiptAccount = blockchain.openContract(
+            //     BridgeReceiptAccount.createFromAddress(bridgeReceiptAddress));
+            // console.log(bridgeReceiptAddress);
+            // expect(result.transactions).toHaveTransaction({
+            //     from: bridgePool.address,
+            //     to: bridgeReceiptAddress,
+            //     success: true,
+            // });
 
             expect(result.transactions).toHaveTransaction({
-                from: bridgeReceiptAddress,
+                from: bridgePool.address,
                 to: bridge.address,
                 success: true,
             });
+        
             expect(result.transactions).toHaveTransaction({
                 from: bridge.address,
                 to: oracle.address,
                 success: true,
             });
 
-            let balance3 = (await blockchain.getContract(bridgeReceiptAddress)).balance;
-            console.log(balance3);
-            const transferNotificationCreateReceiptTx = findTransactionRequired(result.transactions, {
-                on: bridge.address,
-                from: bridgeJettonWallet.address,
-                op: Op.jetton.transfer_notification,
-                success: true
-            });
-            send_notification_create_receipt_gas_fee = printTxGasStats("Jetton transfer for create receipt", transferNotificationCreateReceiptTx);
-            // gas used:11408
-            send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 11408n);
-            console.log(send_notification_create_receipt_gas_fee);
-            const receiptInMessage = transferNotificationCreateReceiptTx.inMessage!
-            let walletToBridgeMessageStats = computeMessageForwardFees(msgPrices, receiptInMessage).stats;
-            console.log(walletToBridgeMessageStats);
-
-            const lockTx = findTransactionRequired(result.transactions, {
-                on: bridgePool.address,
-                from: bridgePoolJettonWallet.address,
-                op: Op.jetton.transfer_notification,
-                success: true
-            });
-            send_notification_lock_gas_fee = printTxGasStats("Jetton transfer for lock", lockTx);
-            // gas used:37330
-            send_notification_lock_gas_fee = computeGasFee(gasPrices, 37330n);
-            console.log(send_notification_lock_gas_fee);
-            const lockInMessage = lockTx.inMessage!
-            let lockMessageStats = computeMessageForwardFees(msgPrices, lockInMessage).stats;
-            console.log(lockMessageStats);
-
-            const recordReceiptTx = findTransactionRequired(result.transactions, {
-                on: bridgeReceiptAddress,
-                from: bridgePool.address,
-                op: Op.bridge_receipt_account.record_receipt,
-                success: true
-            });
-            send_record_receipt_gas_fee = printTxGasStats("Record receipt", recordReceiptTx);
-            // gas used : 9391
-            send_record_receipt_gas_fee = computeGasFee(gasPrices, 9391n);
-            console.log(send_record_receipt_gas_fee);
-            const recordReceiptInMessage = recordReceiptTx.inMessage!
-            let recordMessageStats = computeMessageForwardFees(msgPrices, recordReceiptInMessage).stats;
-            console.log(recordMessageStats);
-
-
-            const receiptOkTx = findTransactionRequired(result.transactions, {
-                on: bridge.address,
-                from: bridgeReceiptAddress,
-                op: Op.bridge.receipt_ok,
-                success: true
-            });
-            send_receipt_ok_gas_fee = printTxGasStats("Receipt ok", receiptOkTx);
-            // gas used: 22457
-            send_receipt_ok_gas_fee = computeGasFee(gasPrices, 22457n);
-            console.log(send_receipt_ok_gas_fee);
-            const receiptOkInMessage = receiptOkTx.inMessage!
-            let okMessageStats = computeMessageForwardFees(msgPrices, receiptOkInMessage).stats;
-            console.log(okMessageStats);
-
+            // let balance3 = (await blockchain.getContract(bridgeReceiptAddress)).balance;
+            // console.log(balance3);
+            // const transferNotificationCreateReceiptTx = findTransactionRequired(result.transactions, {
+            //     on: bridge.address,
+            //     from: bridgeJettonWallet.address,
+            //     op: Op.jetton.transfer_notification,
+            //     success: true
+            // });
+            // send_notification_create_receipt_gas_fee = printTxGasStats("Jetton transfer for create receipt", transferNotificationCreateReceiptTx);
+            // // gas used:11408
+            // send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 11408n);
+            // console.log(send_notification_create_receipt_gas_fee);
+            // const receiptInMessage = transferNotificationCreateReceiptTx.inMessage!
+            // let walletToBridgeMessageStats = computeMessageForwardFees(msgPrices, receiptInMessage).stats;
+            // console.log(walletToBridgeMessageStats);
+            //
+            // const lockTx = findTransactionRequired(result.transactions, {
+            //     on: bridgePool.address,
+            //     from: bridgePoolJettonWallet.address,
+            //     op: Op.jetton.transfer_notification,
+            //     success: true
+            // });
+            // send_notification_lock_gas_fee = printTxGasStats("Jetton transfer for lock", lockTx);
+            // // gas used:37330
+            // send_notification_lock_gas_fee = computeGasFee(gasPrices, 37330n);
+            // console.log(send_notification_lock_gas_fee);
+            // const lockInMessage = lockTx.inMessage!
+            // let lockMessageStats = computeMessageForwardFees(msgPrices, lockInMessage).stats;
+            // console.log(lockMessageStats);
+            //
+            // const recordReceiptTx = findTransactionRequired(result.transactions, {
+            //     on: bridgeReceiptAddress,
+            //     from: bridgePool.address,
+            //     op: Op.bridge_receipt_account.record_receipt,
+            //     success: true
+            // });
+            // send_record_receipt_gas_fee = printTxGasStats("Record receipt", recordReceiptTx);
+            // // gas used : 9391
+            // send_record_receipt_gas_fee = computeGasFee(gasPrices, 9391n);
+            // console.log(send_record_receipt_gas_fee);
+            // const recordReceiptInMessage = recordReceiptTx.inMessage!
+            // let recordMessageStats = computeMessageForwardFees(msgPrices, recordReceiptInMessage).stats;
+            // console.log(recordMessageStats);
+            //
+            //
+            // const receiptOkTx = findTransactionRequired(result.transactions, {
+            //     on: bridge.address,
+            //     from: bridgeReceiptAddress,
+            //     op: Op.bridge.receipt_ok,
+            //     success: true
+            // });
+            // send_receipt_ok_gas_fee = printTxGasStats("Receipt ok", receiptOkTx);
+            // // gas used: 22457
+            // send_receipt_ok_gas_fee = computeGasFee(gasPrices, 22457n);
+            // console.log(send_receipt_ok_gas_fee);
+            // const receiptOkInMessage = receiptOkTx.inMessage!
+            // let okMessageStats = computeMessageForwardFees(msgPrices, receiptOkInMessage).stats;
+            // console.log(okMessageStats);
+            //
             let balance = await accountJettonWallet.getJettonBalance();
             expect(balance).toEqual(toNano('890.23'));
             let balance1 = await bridgePoolJettonWallet.getJettonBalance();
@@ -817,285 +810,285 @@ describe('Pipeline', () => {
             expect(res4.tokenCapacity).toBe(BigInt(1000000000000000));
             expect(res4.rate).toBe(BigInt(1000000000));
             expect(res4.isEnable).toBe(true);
-
-
-            let receipt = await bridgeReceiptAccount.getReceiptInfo(chainId);
-            expect(receipt.totalAmount).toBe(toNano('10'));
-            expect(receipt.index).toBe(BigInt(1));
-
-            let receipt_amount1 = toNano('100');
-            let forwardAmount1 = toNano('0.5');
-            let payload1 = Bridge.PackCreateReceiptBody(
-                chainId, accountJettonWallet.address,
-                Buffer.from(targetAddressBuffer), jettonMinter.address);
-            const result11 = await accountJettonWallet.sendTransfer(
-                testAccount.getSender(),
-                toNano('1'),
-                receipt_amount1,
-                bridge.address,
-                testAccount.address,
-                beginCell().storeUint(0, 1).endCell(),
-                forwardAmount1,
-                payload1);
-            let receipt1 = await bridgeReceiptAccount.getReceiptInfo(chainId);
-            expect(receipt1.totalAmount).toBe(toNano('110'));
-            expect(receipt1.index).toBe(BigInt(2));
-
-            const smc = await blockchain.getContract(bridgeReceiptAddress);
-            if (smc.accountState === undefined)
-                throw new Error("Can't access wallet account state");
-            if (smc.accountState.type !== "active")
-                throw new Error("Wallet account is not active");
-            if (smc.account.account === undefined || smc.account.account === null)
-                throw new Error("Can't access wallet account!");
-            console.log("bridge receipt storage stats:", smc.account.account.storageStats.used);
-            const state = smc.accountState.state;
-            const stateCell = beginCell().store(storeStateInit(state)).endCell();
-            console.log("State init stats:", collectCellStats(stateCell, []));
-
-            console.log(bridgeReceiptAddress);
-            console.log(oracle.address);
-            let transactionCount = result.transactions.length;
-            console.log(transactionCount);
-            for (let i = 1; i < transactionCount; i++) {
-                console.log(result.transactions[i].inMessage.info.src);
-                console.log(result.transactions[i].inMessage.info.dest);
-                if (result.transactions[i].inMessage.info.dest.toString() == oracle.address) {
-                    let inMessage = result.transactions[i].inMessage;
-                    let body = inMessage.body;
-                    if (body != undefined) {
-                        let info = body.asSlice();
-                        let op = info.loadUint(32);
-                        console.log(op);
-                        let chain_id = info.loadUint(64);
-                        console.log(chain_id);
-                        let target = info.loadRef();
-                        console.log(target);
-                        // message 
-                        let message = info.loadRef();
-                        console.log(message);
-                        let messageSlice = message.asSlice();
-                        console.log(messageSlice);
-                        let bitlength = messageSlice.remainingBits;
-                        console.log(bitlength);
-                        // let index = messageSlice.loadBuffer(32);
-                        // console.log(index);
-                        // let keyHash = messageSlice.loadBuffer(32);
-                        // let jettonAmount = messageSlice.loadBuffer(32);
-                        // console.log(jettonAmount)
-                        // console.log(Buffer.from(jettonAmount).toString('base64'));
-                        let buf = messageSlice.loadBuffer(96);
-                        console.log(Buffer.from(buf).toString('base64'));
-                        //
-                        //             let refs = messageSlice.remainingRefs;
-                        //             console.log(refs);
-                        //
-                        //             let res = Buffer.from(buf);
-                        //             for (let j = 0; j < refs; j++) {
-                        //                 let cell1 = messageSlice.loadRef();
-                        //                 let cellBuf = cell1.asSlice().loadBuffer(32);
-                        //                 let buffer2 = Buffer.from(cellBuf);
-                        //                 res = Buffer.concat([res, buffer2]);
-                        //             }
-                        //             console.log(Buffer.from(res).toString('base64'));
-                        //         }
-                        //     }
-                    }
-                }
-            }
+            //
+            //
+            // let receipt = await bridgeReceiptAccount.getReceiptInfo(chainId);
+            // expect(receipt.totalAmount).toBe(toNano('10'));
+            // expect(receipt.index).toBe(BigInt(1));
+            //
+            // let receipt_amount1 = toNano('100');
+            // let forwardAmount1 = toNano('0.5');
+            // let payload1 = Bridge.PackCreateReceiptBody(
+            //     chainId, accountJettonWallet.address,
+            //     Buffer.from(targetAddressBuffer), jettonMinter.address);
+            // const result11 = await accountJettonWallet.sendTransfer(
+            //     testAccount.getSender(),
+            //     toNano('1'),
+            //     receipt_amount1,
+            //     bridge.address,
+            //     testAccount.address,
+            //     beginCell().storeUint(0, 1).endCell(),
+            //     forwardAmount1,
+            //     payload1);
+            // let receipt1 = await bridgeReceiptAccount.getReceiptInfo(chainId);
+            // expect(receipt1.totalAmount).toBe(toNano('110'));
+            // expect(receipt1.index).toBe(BigInt(2));
+            //
+            // const smc = await blockchain.getContract(bridgeReceiptAddress);
+            // if (smc.accountState === undefined)
+            //     throw new Error("Can't access wallet account state");
+            // if (smc.accountState.type !== "active")
+            //     throw new Error("Wallet account is not active");
+            // if (smc.account.account === undefined || smc.account.account === null)
+            //     throw new Error("Can't access wallet account!");
+            // console.log("bridge receipt storage stats:", smc.account.account.storageStats.used);
+            // const state = smc.accountState.state;
+            // const stateCell = beginCell().store(storeStateInit(state)).endCell();
+            // console.log("State init stats:", collectCellStats(stateCell, []));
+            //
+            // console.log(bridgeReceiptAddress);
+            // console.log(oracle.address);
+            // let transactionCount = result.transactions.length;
+            // console.log(transactionCount);
+            // for (let i = 1; i < transactionCount; i++) {
+            //     console.log(result.transactions[i].inMessage.info.src);
+            //     console.log(result.transactions[i].inMessage.info.dest);
+            //     if (result.transactions[i].inMessage.info.dest.toString() == oracle.address) {
+            //         let inMessage = result.transactions[i].inMessage;
+            //         let body = inMessage.body;
+            //         if (body != undefined) {
+            //             let info = body.asSlice();
+            //             let op = info.loadUint(32);
+            //             console.log(op);
+            //             let chain_id = info.loadUint(64);
+            //             console.log(chain_id);
+            //             let target = info.loadRef();
+            //             console.log(target);
+            //             // message 
+            //             let message = info.loadRef();
+            //             console.log(message);
+            //             let messageSlice = message.asSlice();
+            //             console.log(messageSlice);
+            //             let bitlength = messageSlice.remainingBits;
+            //             console.log(bitlength);
+            //             // let index = messageSlice.loadBuffer(32);
+            //             // console.log(index);
+            //             // let keyHash = messageSlice.loadBuffer(32);
+            //             // let jettonAmount = messageSlice.loadBuffer(32);
+            //             // console.log(jettonAmount)
+            //             // console.log(Buffer.from(jettonAmount).toString('base64'));
+            //             let buf = messageSlice.loadBuffer(96);
+            //             console.log(Buffer.from(buf).toString('base64'));
+            //             //
+            //             //             let refs = messageSlice.remainingRefs;
+            //             //             console.log(refs);
+            //             //
+            //             //             let res = Buffer.from(buf);
+            //             //             for (let j = 0; j < refs; j++) {
+            //             //                 let cell1 = messageSlice.loadRef();
+            //             //                 let cellBuf = cell1.asSlice().loadBuffer(32);
+            //             //                 let buffer2 = Buffer.from(cellBuf);
+            //             //                 res = Buffer.concat([res, buffer2]);
+            //             //             }
+            //             //             console.log(Buffer.from(res).toString('base64'));
+            //             //         }
+            //             //     }
+            //         }
+            //     }
+            // }
         }
     );
-    it('swap', async () => {
-        const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
-        const smc = await blockchain.getContract(userLiquidityAddress);
-        if (smc.accountState === undefined)
-            throw new Error("Can't access wallet account state");
-        if (smc.accountState.type !== "active")
-            throw new Error("Wallet account is not active");
-        if (smc.account.account === undefined || smc.account.account === null)
-            throw new Error("Can't access wallet account!");
-        console.log("bridge liquidity storage stats:", smc.account.account.storageStats.used);
-        const state = smc.accountState.state;
-        const stateCell = beginCell().store(storeStateInit(state)).endCell();
-        console.log("State init stats:", collectCellStats(stateCell, []));
-
-        console.log(testAccount.address);
-        console.log(accountJettonWallet.address);
-        // EQBIDbk317LrsY3GE3ktW6c_1iSfNmjuKSVw5TfBeYbUqEHD
-        console.log(bridge.address);
-        console.log(bridgeSwap.address);
-        console.log(bridgePool.address);
-        console.log(bridgePoolJettonWallet.address);
-        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUC+QAmUXSGzTyJjueaHKaCsorIlPuRZ+MzyhtwrYq4opKej0RAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJM=";
-        let dataFullBuffer = Buffer.from(dataFull, 'base64');
-        let messageId = BigInt(11111);
-        let sourceChainId = 9992731;
-        let targetChainId = 1101;
-        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
-        let receiver = bridge.address;
-        let data = dataFullBuffer.slice(0, 96);
-        let dataOther = dataFullBuffer.slice(96);
-        let result = await bridge.sendTransmit(
-            oracle.getSender(),
-            toNano('0.01'),
-            messageId,
-            sourceChainId,
-            targetChainId,
-            sender,
-            receiver,
-            data,
-            dataOther,
-            swapId,
-            jettonMinter.address
-        );
-
-        expect(result.transactions).toHaveTransaction({
-            from: oracle.address,
-            to: bridge.address,
-            success: true,
-        });
-        expect(result.transactions).toHaveTransaction({
-            from: bridge.address,
-            to: bridgeSwap.address,
-            success: true
-        });
-
-        // const tx = result.transactions[3];
-        // let body2 = tx.outMessages.get(2)?.body;
-        // if (body2 != undefined) {
-        //     let info = body2.asSlice();
-        //     let value = info.loadCoins();
-        //     let value1 = info.loadCoins();
-        //     console.log(value);
-        //     console.log(value1);
-        // }
-
-        expect(result.transactions).toHaveTransaction({
-            from: bridgeSwap.address,
-            to: bridgePool.address,
-            success: true
-        });
-        //
-        // const txx = result.transactions[3];
-        // let body = txx.outMessages.get(2)?.body;
-        // if (body != undefined) {
-        //     let info = body.asSlice();
-        //     let value = info.loadCoins();
-        //     console.log(value);
-        // }
-
-        expect(result.transactions).toHaveTransaction({
-            from: bridgePool.address,
-            to: bridgePoolJettonWallet.address,
-            success: true
-        });
-
-        expect(result.transactions).toHaveTransaction({
-            from: bridgePoolJettonWallet.address,
-            to: accountJettonWallet.address,
-            success: true
-        });
-
-        const send_transmit_tx = findTransactionRequired(result.transactions, {
-            on: bridge.address,
-            from: oracle.address,
-            op: Op.bridge.transmit,
-            success: true
-        });
-        send_transmit_gas_fee = printTxGasStats("transmit", send_transmit_tx);
-        // gas used:17650
-        send_transmit_gas_fee = computeGasFee(gasPrices, 17650n);
-        console.log(send_transmit_gas_fee);
-
-        const send_swap_tx = findTransactionRequired(result.transactions, {
-            on: bridgeSwap.address,
-            from: bridge.address,
-            op: Op.bridge_swap.swap,
-            success: true
-        });
-        send_swap_gas_fee = printTxGasStats("swap", send_swap_tx);
-        // gas used:12558
-        send_swap_gas_fee = computeGasFee(gasPrices, 12558n);
-        console.log(send_swap_gas_fee);
-        const swapInMessage = send_swap_tx.inMessage!
-        let swapMessageStats = computeMessageForwardFees(msgPrices, swapInMessage).stats;
-        console.log(swapMessageStats);
-
-        const send_release_tx = findTransactionRequired(result.transactions, {
-            on: bridgePool.address,
-            from: bridgeSwap.address,
-            op: Op.bridge_pool.release,
-            success: true
-        });
-        send_release_gas_fee = printTxGasStats("release", send_release_tx);
-        // gas used:34096
-        send_release_gas_fee = computeGasFee(gasPrices, 34096n);
-        console.log(send_release_gas_fee);
-        const releaseInMessage = send_release_tx.inMessage!
-        let releaseMessageStats = computeMessageForwardFees(msgPrices, releaseInMessage).stats;
-        console.log(releaseMessageStats);
-
-        const send_transfer_tx = findTransactionRequired(result.transactions, {
-            on: bridgePoolJettonWallet.address,
-            from: bridgePool.address,
-            op: Op.jetton.transfer,
-            success: true
-        });
-        send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
-        // gas used:8341
-        send_transfer_to_gas_fee = computeGasFee(gasPrices, 8341n);
-        console.log(send_transfer_to_gas_fee);
-        const transferInMessage = send_transfer_tx.inMessage!
-        let transferMessageStats = computeMessageForwardFees(msgPrices, transferInMessage).stats;
-        console.log(transferMessageStats);
-
-        const receive_tx = findTransactionRequired(result.transactions, {
-            on: accountJettonWallet.address,
-            from: bridgePoolJettonWallet.address,
-            op: Op.jetton.internal_transfer,
-            success: true
-        });
-        send_receive_gas_fee = printTxGasStats("receive", receive_tx);
-        // gas used:7822
-        send_receive_gas_fee = computeGasFee(gasPrices, 7822n);
-        console.log(send_receive_gas_fee);
-        const receiveInMessage = receive_tx.inMessage!
-        let receiveMessageStats = computeMessageForwardFees(msgPrices, receiveInMessage).stats;
-        console.log(receiveMessageStats);
-
-        const send_record_swap_tx = findTransactionRequired(result.transactions, {
-            on: bridgeSwap.address,
-            from: bridgePool.address,
-            op: Op.bridge_pool.record_swap,
-            success: true
-        });
-        send_record_swap_gas_fee = printTxGasStats("record swap", send_record_swap_tx);
-        // gas used:9706
-        send_record_swap_gas_fee = computeGasFee(gasPrices, 9706n);
-        console.log(send_record_swap_gas_fee);
-        const recordSwapInMessage = send_record_swap_tx.inMessage!
-        let recordSwapMessageStats = computeMessageForwardFees(msgPrices, recordSwapInMessage).stats;
-        console.log(recordSwapMessageStats);
-        const send_swap_ok_tx = findTransactionRequired(result.transactions, {
-            on: bridge.address,
-            from: bridgeSwap.address,
-            op: Op.bridge.swap_ok,
-            success: true
-        });
-        send_swap_ok_gas_fee = printTxGasStats("swap ok", send_swap_ok_tx);
-        // gas used:6592
-        send_swap_ok_gas_fee = computeGasFee(gasPrices, 6482n);
-        console.log(send_swap_ok_gas_fee);
-        const swapOkInMessage = send_swap_ok_tx.inMessage!
-        let swapOkMessageStats = computeMessageForwardFees(msgPrices, swapOkInMessage).stats;
-        console.log(swapOkMessageStats);
-        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 10000000));
-        let liquidityAfter = await bridgePool.getPoolLiquidity();
-        expect(liquidityAfter).toBe(BigInt(100000000000 - 10000000));
-        expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 10000000));
-
-    });
+    // it('swap', async () => {
+    //     const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
+    //     const smc = await blockchain.getContract(userLiquidityAddress);
+    //     if (smc.accountState === undefined)
+    //         throw new Error("Can't access wallet account state");
+    //     if (smc.accountState.type !== "active")
+    //         throw new Error("Wallet account is not active");
+    //     if (smc.account.account === undefined || smc.account.account === null)
+    //         throw new Error("Can't access wallet account!");
+    //     console.log("bridge liquidity storage stats:", smc.account.account.storageStats.used);
+    //     const state = smc.accountState.state;
+    //     const stateCell = beginCell().store(storeStateInit(state)).endCell();
+    //     console.log("State init stats:", collectCellStats(stateCell, []));
+    //
+    //     console.log(testAccount.address);
+    //     console.log(accountJettonWallet.address);
+    //     // EQBIDbk317LrsY3GE3ktW6c_1iSfNmjuKSVw5TfBeYbUqEHD
+    //     console.log(bridge.address);
+    //     console.log(bridgeSwap.address);
+    //     console.log(bridgePool.address);
+    //     console.log(bridgePoolJettonWallet.address);
+    //     expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+    //     let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUC+QAmUXSGzTyJjueaHKaCsorIlPuRZ+MzyhtwrYq4opKej0RAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJM=";
+    //     let dataFullBuffer = Buffer.from(dataFull, 'base64');
+    //     let messageId = BigInt(11111);
+    //     let sourceChainId = 9992731;
+    //     let targetChainId = 1101;
+    //     let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+    //     let receiver = bridge.address;
+    //     let data = dataFullBuffer.slice(0, 96);
+    //     let dataOther = dataFullBuffer.slice(96);
+    //     let result = await bridge.sendTransmit(
+    //         oracle.getSender(),
+    //         toNano('0.01'),
+    //         messageId,
+    //         sourceChainId,
+    //         targetChainId,
+    //         sender,
+    //         receiver,
+    //         data,
+    //         dataOther,
+    //         swapId,
+    //         jettonMinter.address
+    //     );
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: oracle.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridge.address,
+    //         to: bridgeSwap.address,
+    //         success: true
+    //     });
+    //
+    //     // const tx = result.transactions[3];
+    //     // let body2 = tx.outMessages.get(2)?.body;
+    //     // if (body2 != undefined) {
+    //     //     let info = body2.asSlice();
+    //     //     let value = info.loadCoins();
+    //     //     let value1 = info.loadCoins();
+    //     //     console.log(value);
+    //     //     console.log(value1);
+    //     // }
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgeSwap.address,
+    //         to: bridgePool.address,
+    //         success: true
+    //     });
+    //     //
+    //     // const txx = result.transactions[3];
+    //     // let body = txx.outMessages.get(2)?.body;
+    //     // if (body != undefined) {
+    //     //     let info = body.asSlice();
+    //     //     let value = info.loadCoins();
+    //     //     console.log(value);
+    //     // }
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePool.address,
+    //         to: bridgePoolJettonWallet.address,
+    //         success: true
+    //     });
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePoolJettonWallet.address,
+    //         to: accountJettonWallet.address,
+    //         success: true
+    //     });
+    //
+    //     const send_transmit_tx = findTransactionRequired(result.transactions, {
+    //         on: bridge.address,
+    //         from: oracle.address,
+    //         op: Op.bridge.transmit,
+    //         success: true
+    //     });
+    //     send_transmit_gas_fee = printTxGasStats("transmit", send_transmit_tx);
+    //     // gas used:17650
+    //     send_transmit_gas_fee = computeGasFee(gasPrices, 17650n);
+    //     console.log(send_transmit_gas_fee);
+    //
+    //     const send_swap_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgeSwap.address,
+    //         from: bridge.address,
+    //         op: Op.bridge_swap.swap,
+    //         success: true
+    //     });
+    //     send_swap_gas_fee = printTxGasStats("swap", send_swap_tx);
+    //     // gas used:12558
+    //     send_swap_gas_fee = computeGasFee(gasPrices, 12558n);
+    //     console.log(send_swap_gas_fee);
+    //     const swapInMessage = send_swap_tx.inMessage!
+    //     let swapMessageStats = computeMessageForwardFees(msgPrices, swapInMessage).stats;
+    //     console.log(swapMessageStats);
+    //
+    //     const send_release_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgePool.address,
+    //         from: bridgeSwap.address,
+    //         op: Op.bridge_pool.release,
+    //         success: true
+    //     });
+    //     send_release_gas_fee = printTxGasStats("release", send_release_tx);
+    //     // gas used:34096
+    //     send_release_gas_fee = computeGasFee(gasPrices, 34096n);
+    //     console.log(send_release_gas_fee);
+    //     const releaseInMessage = send_release_tx.inMessage!
+    //     let releaseMessageStats = computeMessageForwardFees(msgPrices, releaseInMessage).stats;
+    //     console.log(releaseMessageStats);
+    //
+    //     const send_transfer_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgePoolJettonWallet.address,
+    //         from: bridgePool.address,
+    //         op: Op.jetton.transfer,
+    //         success: true
+    //     });
+    //     send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
+    //     // gas used:8341
+    //     send_transfer_to_gas_fee = computeGasFee(gasPrices, 8341n);
+    //     console.log(send_transfer_to_gas_fee);
+    //     const transferInMessage = send_transfer_tx.inMessage!
+    //     let transferMessageStats = computeMessageForwardFees(msgPrices, transferInMessage).stats;
+    //     console.log(transferMessageStats);
+    //
+    //     const receive_tx = findTransactionRequired(result.transactions, {
+    //         on: accountJettonWallet.address,
+    //         from: bridgePoolJettonWallet.address,
+    //         op: Op.jetton.internal_transfer,
+    //         success: true
+    //     });
+    //     send_receive_gas_fee = printTxGasStats("receive", receive_tx);
+    //     // gas used:7822
+    //     send_receive_gas_fee = computeGasFee(gasPrices, 7822n);
+    //     console.log(send_receive_gas_fee);
+    //     const receiveInMessage = receive_tx.inMessage!
+    //     let receiveMessageStats = computeMessageForwardFees(msgPrices, receiveInMessage).stats;
+    //     console.log(receiveMessageStats);
+    //
+    //     const send_record_swap_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgeSwap.address,
+    //         from: bridgePool.address,
+    //         op: Op.bridge_pool.record_swap,
+    //         success: true
+    //     });
+    //     send_record_swap_gas_fee = printTxGasStats("record swap", send_record_swap_tx);
+    //     // gas used:9706
+    //     send_record_swap_gas_fee = computeGasFee(gasPrices, 9706n);
+    //     console.log(send_record_swap_gas_fee);
+    //     const recordSwapInMessage = send_record_swap_tx.inMessage!
+    //     let recordSwapMessageStats = computeMessageForwardFees(msgPrices, recordSwapInMessage).stats;
+    //     console.log(recordSwapMessageStats);
+    //     const send_swap_ok_tx = findTransactionRequired(result.transactions, {
+    //         on: bridge.address,
+    //         from: bridgeSwap.address,
+    //         op: Op.bridge.swap_ok,
+    //         success: true
+    //     });
+    //     send_swap_ok_gas_fee = printTxGasStats("swap ok", send_swap_ok_tx);
+    //     // gas used:6592
+    //     send_swap_ok_gas_fee = computeGasFee(gasPrices, 6482n);
+    //     console.log(send_swap_ok_gas_fee);
+    //     const swapOkInMessage = send_swap_ok_tx.inMessage!
+    //     let swapOkMessageStats = computeMessageForwardFees(msgPrices, swapOkInMessage).stats;
+    //     console.log(swapOkMessageStats);
+    //     expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 10000000));
+    //     let liquidityAfter = await bridgePool.getPoolLiquidity();
+    //     expect(liquidityAfter).toBe(BigInt(100000000000 - 10000000));
+    //     expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 10000000));
+    //
+    // });
 
     it('fee', async () => {
         // let fee = await bridge.getEstimateCreateReceiptFee();
@@ -1178,236 +1171,519 @@ describe('Pipeline', () => {
         console.log("State init stats:", collectCellStats(stateCell, []));
     });
 
-    it("bridge swap max storage", async () => {
-        const result = await bridgeSwap.sendCreateSwap(
-            admin.getSender(), toNano('0.5'), [{
-                fromChainId: 1133,
-                originShare: 1000,
-                targetShare: 1
-            }]);
+    // it("bridge swap max storage", async () => {
+    //     const result = await bridgeSwap.sendCreateSwap(
+    //         admin.getSender(), toNano('0.5'), [{
+    //             fromChainId: 1133,
+    //             originShare: 1000,
+    //             targetShare: 1
+    //         }]);
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: admin.address,
+    //         to: bridgeSwap.address,
+    //         success: true,
+    //     });
+    //     const smc = await blockchain.getContract(bridgeSwap.address);
+    //     if (smc.accountState === undefined)
+    //         throw new Error("Can't access wallet account state");
+    //     if (smc.accountState.type !== "active")
+    //         throw new Error("Wallet account is not active");
+    //     if (smc.account.account === undefined || smc.account.account === null)
+    //         throw new Error("Can't access wallet account!");
+    //     console.log("bridge swap max storage stats:", smc.account.account.storageStats.used);
+    //     const state = smc.accountState.state;
+    //     const stateCell = beginCell().store(storeStateInit(state)).endCell();
+    //     console.log("State init stats:", collectCellStats(stateCell, []));
+    // });
 
-        expect(result.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridgeSwap.address,
-            success: true,
-        });
-        const smc = await blockchain.getContract(bridgeSwap.address);
-        if (smc.accountState === undefined)
-            throw new Error("Can't access wallet account state");
-        if (smc.accountState.type !== "active")
-            throw new Error("Wallet account is not active");
-        if (smc.account.account === undefined || smc.account.account === null)
-            throw new Error("Can't access wallet account!");
-        console.log("bridge swap max storage stats:", smc.account.account.storageStats.used);
-        const state = smc.accountState.state;
-        const stateCell = beginCell().store(storeStateInit(state)).endCell();
-        console.log("State init stats:", collectCellStats(stateCell, []));
-    });
+    // it("create native receipt", async () => {
+    //     let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+    //     const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+    //     let receipt_amount = toNano('10');
+    //     let res = await bridge.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: testAccount.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: bridge.address,
+    //         to: bridgePoolTonCoin.address,
+    //         success: true,
+    //     });
+    //     let receiptAccountAddress = await bridgePoolTonCoin.getReceiptAddress(testAccount.address);
+    //     console.log(receiptAccountAddress);
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: bridgePoolTonCoin.address,
+    //         to: receiptAccountAddress,
+    //         success: true,
+    //     });
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: receiptAccountAddress,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: bridge.address,
+    //         to: oracle.address,
+    //         success: true,
+    //     });
+    //
+    //     const createReceiptTx = findTransactionRequired(res.transactions, {
+    //         on: bridge.address,
+    //         from: testAccount.address,
+    //         op: Op.bridge.create_native_receipt,
+    //         success: true
+    //     });
+    //     send_notification_create_receipt_gas_fee = printTxGasStats("create receipt", createReceiptTx);
+    //     // gas used:8055
+    //     send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 8055n);
+    //     console.log(send_notification_create_receipt_gas_fee);
+    //     let stat1 = computeMessageForwardFees(msgPrices, createReceiptTx.inMessage!).stats;
+    //     console.log(stat1);
+    //
+    //     const lockTx = findTransactionRequired(res.transactions, {
+    //         on: bridgePoolTonCoin.address,
+    //         from: bridge.address,
+    //         op: Op.bridge.lock_native_token,
+    //         success: true
+    //     });
+    //     send_notification_lock_gas_fee = printTxGasStats("lock", lockTx);
+    //     // gas used:35443
+    //     send_notification_lock_gas_fee = computeGasFee(gasPrices, 35443n);
+    //     console.log(send_notification_lock_gas_fee);
+    //     let stat2 = computeMessageForwardFees(msgPrices, lockTx.inMessage!).stats;
+    //     console.log(stat2);
+    //
+    //     const recordReceiptTx = findTransactionRequired(res.transactions, {
+    //         on: receiptAccountAddress,
+    //         from: bridgePoolTonCoin.address,
+    //         op: Op.bridge_pool.record_receipt,
+    //         success: true
+    //     });
+    //     send_record_receipt_gas_fee = printTxGasStats("record receipt", recordReceiptTx);
+    //     // gas used:9969
+    //     send_record_receipt_gas_fee = computeGasFee(gasPrices, 9969n);
+    //     console.log(send_record_receipt_gas_fee);
+    //     let stat3 = computeMessageForwardFees(msgPrices, recordReceiptTx.inMessage!).stats;
+    //     console.log(stat3);
+    //
+    //     const receiptOkTx = findTransactionRequired(res.transactions, {
+    //         on: bridge.address,
+    //         from: receiptAccountAddress,
+    //         op: Op.bridge.receipt_ok,
+    //         success: true
+    //     });
+    //     send_receipt_ok_gas_fee = printTxGasStats("receipt ok", receiptOkTx);
+    //     // gas used:22652
+    //     send_receipt_ok_gas_fee = computeGasFee(gasPrices, 22652n);
+    //     console.log(send_receipt_ok_gas_fee);
+    //     let stat4 = computeMessageForwardFees(msgPrices, receiptOkTx.inMessage!).stats;
+    //     console.log(stat4);
+    //
+    //     let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
+    //     expect(liquidityAfter).toBe(toNano('30'));
+    //
+    //     let bridgeBalance = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+    //     expect(bridgeBalance).toBeGreaterThanOrEqual(toNano('30'));
+    //
+    //     const res3 = await bridgePoolTonCoin.getReceiptDailyLimit(chainId);
+    //     expect(res3.remainToken).toBe(BigInt(10000000000000000 - 10000000000));
+    //     console.log(res3.refreshTime);
+    //     expect(res3.dailyLimit).toBe(BigInt(10000000000000000));
+    //
+    //     const res4 = await bridgePoolTonCoin.getReceiptRateLimit(chainId);
+    //     expect(res4.currentTokenAmount).toBeGreaterThanOrEqual(BigInt(1000000000000000 - 10000000000));
+    //     expect(res4.tokenCapacity).toBe(BigInt(1000000000000000));
+    //     expect(res4.rate).toBe(BigInt(1000000000));
+    //     expect(res4.isEnable).toBe(true);
+    //
+    //     bridgeReceiptAccount = blockchain.openContract(
+    //         BridgeReceiptAccount.createFromAddress(receiptAccountAddress));
+    //     let receipt = await bridgeReceiptAccount.getReceiptInfo(chainId);
+    //     expect(receipt.totalAmount).toBe(toNano('10'));
+    //     expect(receipt.index).toBe(BigInt(1));
+    // });
 
-    it("create native receipt", async () => {
-        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
-        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
-        let receipt_amount = toNano('10');
-        let res = await bridge.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
-        expect(res.transactions).toHaveTransaction({
-            from: testAccount.address,
-            to: bridge.address,
-            success: true,
-        });
-        expect(res.transactions).toHaveTransaction({
-            from: bridge.address,
-            to: bridgePoolTonCoin.address,
-            success: true,
-        });
-        let receiptAccountAddress = await bridgePoolTonCoin.getReceiptAddress(testAccount.address);
-        console.log(receiptAccountAddress);
-        expect(res.transactions).toHaveTransaction({
-            from: bridgePoolTonCoin.address,
-            to: receiptAccountAddress,
-            success: true,
-        });
-        expect(res.transactions).toHaveTransaction({
-            from: receiptAccountAddress,
-            to: bridge.address,
-            success: true,
-        });
-        expect(res.transactions).toHaveTransaction({
-            from: bridge.address,
-            to: oracle.address,
-            success: true,
-        });
-
-        const createReceiptTx = findTransactionRequired(res.transactions, {
-            on: bridge.address,
-            from: testAccount.address,
-            op: Op.bridge.create_native_receipt,
-            success: true
-        });
-        send_notification_create_receipt_gas_fee = printTxGasStats("create receipt", createReceiptTx);
-        // gas used:8055
-        send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 8055n);
-        console.log(send_notification_create_receipt_gas_fee);
-        let stat1 = computeMessageForwardFees(msgPrices, createReceiptTx.inMessage!).stats;
-        console.log(stat1);
-
-        const lockTx = findTransactionRequired(res.transactions, {
-            on: bridgePoolTonCoin.address,
-            from: bridge.address,
-            op: Op.bridge.lock_native_token,
-            success: true
-        });
-        send_notification_lock_gas_fee = printTxGasStats("lock", lockTx);
-        // gas used:35443
-        send_notification_lock_gas_fee = computeGasFee(gasPrices, 35443n);
-        console.log(send_notification_lock_gas_fee);
-        let stat2 = computeMessageForwardFees(msgPrices, lockTx.inMessage!).stats;
-        console.log(stat2);
-
-        const recordReceiptTx = findTransactionRequired(res.transactions, {
-            on: receiptAccountAddress,
-            from: bridgePoolTonCoin.address,
-            op: Op.bridge_pool.record_receipt,
-            success: true
-        });
-        send_record_receipt_gas_fee = printTxGasStats("record receipt", recordReceiptTx);
-        // gas used:9969
-        send_record_receipt_gas_fee = computeGasFee(gasPrices, 9969n);
-        console.log(send_record_receipt_gas_fee);
-        let stat3 = computeMessageForwardFees(msgPrices, recordReceiptTx.inMessage!).stats;
-        console.log(stat3);
-
-        const receiptOkTx = findTransactionRequired(res.transactions, {
-            on: bridge.address,
-            from: receiptAccountAddress,
-            op: Op.bridge.receipt_ok,
-            success: true
-        });
-        send_receipt_ok_gas_fee = printTxGasStats("receipt ok", receiptOkTx);
-        // gas used:22652
-        send_receipt_ok_gas_fee = computeGasFee(gasPrices, 22652n);
-        console.log(send_receipt_ok_gas_fee);
-        let stat4 = computeMessageForwardFees(msgPrices, receiptOkTx.inMessage!).stats;
-        console.log(stat4);
-
-        let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
-        expect(liquidityAfter).toBe(toNano('30'));
-
-        let bridgeBalance = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
-        expect(bridgeBalance).toBeGreaterThanOrEqual(toNano('30'));
-
-        const res3 = await bridgePoolTonCoin.getReceiptDailyLimit(chainId);
-        expect(res3.remainToken).toBe(BigInt(10000000000000000 - 10000000000));
-        console.log(res3.refreshTime);
-        expect(res3.dailyLimit).toBe(BigInt(10000000000000000));
-
-        const res4 = await bridgePoolTonCoin.getReceiptRateLimit(chainId);
-        expect(res4.currentTokenAmount).toBeGreaterThanOrEqual(BigInt(1000000000000000 - 10000000000));
-        expect(res4.tokenCapacity).toBe(BigInt(1000000000000000));
-        expect(res4.rate).toBe(BigInt(1000000000));
-        expect(res4.isEnable).toBe(true);
-
-        bridgeReceiptAccount = blockchain.openContract(
-            BridgeReceiptAccount.createFromAddress(receiptAccountAddress));
-        let receipt = await bridgeReceiptAccount.getReceiptInfo(chainId);
-        expect(receipt.totalAmount).toBe(toNano('10'));
-        expect(receipt.index).toBe(BigInt(1));
-    });
-
-    it('swap native', async () => {
-        console.log(oracle.address);
-        console.log(testAccount.address);
-        console.log(bridge.address);
-        console.log(bridgeSwapTonCoin.address);
-        console.log(bridgePoolTonCoin.address);
-
-        let account_balance_before = await testAccount.getBalance();
-
-        let balanceBefore = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
-        expect(balanceBefore).toBeGreaterThanOrEqual(toNano('20'));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUC+QAmUXSGzTyJjueaHKaCsorIlPuRZ+MzyhtwrYq4opKej0RAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJM=";
-        let dataFullBuffer = Buffer.from(dataFull, 'base64');
-        let messageId = BigInt(11111);
-        let sourceChainId = 9992731;
-        let targetChainId = 1101;
-        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
-        let receiver = bridge.address;
-        let data = dataFullBuffer.slice(0, 96);
-        let dataOther = dataFullBuffer.slice(96);
-        let result = await bridge.sendTransmit(
-            oracle.getSender(),
-            toNano('0.01'),
-            messageId,
-            sourceChainId,
-            targetChainId,
-            sender,
-            receiver,
-            data,
-            dataOther,
-            swapIdTonCoin,
-            HOLEADDRESS
-        );
-        // let tx = result.transactions[3];
-        // let body = tx.outMessages.get(0)?.body;
-        // if (body != undefined) {
-        //     let info = body.asSlice();
-        //     let value = info.loadCoins();
-        //     let value1 = info.loadCoins();
-        //     let value2 = info.loadCoins();
-        //     console.log(value1);
-        //     console.log(value);
-        //     console.log(value2);
-        // }
-
-        expect(result.transactions).toHaveTransaction({
-            from: oracle.address,
-            to: bridge.address,
-            success: true,
-        });
-        expect(result.transactions).toHaveTransaction({
-            from: bridge.address,
-            to: bridgeSwapTonCoin.address,
-            success: true
-        });
-        expect(result.transactions).toHaveTransaction({
-            from: bridgeSwapTonCoin.address,
-            to: bridgePoolTonCoin.address,
-            success: true
-        });
-        expect(result.transactions).toHaveTransaction({
-            from: bridgePoolTonCoin.address,
-            to: bridgeSwapTonCoin.address,
-            success: true
-        });
-        expect(result.transactions).toHaveTransaction({
-            from: bridgePoolTonCoin.address,
-            to: testAccount.address,
-            success: true
-        });
-
-        const transferTx = findTransactionRequired(result.transactions, {
-            on: testAccount.address,
-            from: bridgePoolTonCoin.address,
-            success: true
-        });
-        let transferFee = printTxGasStats("transfer", transferTx);
-        // gas used:309
-        transferFee = computeGasFee(gasPrices, 309n);
-        console.log(transferFee);
-
-
-        let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
-        expect(liquidityAfter).toBe(BigInt(20000000000 - 100000000));
-
-        let balance = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
-        expect(balance).toBeGreaterThanOrEqual(toNano('20') - toNano('0.1'));
-        expect(balance).toBeLessThan(balanceBefore);
-
-        let account_balance = await testAccount.getBalance();
-        let diff = account_balance - account_balance_before;
-        console.log(diff);
-        expect(account_balance).toBe(account_balance_before + toNano('0.1'));
-    });
-
+    // it('swap native', async () => {
+    //     console.log(oracle.address);
+    //     console.log(testAccount.address);
+    //     console.log(bridge.address);
+    //     console.log(bridgeSwapTonCoin.address);
+    //     console.log(bridgePoolTonCoin.address);
+    //
+    //     let account_balance_before = await testAccount.getBalance();
+    //
+    //     let balanceBefore = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+    //     expect(balanceBefore).toBeGreaterThanOrEqual(toNano('20'));
+    //     let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUC+QAmUXSGzTyJjueaHKaCsorIlPuRZ+MzyhtwrYq4opKej0RAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJM=";
+    //     let dataFullBuffer = Buffer.from(dataFull, 'base64');
+    //     let messageId = BigInt(11111);
+    //     let sourceChainId = 9992731;
+    //     let targetChainId = 1101;
+    //     let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+    //     let receiver = bridge.address;
+    //     let data = dataFullBuffer.slice(0, 96);
+    //     let dataOther = dataFullBuffer.slice(96);
+    //     let result = await bridge.sendTransmit(
+    //         oracle.getSender(),
+    //         toNano('0.01'),
+    //         messageId,
+    //         sourceChainId,
+    //         targetChainId,
+    //         sender,
+    //         receiver,
+    //         data,
+    //         dataOther,
+    //         swapIdTonCoin,
+    //         HOLEADDRESS
+    //     );
+    //     // let tx = result.transactions[3];
+    //     // let body = tx.outMessages.get(0)?.body;
+    //     // if (body != undefined) {
+    //     //     let info = body.asSlice();
+    //     //     let value = info.loadCoins();
+    //     //     let value1 = info.loadCoins();
+    //     //     let value2 = info.loadCoins();
+    //     //     console.log(value1);
+    //     //     console.log(value);
+    //     //     console.log(value2);
+    //     // }
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: oracle.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridge.address,
+    //         to: bridgeSwapTonCoin.address,
+    //         success: true
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgeSwapTonCoin.address,
+    //         to: bridgePoolTonCoin.address,
+    //         success: true
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePoolTonCoin.address,
+    //         to: bridgeSwapTonCoin.address,
+    //         success: true
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePoolTonCoin.address,
+    //         to: testAccount.address,
+    //         success: true
+    //     });
+    //
+    //     const transferTx = findTransactionRequired(result.transactions, {
+    //         on: testAccount.address,
+    //         from: bridgePoolTonCoin.address,
+    //         success: true
+    //     });
+    //     let transferFee = printTxGasStats("transfer", transferTx);
+    //     // gas used:309
+    //     transferFee = computeGasFee(gasPrices, 309n);
+    //     console.log(transferFee);
+    //
+    //
+    //     let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
+    //     expect(liquidityAfter).toBe(BigInt(20000000000 - 100000000));
+    //
+    //     let balance = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+    //     expect(balance).toBeGreaterThanOrEqual(toNano('20') - toNano('0.1'));
+    //     expect(balance).toBeLessThan(balanceBefore);
+    //
+    //     let account_balance = await testAccount.getBalance();
+    //     let diff = account_balance - account_balance_before;
+    //     console.log(diff);
+    //     expect(account_balance).toBe(account_balance_before + toNano('0.1'));
+    // });
+    // it('swap1', async () => {
+    //     const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
+    //     const smc = await blockchain.getContract(userLiquidityAddress);
+    //     if (smc.accountState === undefined)
+    //         throw new Error("Can't access wallet account state");
+    //     if (smc.accountState.type !== "active")
+    //         throw new Error("Wallet account is not active");
+    //     if (smc.account.account === undefined || smc.account.account === null)
+    //         throw new Error("Can't access wallet account!");
+    //     console.log("bridge liquidity storage stats:", smc.account.account.storageStats.used);
+    //     const state = smc.accountState.state;
+    //     const stateCell = beginCell().store(storeStateInit(state)).endCell();
+    //     console.log("State init stats:", collectCellStats(stateCell, []));
+    //
+    //     console.log(testAccount.address);
+    //     console.log(accountJettonWallet.address);
+    //     // EQBIDbk317LrsY3GE3ktW6c_1iSfNmjuKSVw5TfBeYbUqEHD                                                                                        
+    //     console.log(bridge.address);
+    //     console.log(bridgeSwap.address);
+    //     console.log(bridgePool.address);
+    //     console.log(bridgePoolJettonWallet.address);
+    //     expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+    //     let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUC+QAmUXSGzTyJjueaHKaCsorIlPuRZ+MzyhtwrYq4opKej0RAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJM=";
+    //     let dataFullBuffer = Buffer.from(dataFull, 'base64');
+    //     let messageId = BigInt(11111);
+    //     let sourceChainId = 9992731;
+    //     let targetChainId = 1101;
+    //     let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+    //     let receiver = bridge.address;
+    //     let data = dataFullBuffer.slice(0, 96);
+    //     let dataOther = dataFullBuffer.slice(96);
+    //     let result = await bridge.sendTransmit(
+    //         oracle.getSender(),
+    //         toNano('0.01'),
+    //         messageId,
+    //         sourceChainId,
+    //         targetChainId,
+    //         sender,
+    //         receiver,
+    //         data,
+    //         dataOther,
+    //         swapId,
+    //         jettonMinter.address
+    //     );
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: oracle.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridge.address,
+    //         to: bridgeSwap.address,
+    //         success: true
+    //     });
+    //
+    //     // let tx = findTransactionRequired(result.transactions, {                                                                                 
+    //     //     to: bridgeSwap.address,                                                                                                             
+    //     //     from: bridge.address,                                                                                                               
+    //     //     success: true                                                                                                                       
+    //     // });                                                                                                                                     
+    //     // console.log(tx.outMessages.size)                                                                                                        
+    //     // let body2 = tx.outMessages.get(0)?.body;                                                                                                
+    //     // if (body2 != undefined) {                                                                                                               
+    //     //     let info = body2.asSlice();                                                                                                         
+    //     //     let value = info.loadUint(32);                                                                                                      
+    //     //     let queryid = info.loadUint(64);                                                                                                    
+    //     //     let swap_id_cell = info.loadRef().asSlice().loadBuffer(32).toString('hex')                                                          
+    //     //     let message_id = info.loadInt(256)                                                                                                  
+    //     //     let receiptInfo =  info.loadRef().asSlice()                                                                                         
+    //     //     let receipt_id = receiptInfo.loadRef().asSlice().loadBuffer(32).toString("hex")                                                     
+    //     //     //let receipt_id1 = receiptInfo.loadRef().asSlice().loadUintBig(256)                                                                
+    //     //     let receipt_hash = receiptInfo.loadBuffer(32).toString('hex')                                                                       
+    //     //     let target_address = receiptInfo.loadAddress()                                                                                      
+    //     //     let from_chain_id = info.loadUint(32)                                                                                               
+    //     //     let swap_amount = info.loadCoins()                                                                                                  
+    //     //                                                                                                                                         
+    //     //     console.log("********")                                                                                                             
+    //     //     console.log(value);                                                                                                                 
+    //     //     console.log(queryid);                                                                                                               
+    //     //     console.log(swap_id_cell);                                                                                                          
+    //     //     console.log(message_id);                                                                                                            
+    //     //     console.log(receipt_id);                                                                                                            
+    //     //     //console.log(receipt_id1);                                                                                                         
+    //     //     console.log(receipt_hash);                                                                                                          
+    //     //     console.log(target_address);                                                                                                        
+    //     //     console.log(from_chain_id);                                                                                                         
+    //     //     console.log(swap_amount);                                                                                                           
+    //     //     //console.log(receipt_hash);                                                                                                        
+    //     //     console.log("********")                                                                                                             
+    //     // }                                                                                                                                       
+    //
+    //
+    //     // let tx = findTransactionRequired(result.transactions, {                                                                                 
+    //     //     to: bridge.address,                                                                                                                 
+    //     //     from: oracle.address,                                                                                                               
+    //     //     success: true                                                                                                                       
+    //     // });                                                                                                                                     
+    //     // //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUC+QAmUXSGz
+    //     // console.log("----")                                                                                                                     
+    //     // //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAAleKDo/
+    //     // //leaf_hash:"9945d21b34f2263b9e68729a0aca2b2253ee459f8ccf286dc2b62ae28a4a7a3d"                                                          
+    //     // //receipt_target_address: kQDYnId__pLw2tqEK6TQs30lMYWECEX-bwpNrwfFGpr2dpU8                                                              
+    //     // //receipt_count: 1                                                                                                                      
+    //     // //key_hash: "53adfb5682c10859e844f4eaff88bb4a5cbba2a446d2e71fd822b997d07a8990"                                                          
+    //     // //amount: 10000                                                                                                                         
+    //     // let body = tx.outMessages.get(0)?.body                                                                                                  
+    //     // let swapInfo = body?.asSlice()                                                                                                          
+    //     // let op = swapInfo?.loadUint(32)                                                                                                         
+    //     // let query_id = swapInfo?.loadUint(64)                                                                                                   
+    //     // let swap_id_ref = swapInfo?.loadRef().asSlice().loadBuffer(32).toString('hex')                                                          
+    //     // let messageid = swapInfo?.loadInt(256)                                                                                                  
+    //     // let swap_infos = swapInfo?.loadRef().asSlice()                                                                                          
+    //     // let swap_info1 = swap_infos?.loadRef().asSlice()                                                                                        
+    //     // let keyhash = swap_info1?.loadBuffer(32).toString("hex")                                                                                
+    //     // let leaf_hash = swap_infos?.loadBuffer(32).toString("hex")                                                                              
+    //     // let receipt_index = swap_info1?.loadUint(256)                                                                                           
+    //     // let receipt_target_address = swap_infos?.loadAddress()                                                                                  
+    //     // let amount = swapInfo?.loadCoins()                                                                                                      
+    //     //                                                                                                                                         
+    //     // swapid: 6d1af86d7a907efc93257a1d6f2ba55b184ebd3d1494552b0368b2fd7e39d415                                                                
+    //     // keyhash  53adfb5682c10859e844f4eaff88bb4a5cbba2a446d2e71fd822b997d07a8990                                                               
+    //     //  leaf_hash      9945d21b34f2263b9e68729a0aca2b2253ee459f8ccf286dc2b62ae28a4a7a3d                                                        
+    //     // EQBvA4zKQaQOjwu7HbyHiWJU7xQyzV4hre1YXq2PzVR2UTyT                                                                                        
+    //     // console.log(op);                                                                                                                        
+    //     // console.log(query_id);                                                                                                                  
+    //     // console.log(swap_id_ref);                                                                                                               
+    //     // console.log(messageid);                                                                                                                 
+    //     // console.log(keyhash);                                                                                                                   
+    //     // console.log(leaf_hash);                                                                                                                 
+    //     // console.log(receipt_target_address);                                                                                                    
+    //     // console.log(receipt_index);                                                                                                             
+    //     // console.log(amount);                                                                                                                    
+    //     // console.log("----------");                                                                                                              
+    //
+    //     // for (let i = 0; i < tx.outMessages.size; i++) {                                                                                         
+    //     //     // console.log(tx.outMessages.get(i));                                                                                              
+    //     //     // console.log(tx.outMessages.get(i)?.info);                                                                                        
+    //     //     // console.log(tx.outMessages.get(i)?.info?.dest.value);                                                                            
+    //     //     if (tx.outMessages.get(i)?.info?.dest.value != undefined && tx.outMessages.get(i)?.info?.dest.value == Op.bridge.swap) {            
+    //     //         let body = tx.outMessages.get(i)?.body;                                                                                         
+    //     //         if (body != undefined) {                                                                                                        
+    //     //             let lockInfo = body.asSlice();                                                                                              
+    //     //             let eventId = lockInfo.loadUint(32);                                                                                        
+    //     //             console.log(eventId);                                                                                                       
+    //     //                                                                                                                                         
+    //     //         }                                                                                                                               
+    //     //     }                                                                                                                                   
+    //     // }                                                                                                                                       
+    //
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgeSwap.address,
+    //         to: bridgePool.address,
+    //         success: true
+    //     });
+    //
+    //     let tx3 = findTransactionRequired(result.transactions, {
+    //         on: bridgePool.address,
+    //         from: bridgeSwap.address,
+    //         success: true
+    //     });
+    //     console.log("___________")
+    //     console.log(tx3.outMessages.size)
+    //     let body =  tx3.outMessages.get(4)?.body
+    //     if (body != undefined) {
+    //         let info = body.asSlice();
+    //         console.log(info)
+    //         let value = info.loadUint(32)
+    //         console.log(value);
+    //     }
+    //     console.log("___________")
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePool.address,
+    //         to: bridgePoolJettonWallet.address,
+    //         success: true
+    //     });
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePoolJettonWallet.address,
+    //         to: accountJettonWallet.address,
+    //         success: true
+    //     });
+    //
+    //     const send_transmit_tx = findTransactionRequired(result.transactions, {
+    //         on: bridge.address,
+    //         from: oracle.address,
+    //         op: Op.bridge.transmit,
+    //         success: true
+    //     });
+    //     send_transmit_gas_fee = printTxGasStats("transmit", send_transmit_tx);
+    //     // gas used:17650                                                                                                                          
+    //     send_transmit_gas_fee = computeGasFee(gasPrices, 17650n);
+    //     console.log(send_transmit_gas_fee);
+    //
+    //     const send_swap_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgeSwap.address,
+    //         from: bridge.address,
+    //         op: Op.bridge_swap.swap,
+    //         success: true
+    //     });
+    //     send_swap_gas_fee = printTxGasStats("swap", send_swap_tx);
+    //     // gas used:12558                                                                                                                          
+    //     send_swap_gas_fee = computeGasFee(gasPrices, 12558n);
+    //     console.log(send_swap_gas_fee);
+    //     const swapInMessage = send_swap_tx.inMessage!
+    //     let swapMessageStats = computeMessageForwardFees(msgPrices, swapInMessage).stats;
+    //     console.log(swapMessageStats);
+    //
+    //     const send_release_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgePool.address,
+    //         from: bridgeSwap.address,
+    //         op: Op.bridge_pool.release,
+    //         success: true
+    //     });
+    //     send_release_gas_fee = printTxGasStats("release", send_release_tx);
+    //     // gas used:34096                                                                                                                          
+    //     send_release_gas_fee = computeGasFee(gasPrices, 34096n);
+    //     console.log(send_release_gas_fee);
+    //     const releaseInMessage = send_release_tx.inMessage!
+    //     let releaseMessageStats = computeMessageForwardFees(msgPrices, releaseInMessage).stats;
+    //     console.log(releaseMessageStats);
+    //
+    //     const send_transfer_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgePoolJettonWallet.address,
+    //         from: bridgePool.address,
+    //         op: Op.jetton.transfer,
+    //         success: true
+    //     });
+    //     send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
+    //     // gas used:8341                                                                                                                           
+    //     send_transfer_to_gas_fee = computeGasFee(gasPrices, 8341n);
+    //     console.log(send_transfer_to_gas_fee);
+    //     const transferInMessage = send_transfer_tx.inMessage!
+    //     let transferMessageStats = computeMessageForwardFees(msgPrices, transferInMessage).stats;
+    //     console.log(transferMessageStats);
+    //
+    //     const receive_tx = findTransactionRequired(result.transactions, {
+    //         on: accountJettonWallet.address,
+    //         from: bridgePoolJettonWallet.address,
+    //         op: Op.jetton.internal_transfer,
+    //         success: true
+    //     });
+    //     send_receive_gas_fee = printTxGasStats("receive", receive_tx);
+    //     // gas used:7822                                                                                                                           
+    //     send_receive_gas_fee = computeGasFee(gasPrices, 7822n);
+    //     console.log(send_receive_gas_fee);
+    //     const receiveInMessage = receive_tx.inMessage!
+    //     let receiveMessageStats = computeMessageForwardFees(msgPrices, receiveInMessage).stats;
+    //     console.log(receiveMessageStats);
+    //
+    //     const send_record_swap_tx = findTransactionRequired(result.transactions, {
+    //         on: bridgeSwap.address,
+    //         from: bridgePool.address,
+    //         op: Op.bridge_pool.record_swap,
+    //         success: true
+    //     });
+    //     send_record_swap_gas_fee = printTxGasStats("record swap", send_record_swap_tx);
+    //     // gas used:9706                                                                                                                           
+    //     send_record_swap_gas_fee = computeGasFee(gasPrices, 9706n);
+    //     console.log(send_record_swap_gas_fee);
+    //     const recordSwapInMessage = send_record_swap_tx.inMessage!
+    //     let recordSwapMessageStats = computeMessageForwardFees(msgPrices, recordSwapInMessage).stats;
+    //     console.log(recordSwapMessageStats);
+    //     const send_swap_ok_tx = findTransactionRequired(result.transactions, {
+    //         on: bridge.address,
+    //         from: bridgeSwap.address,
+    //         op: Op.bridge.swap_ok,
+    //         success: true
+    //     });
+    //     send_swap_ok_gas_fee = printTxGasStats("swap ok", send_swap_ok_tx);
+    //     // gas used:6592                                                                                                                           
+    //     send_swap_ok_gas_fee = computeGasFee(gasPrices, 6482n);
+    //     console.log(send_swap_ok_gas_fee);
+    //     const swapOkInMessage = send_swap_ok_tx.inMessage!
+    //     let swapOkMessageStats = computeMessageForwardFees(msgPrices, swapOkInMessage).stats;
+    //     console.log(swapOkMessageStats);
+    //     expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 10000000));
+    //     let liquidityAfter = await bridgePool.getPoolLiquidity();
+    //     expect(liquidityAfter).toBe(BigInt(100000000000 - 10000000));
+    //     expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 10000000));
+    //
+    // });
 });
 
 function getUTCMidnight(): number {

@@ -1,11 +1,6 @@
 #include "../../common/stdlib.fc";
 #include "../utils.fc";
 
-int gas_consumed() asm "GASCONSUMED";
-int get_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEE";
-int get_storage_fee(int workchain, int seconds, int bits, int cells) asm(cells bits seconds workchain) "GETSTORAGEFEE";
-int get_forward_fee(int workchain, int bits, int cells) asm(cells bits workchain) "GETFORWARDFEE";
-
 const int BASECHAIN = 0;
 
 cell pack_order_init_data(slice multisig_address, int order_seqno) inline {

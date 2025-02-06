@@ -10,6 +10,7 @@ import {JettonMinter} from "../wrappers/JettonMinter";
 import {JettonWallet} from "../wrappers/JettonWallet";
 import {BridgeSwap} from "../wrappers/BridgeSwap";
 import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
+import {BridgePoolLiquidityAccount} from "../wrappers/BridgePoolLiquidityAccount";
 
 
 const bridgeAddress = Address.parseFriendly("EQDZV48b9MC5w1DQsUPTZcmKpGzt13sbMvHrWqcQqTQUVdrR");
@@ -18,7 +19,7 @@ const nativePoolAddress = Address.parseFriendly("EQBcYW6bUy77wlQFLRBGl2aaYhFgliD
 const bridgeSwapAddress = Address.parseFriendly("EQB6PCFSgqSkv0308G2ZQsZPjS63375DXKQ_Bs_vBiAqSK3l");
 const nativeSwapAddress = Address.parseFriendly("EQBun5DRg-z0z9SZiMp6_PaTqtcJSt6pCOTfr_O2tGeMLQuE");
 const jettonMinter = Address.parseFriendly("EQBSKUt9k20Gz8RqG71xloqnzcFHt0MdWg1UnWcyU5Xf9CsU");
-const testAccount = Address.parseFriendly("EQA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qDb2");
+const testAccount = Address.parseFriendly("0QA0lOMwJ1Unpc3cOLvqHaz7WYYht9MPceAFz4qhpk89Sxek");
 const nativeToken = Address.parseFriendly("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
 
 const chainId = 1931928;
@@ -55,12 +56,12 @@ export async function run(provider: NetworkProvider, args: string[]) {
      */
     const admin = provider.sender();
     
-    const mainContract = aelf.utils.base58.decode(targetContractMain);
-    await bridge.sendTargetContract(admin, toNano('0.01'), [
-        {
-            chain_id: chainIdMain,
-            bridge_address: Buffer.from(mainContract)
-        }]);
+    // const mainContract = aelf.utils.base58.decode(targetContractMain);
+    // await bridge.sendTargetContract(admin, toNano('0.01'), [
+    //     {
+    //         chain_id: chainIdMain,
+    //         bridge_address: Buffer.from(mainContract)
+    //     }]);
     
     
     // mock token deployer = EQDsJj94gXdTrsUGFHM-KVFT-RPUFAe4TIVS-EM7ip9cG8M5
@@ -94,9 +95,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // await setBridgePoolSwap(bridgePool, admin, bridgeSwap.address);
     // // 7. set jetton
     // await setJetton(bridgePool, admin, jettonMinter.address, bridgePoolJettonWallet.address);
-    // // 8. set daily limit
+    // 8. set daily limit
     // await setDailyLimit(bridgePool, admin, toNano('1000'), chainId, getUTCMidnight());
-    // // 9. set rate limit
+    // 9. set rate limit
     // await setRateLimit(bridgePool, admin, toNano('1000'), toNano('100'), chainId);
     // // 10 .get config
     // let isSupport = await bridge.getIsJettonSupport(chainId, jettonMinter.address);
@@ -119,14 +120,14 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // console.log(swapInfo.swappedAmount);
     // console.log(swapInfo.swappedTimes);
     // // get swap info
-    // let swapInfo = await bridgeSwap.getSwapData(chainIdMain);
+    // let swapInfoMain = await bridgeSwap.getSwapData(chainIdMain);
     // // swapId:
-    // console.log(swapInfo.swapId.toString('base64'));
-    // console.log(swapInfo.fromChainId);
-    // console.log(swapInfo.originShare);
-    // console.log(swapInfo.targetShare);
-    // console.log(swapInfo.swappedAmount);
-    // console.log(swapInfo.swappedTimes);
+    // console.log(swapInfoMain.swapId.toString('base64'));
+    // console.log(swapInfoMain.fromChainId);
+    // console.log(swapInfoMain.originShare);
+    // console.log(swapInfoMain.targetShare);
+    // console.log(swapInfoMain.swappedAmount);
+    // console.log(swapInfoMain.swappedTimes);
     // // get bridge
     // let bridgeGet = await bridgePool.getBridgeAddress();
     // console.log(bridgeGet);
@@ -142,7 +143,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // console.log(dailyLimit.dailyLimit);
     // console.log(dailyLimit.refreshTime);
     // console.log(dailyLimit.remainToken);
-    // // get rate limit
+    // get rate limit
     // let rateLimit = await bridgePool.getReceiptRateLimit(chainId);
     // console.log(rateLimit.tokenCapacity);
     // console.log(rateLimit.rate);
@@ -154,16 +155,17 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // console.log(dailyLimit.dailyLimit);
     // console.log(dailyLimit.refreshTime);
     // console.log(dailyLimit.remainToken);
-    // // get rate limit
-    // rateLimit = await bridgePool.getSwapRateLimit(chainId);
+    // get rate limit
+    // var rateLimit = await bridgePool.getSwapRateLimit(chainId);
     // console.log(rateLimit.tokenCapacity);
     // console.log(rateLimit.rate);
     // console.log(rateLimit.currentTokenAmount);
     // console.log(rateLimit.isEnable);
     // console.log(rateLimit.refreshTime);
 
+    // console.log(getUTCMidnight());
     // // get daily limit
-    // let dailyLimit = await bridgePool.getReceiptDailyLimit(chainIdMain);
+    // let dailyLimit = await bridgePool.getReceiptDailyLimit(chainId);
     // console.log(dailyLimit.dailyLimit);
     // console.log(dailyLimit.refreshTime);
     // console.log(dailyLimit.remainToken);
@@ -174,13 +176,13 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // console.log(rateLimit.currentTokenAmount);
     // console.log(rateLimit.isEnable);
     // console.log(rateLimit.refreshTime);
-    // // get daily limit
-    // dailyLimit = await bridgePool.getSwapDailyLimit(chainIdMain);
+    // get daily limit
+    // let dailyLimit = await bridgePool.getSwapDailyLimit(chainId);
     // console.log(dailyLimit.dailyLimit);
     // console.log(dailyLimit.refreshTime);
     // console.log(dailyLimit.remainToken);
     // // get rate limit
-    // rateLimit = await bridgePool.getSwapRateLimit(chainIdMain);
+    // let rateLimit = await bridgePool.getSwapRateLimit(chainId);
     // console.log(rateLimit.tokenCapacity);
     // console.log(rateLimit.rate);
     // console.log(rateLimit.currentTokenAmount);
@@ -200,18 +202,59 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //     beginCell().storeUint(0,1).endCell(),
     //     forwardAmount,
     //     payload);
+    
+    // // // remove jetton liquidity
+    // let amount_remove_liquidity = 100000000n;
+    // let fee = toNano('0.05');
+    // const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(admin.address!);
+    // let usr_liq = provider.open(BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
+    // await usr_liq.sendRemoveLiquidity(admin,fee,amount_remove_liquidity);
+    
 
     // const liquidity_account = await bridgePool.getPoolLiquidityAccountAddress(provider.sender().address!);
     // console.log(liquidity_account);
     // let liquidityAfter = await bridgePool.getPoolLiquidity();
     // console.log(liquidityAfter);
-
+    //
     // const bridgeReceiptAccountAddress = await bridgePool.getReceiptAddress(provider.sender().address!);
     // console.log(bridgeReceiptAccountAddress);
     // let receipt = provider.open(BridgeReceiptAccount.createFromAddress(bridgeReceiptAccountAddress));
-    // let receiptInfo = await receipt.getReceiptInfo(chainId);
+    // let receiptInfo = await receipt.getReceiptInfo(chainIdMain);
     // console.log(receiptInfo);
+    //
+    // let bridgeReceiptAccountAddress1 = await bridgePool.getReceiptAddress(Address.parseFriendly("0QA0lOMwJ1Unpc3cOLvqHaz7WYYht9MPceAFz4qhpk89Sxek").address);
+    // console.log(bridgeReceiptAccountAddress1);
+    // receipt = provider.open(BridgeReceiptAccount.createFromAddress(bridgeReceiptAccountAddress1));
+    // receiptInfo = await receipt.getReceiptInfo(chainIdMain);
+    // console.log(receiptInfo);
+    
+    // await bridge.sendPause(admin, toNano('0.01'));
+    // const status = await bridge.getPaused();
+    // console.log(status);
+    
+    // await bridge.sendRestart(admin, toNano('0.01'));
+    
 
+    // await bridgePool.sendSetRateLimit(
+    //     admin,
+    //     toNano('0.03'),
+    //     [{
+    //         chainId: chainId,
+    //         limitType: 1,
+    //         tokenCapacity: BigInt(10000000),
+    //         rate: BigInt(10000),
+    //     }]);
+    //
+    let refreshTime = getUTCMidnight();
+    await bridgePool.sendSetDailyLimit(
+        admin,
+        toNano('0.02'),
+        [{
+            chainId: chainId,
+            limitType: 1,
+            refreshTime: refreshTime,
+            dailyLimit: BigInt(15000000)
+        }]);
 
 }
 
