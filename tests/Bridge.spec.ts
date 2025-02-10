@@ -263,54 +263,6 @@ describe('Bridge', () => {
         let oracle = await bridge.getOracleAddress();
         expect(oracle).toEqualAddress(add);
     });
-    it('set_bridge_swap batch', async () => {
-        let input = [];
-        for (let i = 0; i < 100; i++) {
-            input.push({
-                jetton_address: randomAddress(),
-                contract_address: randomAddress()
-            });
-        }
-        const res2 = await bridge.sendSetBridgeSwap(admin.getSender(), toNano('0.5'), input);
-        expect(res2.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridge.address,
-            success: true,
-        });
-        const res3 = await bridge.sendSetBridgePool(admin.getSender(), toNano('0.5'), input);
-        expect(res3.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridge.address,
-            success: true,
-        });
-        let address = [];
-        for (let i = 0; i < 100; i++) {
-            address.push(randomAddress());
-        }
-        const res4 = await bridge.sendAddJetton(admin.getSender(), toNano('0.5'), address, chainId);
-        expect(res4.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridge.address,
-            success: true,
-        });
-
-
-        let address1 = [];
-        for (let i = 0; i < 100; i++) {
-            address1.push(randomAddress());
-        }
-        const res5 = await bridge.sendAddJetton(admin.getSender(), toNano('0.5'), address1, chainId);
-        expect(res5.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridge.address,
-            success: true,
-        });
-
-        for (let i = 0; i < address1.length; i++) {
-            expect(await bridge.getIsJettonSupport(chainId, address[i])).toBe(true);
-            expect(await bridge.getIsJettonSupport(chainId, address1[i])).toBe(true);
-        }
-    });
 
     it('pause', async () => {
         let res = await bridge.sendPause(pauseController.getSender(), toNano('0.5'));

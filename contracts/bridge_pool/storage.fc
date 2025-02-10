@@ -18,6 +18,7 @@ global cell storage::swap_dic;
 ;; record ton -> aelf
 ;; `receipt_dic` is HashMap with `target_chain_id` int key, value is `index:int;total_amount:int`
 global cell storage::receipt_dic;
+global cell storage::receipt_owner_tmp_dic;
 
 () load_storage() impure inline {
     slice ds = get_data().begin_parse();
@@ -33,6 +34,7 @@ global cell storage::receipt_dic;
     cell ds_2 = ds~load_ref(); slice ds_2_slice = ds_2.begin_parse();
     storage::swap_dic = ds_2_slice~load_dict();
     storage::receipt_dic = ds_2_slice~load_dict();
+    storage::receipt_owner_tmp_dic = ds_2_slice~load_dict();
     cell ds_3 = ds~load_ref(); slice ds_3_slice = ds_3.begin_parse();
     storage::pool_liquidity_account_code = ds_3_slice~load_ref();
     storage::admin = ds_3_slice~load_msg_addr();
@@ -57,6 +59,7 @@ global cell storage::receipt_dic;
         .store_ref(begin_cell()
             .store_dict(storage::swap_dic)
             .store_dict(storage::receipt_dic)
+            .store_dict(storage::receipt_owner_tmp_dic)
             .end_cell())
         .store_ref(begin_cell()
             .store_ref(storage::pool_liquidity_account_code)

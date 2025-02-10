@@ -25,7 +25,8 @@ export type BridgePoolConfig = {
     owner: Address,
     temp_upgrade: Cell,
     swap_dict: Dictionary<any, any>,
-    receipt_dict: Dictionary<any, any>
+    receipt_dict: Dictionary<any, any>,
+    receipt_owner_dict: Dictionary<any, any>
 };
 
 export type dailyLimitConfig = {
@@ -59,6 +60,7 @@ export function BridgePoolConfigToCell(config: BridgePoolConfig): Cell {
         .storeRef(beginCell()
             .storeDict(config.receipt_dict)
             .storeDict(config.swap_dict)
+            .storeDict(config.receipt_owner_dict)
             .endCell())
         .storeRef(beginCell()
             .storeRef(config.pool_liquidity_account_code)
@@ -383,6 +385,21 @@ export class BridgePool implements Contract {
         });
     }
 
+    async sendCreateNativeReceipt(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        targetChainId: number,
+        targetAddress: Buffer,
+        amount: number | bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.PackCreateNativeReceiptBody(targetChainId, targetAddress,amount)
+        });
+    }
+    
     async getAdmin(provider: ContractProvider) {
         const result = await provider.get('get_admin', []);
         return result.stack.readAddress();
@@ -495,6 +512,36 @@ export class BridgePool implements Contract {
     async getPoolLiquidity(provider: ContractProvider) {
         const result = await provider.get('get_pool_liquidity', []);
         return result.stack.readBigNumber();
+    }
+    
+    async getReceiptInfo(provider: ContractProvider, fromChainId: number) {
+        const result = await provider.get('get_receipt_info', [
+            {
+                type: 'int',
+                value: BigInt(fromChainId)
+            }
+        ]);
+        return {
+            index: result.stack.readBigNumber(),
+            totalAmount: result.stack.readBigNumber()
+        }
+    }
+
+    async getSwapData(provider: ContractProvider, chainId: number) {
+        const {stack} = await provider.get('get_swap_data', [
+            {
+                type: 'int',
+                value: BigInt(chainId)
+            }
+        ]);
+        return {
+            swapId: stack.readBigNumber(),
+            fromChainId: stack.readNumber(),
+            originShare: stack.readNumber(),
+            targetShare: stack.readNumber(),
+            swappedAmount: stack.readBigNumber(),
+            swappedTimes: stack.readBigNumber()
+        }
     }
 }
 

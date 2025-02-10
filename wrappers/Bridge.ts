@@ -204,6 +204,16 @@ export class Bridge implements Contract {
         return payload;
     }
 
+    static PackFakeCreateReceiptBody(targetChainId: number, tokenWalletAddress: Address, targetAddress: Buffer, jettonAddress: Address) {
+        let payload = beginCell()
+            .storeUint(Op.bridge.set_bridge_pool, 32)
+            .storeUint(targetChainId, 32)
+            .storeBuffer(targetAddress, 32)
+            .storeAddress(jettonAddress)
+            .endCell();
+        return payload;
+    }
+
     static PackCreateNativeReceiptBody(targetChainId: number, targetAddress: Buffer, amount: number | bigint) {
         let queryId = Bridge.getQueryId();
         let payload = beginCell()
@@ -264,8 +274,8 @@ export class Bridge implements Contract {
             .storeBuffer(data, 96)
             .storeUint(1, 8)
             .storeRef(beginCell()
-                .storeUint(544, 16)
-                .storeBuffer(dataOther, 68)
+                .storeUint(608, 16)
+                .storeBuffer(dataOther, 76)
                 .storeUint(0, 8)
                 .endCell())
             .endCell()
@@ -284,7 +294,7 @@ export class Bridge implements Contract {
             .endCell();
         return beginCell()
             .storeUint(Op.bridge.transmit, 32)
-            .storeUint(messageId, 256)
+            .storeUint(messageId, 128)
             .storeRef(beginCell()
                 .storeUint(sourceChainId, 64)
                 .storeUint(targetChainId, 64)
@@ -650,6 +660,14 @@ export class Bridge implements Contract {
     async getEstimateLockFee(provider: ContractProvider) {
         const res = await provider.get('get_estimate_lock_fee', []);
         return res.stack.readBigNumber();
+    }
+    
+    async get_receipt_hash_exist(provider: ContractProvider, hash: bigint) {
+        const result = await provider.get('is_receipt_hash_exist', [{
+            type: 'int',
+            value: BigInt(hash)
+        }]);
+        return result.stack.readBoolean();
     }
 }
 

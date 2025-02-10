@@ -20,8 +20,9 @@ import {
     getGasPrices,
     getStoragePrices, computeGasFee, collectCellStats, computeMessageForwardFees
 } from "../wrappers/gasUtils";
-import {findTransactionRequired} from "@ton/test-utils";
+import {findTransaction, findTransactionRequired} from "@ton/test-utils";
 import {Op} from "../wrappers/constants";
+import exp from "constants";
 
 
 let send_notification_create_receipt_gas_fee: bigint;
@@ -67,7 +68,7 @@ describe('Pipeline', () => {
 
     let bridgePool: SandboxContract<BridgePool>;
     let bridgePoolTonCoin: SandboxContract<BridgePool>;
-    
+
     let bridgeLiquidityAccount: SandboxContract<BridgePoolLiquidityAccount>;
     // auth
     let admin: SandboxContract<TreasuryContract>;
@@ -191,7 +192,8 @@ describe('Pipeline', () => {
             owner: owner.address,
             temp_upgrade: tempUpgrade,
             swap_dict: dic,
-            receipt_dict: receipt_dic
+            receipt_dict: receipt_dic,
+            receipt_owner_dict: receiptRecordDic
         }, bridgePool_code));
         const deployPoolResult = await bridgePool.sendDeploy(deployer.getSender(), toNano('0.1'));
 
@@ -213,7 +215,8 @@ describe('Pipeline', () => {
             owner: owner.address,
             temp_upgrade: tempUpgrade,
             swap_dict: dic,
-            receipt_dict: receipt_dic
+            receipt_dict: receipt_dic,
+            receipt_owner_dict: receiptRecordDic
         }, bridgePool_code));
         const deployPoolTonCoinResult = await bridgePoolTonCoin.sendDeploy(deployer.getSender(), toNano('0.1'));
 
@@ -651,280 +654,811 @@ describe('Pipeline', () => {
         // the check is done inside beforeEach
         // blockchain and ebridgeContractsTon are ready to use
     });
-    it('create receipt', async () => {
-            console.log(testAccount.address);
-            console.log(accountJettonWallet.address);
-            console.log(bridge.address);
-            console.log(bridgeJettonWallet.address);
-            console.log(bridgePool.address);
-            console.log(bridgePoolJettonWallet.address);
+    it('create receipt success pipeline', async () => {
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
 
-            let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
-            const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('5');
+        let payload = Bridge.PackCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
 
-            let receipt_amount = toNano('10');
-            let forwardAmount = toNano('5');
-            let payload = Bridge.PackCreateReceiptBody(
-                chainId, accountJettonWallet.address,
-                Buffer.from(targetAddressBuffer), jettonMinter.address);
+        const result = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount,
+            payload);
 
-            const result = await accountJettonWallet.sendTransfer(
-                testAccount.getSender(),
-                toNano('10'),
-                receipt_amount,
-                bridge.address,
-                testAccount.address,
-                beginCell().storeUint(0, 1).endCell(),
-                forwardAmount,
-                payload);
+        expect(result.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridgePoolJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: oracle.address,
+            success: true,
+        });
+        // check result
+        // 1. receipt info has been stored
+        let receipt = await bridgePool.getReceiptInfo(chainId);
+        expect(receipt.totalAmount).toBe(toNano('10'));
+        expect(receipt.index).toBe(1n);
+        // 2. check create receipt owner balance
+        let balance = await accountJettonWallet.getJettonBalance();
+        expect(balance).toEqual(toNano('890.23'));
+        // 3. check pool balance
+        let balance1 = await bridgePoolJettonWallet.getJettonBalance();
+        expect(balance1).toEqual(toNano('110'));
+        // 4. check bridge balance
+        let balance2 = await bridgeJettonWallet.getJettonBalance();
+        expect(balance2).toEqual(0n);
+        // 5. check liquidity
+        let liquidityAfter = await bridgePool.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(100000000000 + 10000000000));
+        // 6. check limit
+        const res3 = await bridgePool.getReceiptDailyLimit(chainId);
+        expect(res3.remainToken).toBe(BigInt(100000000000000000 - 10000000000));
+        console.log(res3.refreshTime);
+        expect(res3.dailyLimit).toBe(BigInt(100000000000000000));
+        const res4 = await bridgePool.getReceiptRateLimit(chainId);
+        expect(res4.currentTokenAmount).toBeGreaterThanOrEqual(BigInt(1000000000000000 - 10000000000));
+        expect(res4.tokenCapacity).toBe(BigInt(1000000000000000));
+        expect(res4.rate).toBe(BigInt(1000000000));
+        expect(res4.isEnable).toBe(true);
+    });
+    it("create native receipt success pipeline", async () => {
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+        let receipt_amount = toNano('10');
+        let res = await bridgePoolTonCoin.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
+        expect(res.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridgePoolTonCoin.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridgePoolTonCoin.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: oracle.address,
+            success: true,
+        });
 
+        let receipt = await bridgePoolTonCoin.getReceiptInfo(chainId);
+        expect(receipt.totalAmount).toBe(toNano('10'));
+        expect(receipt.index).toBe(1n);
 
-            expect(result.transactions).toHaveTransaction({
-                from: accountJettonWallet.address,
-                to: bridgeJettonWallet.address,
-                success: true,
-            });
+        let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
+        expect(liquidityAfter).toBe(toNano('30'));
 
-            expect(result.transactions).toHaveTransaction({
-                from: bridgeJettonWallet.address,
-                to: bridge.address,
-                success: true,
-            });
+        let bridgeBalance = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+        expect(bridgeBalance).toBeGreaterThanOrEqual(toNano('30'));
+        console.log(bridgeBalance);
 
-            expect(result.transactions).toHaveTransaction({
-                from: bridge.address,
-                to: bridgeJettonWallet.address,
-                success: true,
-            });
+        const res3 = await bridgePoolTonCoin.getReceiptDailyLimit(chainId);
+        expect(res3.remainToken).toBe(BigInt(10000000000000000 - 10000000000));
+        console.log(res3.refreshTime);
+        expect(res3.dailyLimit).toBe(BigInt(10000000000000000));
 
-            expect(result.transactions).toHaveTransaction({
-                from: bridgeJettonWallet.address,
-                to: bridgePoolJettonWallet.address,
-                success: true,
-            });
+        const res4 = await bridgePoolTonCoin.getReceiptRateLimit(chainId);
+        expect(res4.currentTokenAmount).toBeGreaterThanOrEqual(BigInt(1000000000000000 - 10000000000));
+        expect(res4.tokenCapacity).toBe(BigInt(1000000000000000));
+        expect(res4.rate).toBe(BigInt(1000000000));
+        expect(res4.isEnable).toBe(true);
+    });
+    it('create receipt success repeated', async () => {
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
 
-            expect(result.transactions).toHaveTransaction({
-                from: bridgePoolJettonWallet.address,
-                to: bridgePool.address,
-                success: true,
-            });
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('5');
+        let payload = Bridge.PackCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
 
-            // const bridgeReceiptAddress = await bridgePool.getReceiptAddress(testAccount.address);
-            // bridgeReceiptAccount = blockchain.openContract(
-            //     BridgeReceiptAccount.createFromAddress(bridgeReceiptAddress));
-            // console.log(bridgeReceiptAddress);
-            // expect(result.transactions).toHaveTransaction({
-            //     from: bridgePool.address,
-            //     to: bridgeReceiptAddress,
-            //     success: true,
-            // });
+        await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount,
+            payload);
 
-            expect(result.transactions).toHaveTransaction({
-                from: bridgePool.address,
-                to: bridge.address,
-                success: true,
-            });
-        
-            expect(result.transactions).toHaveTransaction({
-                from: bridge.address,
-                to: oracle.address,
-                success: true,
-            });
+        let receipt_amount1 = toNano('100');
+        let forwardAmount1 = toNano('5');
+        let payload1 = Bridge.PackCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
+        const result = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount1,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount1,
+            payload1);
+        expect(result.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridgePoolJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: oracle.address,
+            success: true,
+        });
+        // check result
+        // 1. receipt info has been stored
+        let receipt1 = await bridgePool.getReceiptInfo(chainId);
+        expect(receipt1.totalAmount).toBe(toNano('110'));
+        expect(receipt1.index).toBe(2n);
+        // 2. check create receipt owner balance
+        let balance = await accountJettonWallet.getJettonBalance();
+        expect(balance).toEqual(toNano('890.23') - toNano('100'));
+        // 3. check pool balance
+        let balance1 = await bridgePoolJettonWallet.getJettonBalance();
+        expect(balance1).toEqual(toNano('110') + toNano('100'));
+        // 4. check bridge balance
+        let balance2 = await bridgeJettonWallet.getJettonBalance();
+        expect(balance2).toEqual(0n);
+        // 5. check liquidity
+        let liquidityAfter = await bridgePool.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(100000000000 + 10000000000 + 100000000000));
+        // 6. check limit
+        const res3 = await bridgePool.getReceiptDailyLimit(chainId);
+        expect(res3.remainToken).toBe(BigInt(100000000000000000 - 10000000000 - 100000000000));
+        console.log(res3.refreshTime);
+        expect(res3.dailyLimit).toBe(BigInt(100000000000000000));
+        const res4 = await bridgePool.getReceiptRateLimit(chainId);
+        expect(res4.currentTokenAmount).toBeGreaterThanOrEqual(BigInt(1000000000000000 - 10000000000 - 100000000000));
+        expect(res4.tokenCapacity).toBe(BigInt(1000000000000000));
+        expect(res4.rate).toBe(BigInt(1000000000));
+        expect(res4.isEnable).toBe(true);
 
-            // let balance3 = (await blockchain.getContract(bridgeReceiptAddress)).balance;
-            // console.log(balance3);
-            // const transferNotificationCreateReceiptTx = findTransactionRequired(result.transactions, {
-            //     on: bridge.address,
-            //     from: bridgeJettonWallet.address,
-            //     op: Op.jetton.transfer_notification,
-            //     success: true
-            // });
-            // send_notification_create_receipt_gas_fee = printTxGasStats("Jetton transfer for create receipt", transferNotificationCreateReceiptTx);
-            // // gas used:11408
-            // send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 11408n);
-            // console.log(send_notification_create_receipt_gas_fee);
-            // const receiptInMessage = transferNotificationCreateReceiptTx.inMessage!
-            // let walletToBridgeMessageStats = computeMessageForwardFees(msgPrices, receiptInMessage).stats;
-            // console.log(walletToBridgeMessageStats);
-            //
-            // const lockTx = findTransactionRequired(result.transactions, {
-            //     on: bridgePool.address,
-            //     from: bridgePoolJettonWallet.address,
-            //     op: Op.jetton.transfer_notification,
-            //     success: true
-            // });
-            // send_notification_lock_gas_fee = printTxGasStats("Jetton transfer for lock", lockTx);
-            // // gas used:37330
-            // send_notification_lock_gas_fee = computeGasFee(gasPrices, 37330n);
-            // console.log(send_notification_lock_gas_fee);
-            // const lockInMessage = lockTx.inMessage!
-            // let lockMessageStats = computeMessageForwardFees(msgPrices, lockInMessage).stats;
-            // console.log(lockMessageStats);
-            //
-            // const recordReceiptTx = findTransactionRequired(result.transactions, {
-            //     on: bridgeReceiptAddress,
-            //     from: bridgePool.address,
-            //     op: Op.bridge_receipt_account.record_receipt,
-            //     success: true
-            // });
-            // send_record_receipt_gas_fee = printTxGasStats("Record receipt", recordReceiptTx);
-            // // gas used : 9391
-            // send_record_receipt_gas_fee = computeGasFee(gasPrices, 9391n);
-            // console.log(send_record_receipt_gas_fee);
-            // const recordReceiptInMessage = recordReceiptTx.inMessage!
-            // let recordMessageStats = computeMessageForwardFees(msgPrices, recordReceiptInMessage).stats;
-            // console.log(recordMessageStats);
-            //
-            //
-            // const receiptOkTx = findTransactionRequired(result.transactions, {
-            //     on: bridge.address,
-            //     from: bridgeReceiptAddress,
-            //     op: Op.bridge.receipt_ok,
-            //     success: true
-            // });
-            // send_receipt_ok_gas_fee = printTxGasStats("Receipt ok", receiptOkTx);
-            // // gas used: 22457
-            // send_receipt_ok_gas_fee = computeGasFee(gasPrices, 22457n);
-            // console.log(send_receipt_ok_gas_fee);
-            // const receiptOkInMessage = receiptOkTx.inMessage!
-            // let okMessageStats = computeMessageForwardFees(msgPrices, receiptOkInMessage).stats;
-            // console.log(okMessageStats);
-            //
-            let balance = await accountJettonWallet.getJettonBalance();
-            expect(balance).toEqual(toNano('890.23'));
-            let balance1 = await bridgePoolJettonWallet.getJettonBalance();
-            expect(balance1).toEqual(toNano('110'));
-            let balance2 = await bridgeJettonWallet.getJettonBalance();
-            expect(balance2).toEqual(0n);
+    });
+    it('create receipt failed paused', async () => {
+        console.log(testAccount.address);
+        console.log(accountJettonWallet.address);
+        console.log(bridge.address);
+        console.log(bridgeJettonWallet.address);
 
-            let liquidityAfter = await bridgePool.getPoolLiquidity();
-            expect(liquidityAfter).toBe(BigInt(100000000000 + 10000000000));
+        let res = await bridge.sendPause(pauseController.getSender(), toNano('0.5'));
+        expect(res.transactions).toHaveTransaction({
+            from: pauseController.address,
+            to: bridge.address,
+            success: true,
+        });
+        const status = await bridge.getPaused();
+        expect(status).toBe(true);
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
 
-            const res3 = await bridgePool.getReceiptDailyLimit(chainId);
-            expect(res3.remainToken).toBe(BigInt(100000000000000000 - 10000000000));
-            console.log(res3.refreshTime);
-            expect(res3.dailyLimit).toBe(BigInt(100000000000000000));
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('5');
+        let payload = Bridge.PackCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
 
-            const res4 = await bridgePool.getReceiptRateLimit(chainId);
-            expect(res4.currentTokenAmount).toBeGreaterThanOrEqual(BigInt(1000000000000000 - 10000000000));
-            expect(res4.tokenCapacity).toBe(BigInt(1000000000000000));
-            expect(res4.rate).toBe(BigInt(1000000000));
-            expect(res4.isEnable).toBe(true);
-            //
-            //
-            // let receipt = await bridgeReceiptAccount.getReceiptInfo(chainId);
-            // expect(receipt.totalAmount).toBe(toNano('10'));
-            // expect(receipt.index).toBe(BigInt(1));
-            //
-            // let receipt_amount1 = toNano('100');
-            // let forwardAmount1 = toNano('0.5');
-            // let payload1 = Bridge.PackCreateReceiptBody(
-            //     chainId, accountJettonWallet.address,
-            //     Buffer.from(targetAddressBuffer), jettonMinter.address);
-            // const result11 = await accountJettonWallet.sendTransfer(
-            //     testAccount.getSender(),
-            //     toNano('1'),
-            //     receipt_amount1,
-            //     bridge.address,
-            //     testAccount.address,
-            //     beginCell().storeUint(0, 1).endCell(),
-            //     forwardAmount1,
-            //     payload1);
-            // let receipt1 = await bridgeReceiptAccount.getReceiptInfo(chainId);
-            // expect(receipt1.totalAmount).toBe(toNano('110'));
-            // expect(receipt1.index).toBe(BigInt(2));
-            //
-            // const smc = await blockchain.getContract(bridgeReceiptAddress);
-            // if (smc.accountState === undefined)
-            //     throw new Error("Can't access wallet account state");
-            // if (smc.accountState.type !== "active")
-            //     throw new Error("Wallet account is not active");
-            // if (smc.account.account === undefined || smc.account.account === null)
-            //     throw new Error("Can't access wallet account!");
-            // console.log("bridge receipt storage stats:", smc.account.account.storageStats.used);
-            // const state = smc.accountState.state;
-            // const stateCell = beginCell().store(storeStateInit(state)).endCell();
-            // console.log("State init stats:", collectCellStats(stateCell, []));
-            //
-            // console.log(bridgeReceiptAddress);
-            // console.log(oracle.address);
-            // let transactionCount = result.transactions.length;
-            // console.log(transactionCount);
-            // for (let i = 1; i < transactionCount; i++) {
-            //     console.log(result.transactions[i].inMessage.info.src);
-            //     console.log(result.transactions[i].inMessage.info.dest);
-            //     if (result.transactions[i].inMessage.info.dest.toString() == oracle.address) {
-            //         let inMessage = result.transactions[i].inMessage;
-            //         let body = inMessage.body;
-            //         if (body != undefined) {
-            //             let info = body.asSlice();
-            //             let op = info.loadUint(32);
-            //             console.log(op);
-            //             let chain_id = info.loadUint(64);
-            //             console.log(chain_id);
-            //             let target = info.loadRef();
-            //             console.log(target);
-            //             // message 
-            //             let message = info.loadRef();
-            //             console.log(message);
-            //             let messageSlice = message.asSlice();
-            //             console.log(messageSlice);
-            //             let bitlength = messageSlice.remainingBits;
-            //             console.log(bitlength);
-            //             // let index = messageSlice.loadBuffer(32);
-            //             // console.log(index);
-            //             // let keyHash = messageSlice.loadBuffer(32);
-            //             // let jettonAmount = messageSlice.loadBuffer(32);
-            //             // console.log(jettonAmount)
-            //             // console.log(Buffer.from(jettonAmount).toString('base64'));
-            //             let buf = messageSlice.loadBuffer(96);
-            //             console.log(Buffer.from(buf).toString('base64'));
-            //             //
-            //             //             let refs = messageSlice.remainingRefs;
-            //             //             console.log(refs);
-            //             //
-            //             //             let res = Buffer.from(buf);
-            //             //             for (let j = 0; j < refs; j++) {
-            //             //                 let cell1 = messageSlice.loadRef();
-            //             //                 let cellBuf = cell1.asSlice().loadBuffer(32);
-            //             //                 let buffer2 = Buffer.from(cellBuf);
-            //             //                 res = Buffer.concat([res, buffer2]);
-            //             //             }
-            //             //             console.log(Buffer.from(res).toString('base64'));
-            //             //         }
-            //             //     }
-            //         }
-            //     }
-            // }
+        let result = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount,
+            payload);
+        expect(result.transactions.length).toEqual(8);
+        expect(result.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true,
+        });
+        let balance = await accountJettonWallet.getJettonBalance();
+        expect(balance).toEqual(toNano('900.23'));
+    });
+    it('create receipt failed jetton not support', async () => {
+        console.log(testAccount.address);
+        console.log(accountJettonWallet.address);
+        console.log(bridge.address);
+        console.log(bridgeJettonWallet.address);
+
+        let res = await bridge.sendRemoveJetton(admin.getSender(), toNano('0.5'), [jettonMinter.address], chainId);
+        expect(res.transactions).toHaveTransaction({
+            from: admin.address,
+            to: bridge.address,
+            success: true,
+        });
+
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('5');
+        let payload = Bridge.PackCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
+
+        let result = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount,
+            payload);
+        expect(result.transactions.length).toEqual(8);
+        expect(result.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true,
+        });
+        let balance = await accountJettonWallet.getJettonBalance();
+        expect(balance).toEqual(toNano('900.23'));
+    });
+    it('create receipt failed error transfer op', async () => {
+        console.log(testAccount.address);
+        console.log(accountJettonWallet.address);
+        console.log(bridge.address);
+        console.log(bridgeJettonWallet.address);
+
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('5');
+        let payload = Bridge.PackFakeCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
+
+        let result = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount,
+            payload);
+        expect(result.transactions.length).toEqual(8);
+        expect(result.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true,
+        });
+        let balance = await accountJettonWallet.getJettonBalance();
+        expect(balance).toEqual(toNano('900.23'));
+    });
+    it('lock failed error limit', async () => {
+        console.log(testAccount.address);
+        console.log(accountJettonWallet.address);
+        console.log(bridge.address);
+        console.log(bridgeJettonWallet.address);
+        console.log(bridgePool.address);
+        console.log(bridgePoolJettonWallet.address);
+
+        let refreshTime = getUTCMidnight();
+        let res = await bridgePool.sendSetDailyLimit(
+            admin.getSender(),
+            toNano('0.5'),
+            [{
+                chainId: chainId,
+                limitType: 0,
+                refreshTime: refreshTime,
+                dailyLimit: 10n
+            }]);
+        expect(res.transactions).toHaveTransaction({
+            from: admin.address,
+            to: bridgePool.address,
+            success: true,
+        });
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('5');
+        let payload = Bridge.PackCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
+
+        let result = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount,
+            payload);
+        for (let i = 0; i < result.transactions.length; i++) {
+            console.log(result.transactions[i].inMessage.info.src?.toString());
+            console.log(result.transactions[i].inMessage.info.dest?.toString());
         }
-    );
-    // it('swap', async () => {
-    //     const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
-    //     const smc = await blockchain.getContract(userLiquidityAddress);
-    //     if (smc.accountState === undefined)
-    //         throw new Error("Can't access wallet account state");
-    //     if (smc.accountState.type !== "active")
-    //         throw new Error("Wallet account is not active");
-    //     if (smc.account.account === undefined || smc.account.account === null)
-    //         throw new Error("Can't access wallet account!");
-    //     console.log("bridge liquidity storage stats:", smc.account.account.storageStats.used);
-    //     const state = smc.accountState.state;
-    //     const stateCell = beginCell().store(storeStateInit(state)).endCell();
-    //     console.log("State init stats:", collectCellStats(stateCell, []));
+        expect(result.transactions.length).toEqual(12);
+        expect(result.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridgePoolJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true,
+        });
+        let balance = await accountJettonWallet.getJettonBalance();
+        expect(balance).toEqual(toNano('900.23'));
+    });
+    // it('receipt ok failed bounce', async () => {
+    //     let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+    //     const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
     //
-    //     console.log(testAccount.address);
-    //     console.log(accountJettonWallet.address);
-    //     // EQBIDbk317LrsY3GE3ktW6c_1iSfNmjuKSVw5TfBeYbUqEHD
-    //     console.log(bridge.address);
-    //     console.log(bridgeSwap.address);
-    //     console.log(bridgePool.address);
-    //     console.log(bridgePoolJettonWallet.address);
+    //     let receipt_amount = toNano('10');
+    //     let forwardAmount = toNano('5');
+    //     let payload = Bridge.PackCreateReceiptBody(
+    //         chainId, accountJettonWallet.address,
+    //         Buffer.from(targetAddressBuffer), jettonMinter.address);
+    //
+    //     const result = await accountJettonWallet.sendTransfer(
+    //         testAccount.getSender(),
+    //         toNano('10'),
+    //         receipt_amount,
+    //         bridge.address,
+    //         testAccount.address,
+    //         beginCell().storeUint(0, 1).endCell(),
+    //         forwardAmount,
+    //         payload);
+    //
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: accountJettonWallet.address,
+    //         to: bridgeJettonWallet.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgeJettonWallet.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridge.address,
+    //         to: bridgeJettonWallet.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgeJettonWallet.address,
+    //         to: bridgePoolJettonWallet.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePoolJettonWallet.address,
+    //         to: bridgePool.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePool.address,
+    //         to: bridge.address,
+    //         success: false,
+    //     });
+    //    
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridge.address,
+    //         to: bridgePool.address,
+    //         success: true,
+    //         op: 0xffffffff,
+    //     });
+    //    
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePool.address,
+    //         to: bridgePoolJettonWallet.address,
+    //         success: true,
+    //     });
+    //     expect(result.transactions).toHaveTransaction({
+    //         from: bridgePoolJettonWallet.address,
+    //         to: accountJettonWallet.address,
+    //         success: true,
+    //     });
+    //     // check result
+    //     // 1. receipt info has been stored
+    //     let receipt = await bridgePool.getReceiptInfo(chainId);
+    //     expect(receipt.totalAmount).toBe(0n);
+    //     expect(receipt.index).toBe(0n);
+    //     // 2. check create receipt owner balance
+    //     let balance = await accountJettonWallet.getJettonBalance();
+    //     expect(balance).toEqual(toNano('900.23'));
+    //     // 3. check pool balance
+    //     let balance1 = await bridgePoolJettonWallet.getJettonBalance();
+    //     expect(balance1).toEqual(toNano('100'));
+    //     // 5. check liquidity
+    //     let liquidityAfter = await bridgePool.getPoolLiquidity();
+    //     expect(liquidityAfter).toBe(BigInt(100000000000));
+    // });
+    it('swap success', async () => {
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true
+        });
+        // check
+        // 1. check account balance
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 1000000000));
+        // 2. check pool liquidity
+        let liquidityAfter = await bridgePool.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(100000000000 - 1000000000));
+        // 3. check pool jetton wallet balance
+        expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 1000000000));
+        // 4. check swap
+        let swap = await bridgePool.getSwapData(chainId);
+        expect(swap.swapId).toEqual(swapId.beginParse().loadUintBig(256));
+        expect(swap.swappedAmount).toBe(BigInt(1000000000));
+        expect(swap.swappedTimes).toBe(1n);
+    });
+    it('swap native success', async () => {
+        let account_balance_before = await testAccount.getBalance();
+        let balanceBefore = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+        expect(balanceBefore).toBeGreaterThanOrEqual(toNano('20'));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapIdTonCoin,
+            HOLEADDRESS
+        );
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePoolTonCoin.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolTonCoin.address,
+            to: testAccount.address,
+            success: true
+        });
+        let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(20000000000 - 10000000000));
+
+        let balance = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+        expect(balance).toBeGreaterThanOrEqual(toNano('20') - toNano('10'));
+        expect(balance).toBeLessThan(balanceBefore);
+
+        let account_balance = await testAccount.getBalance();
+        let diff = account_balance - account_balance_before;
+        console.log(diff);
+        expect(account_balance).toBe(account_balance_before + toNano('10'));
+    });
+    it('swap success repeated', async () => {
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        let dataFull1 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdGpSiAA9nEluAGluo5B4uOG36gSaebbE4uEIQGaFQFd7D4ZpIMRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6oJxw==";
+        let dataFullBuffer1 = Buffer.from(dataFull1, 'base64');
+        let messageId1 = BigInt(2222);
+        let data1 = dataFullBuffer1.slice(0, 96);
+        let dataOther1 = dataFullBuffer1.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId1,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data1,
+            dataOther1,
+            swapId,
+            jettonMinter.address
+        );
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true
+        });
+        // check
+        // 1. check account balance
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 3000000000));
+        // 2. check pool liquidity
+        let liquidityAfter = await bridgePool.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(100000000000 - 3000000000));
+        // 3. check pool jetton wallet balance
+        expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 3000000000));
+        // 4. check swap
+        let swap = await bridgePool.getSwapData(chainId);
+        expect(swap.swapId).toEqual(swapId.beginParse().loadUintBig(256));
+        expect(swap.swappedAmount).toBe(BigInt(3000000000));
+        expect(swap.swappedTimes).toBe(2n);
+    });
+    it('swap failed paused', async () => {
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+        let res = await bridge.sendPause(pauseController.getSender(), toNano('0.5'));
+        expect(res.transactions).toHaveTransaction({
+            from: pauseController.address,
+            to: bridge.address,
+            success: true,
+        });
+        const status = await bridge.getPaused();
+        expect(status).toBe(true);
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        expect(result.transactions.length).toEqual(3);
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: oracle.address,
+            success: true,
+        });
+        let tx = findTransactionRequired(result.transactions, {
+            on: bridge.address,
+            from: oracle.address,
+            op: Op.bridge.transmit,
+            success: true
+        });
+        let body = tx.outMessages.get(0)?.body;
+        if (body != undefined) {
+            let info = body.asSlice();
+            let op = info.loadUint(32);
+            let messageId = info.loadUint(128);
+            let a = info.loadUint(8);
+            let minutes = info.loadUint(32);
+            expect(op).toBe(Op.bridge.resend);
+            expect(messageId).toBe(11111);
+            expect(minutes).toBe(20)
+        }
+    });
+    // it('swap failed expired', async () => {
     //     expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-    //     let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUC+QAmUXSGzTyJjueaHKaCsorIlPuRZ+MzyhtwrYq4opKej0RAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJM=";
+    //     let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
     //     let dataFullBuffer = Buffer.from(dataFull, 'base64');
     //     let messageId = BigInt(11111);
     //     let sourceChainId = 9992731;
-    //     let targetChainId = 1101;
+    //     let targetChainId = 1100;
     //     let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
     //     let receiver = bridge.address;
     //     let data = dataFullBuffer.slice(0, 96);
@@ -942,234 +1476,612 @@ describe('Pipeline', () => {
     //         swapId,
     //         jettonMinter.address
     //     );
-    //
+    //     expect(result.transactions.length).toEqual(2);
     //     expect(result.transactions).toHaveTransaction({
     //         from: oracle.address,
     //         to: bridge.address,
-    //         success: true,
+    //         success: false,
     //     });
-    //     expect(result.transactions).toHaveTransaction({
-    //         from: bridge.address,
-    //         to: bridgeSwap.address,
-    //         success: true
-    //     });
-    //
-    //     // const tx = result.transactions[3];
-    //     // let body2 = tx.outMessages.get(2)?.body;
-    //     // if (body2 != undefined) {
-    //     //     let info = body2.asSlice();
-    //     //     let value = info.loadCoins();
-    //     //     let value1 = info.loadCoins();
-    //     //     console.log(value);
-    //     //     console.log(value1);
-    //     // }
-    //
-    //     expect(result.transactions).toHaveTransaction({
-    //         from: bridgeSwap.address,
-    //         to: bridgePool.address,
-    //         success: true
-    //     });
-    //     //
-    //     // const txx = result.transactions[3];
-    //     // let body = txx.outMessages.get(2)?.body;
-    //     // if (body != undefined) {
-    //     //     let info = body.asSlice();
-    //     //     let value = info.loadCoins();
-    //     //     console.log(value);
-    //     // }
-    //
-    //     expect(result.transactions).toHaveTransaction({
-    //         from: bridgePool.address,
-    //         to: bridgePoolJettonWallet.address,
-    //         success: true
-    //     });
-    //
-    //     expect(result.transactions).toHaveTransaction({
-    //         from: bridgePoolJettonWallet.address,
-    //         to: accountJettonWallet.address,
-    //         success: true
-    //     });
-    //
-    //     const send_transmit_tx = findTransactionRequired(result.transactions, {
+    //     let tx = findTransactionRequired(result.transactions, {
     //         on: bridge.address,
     //         from: oracle.address,
     //         op: Op.bridge.transmit,
-    //         success: true
+    //         success: false
     //     });
-    //     send_transmit_gas_fee = printTxGasStats("transmit", send_transmit_tx);
-    //     // gas used:17650
-    //     send_transmit_gas_fee = computeGasFee(gasPrices, 17650n);
-    //     console.log(send_transmit_gas_fee);
-    //
-    //     const send_swap_tx = findTransactionRequired(result.transactions, {
-    //         on: bridgeSwap.address,
-    //         from: bridge.address,
-    //         op: Op.bridge_swap.swap,
-    //         success: true
-    //     });
-    //     send_swap_gas_fee = printTxGasStats("swap", send_swap_tx);
-    //     // gas used:12558
-    //     send_swap_gas_fee = computeGasFee(gasPrices, 12558n);
-    //     console.log(send_swap_gas_fee);
-    //     const swapInMessage = send_swap_tx.inMessage!
-    //     let swapMessageStats = computeMessageForwardFees(msgPrices, swapInMessage).stats;
-    //     console.log(swapMessageStats);
-    //
-    //     const send_release_tx = findTransactionRequired(result.transactions, {
-    //         on: bridgePool.address,
-    //         from: bridgeSwap.address,
-    //         op: Op.bridge_pool.release,
-    //         success: true
-    //     });
-    //     send_release_gas_fee = printTxGasStats("release", send_release_tx);
-    //     // gas used:34096
-    //     send_release_gas_fee = computeGasFee(gasPrices, 34096n);
-    //     console.log(send_release_gas_fee);
-    //     const releaseInMessage = send_release_tx.inMessage!
-    //     let releaseMessageStats = computeMessageForwardFees(msgPrices, releaseInMessage).stats;
-    //     console.log(releaseMessageStats);
-    //
-    //     const send_transfer_tx = findTransactionRequired(result.transactions, {
-    //         on: bridgePoolJettonWallet.address,
-    //         from: bridgePool.address,
-    //         op: Op.jetton.transfer,
-    //         success: true
-    //     });
-    //     send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
-    //     // gas used:8341
-    //     send_transfer_to_gas_fee = computeGasFee(gasPrices, 8341n);
-    //     console.log(send_transfer_to_gas_fee);
-    //     const transferInMessage = send_transfer_tx.inMessage!
-    //     let transferMessageStats = computeMessageForwardFees(msgPrices, transferInMessage).stats;
-    //     console.log(transferMessageStats);
-    //
-    //     const receive_tx = findTransactionRequired(result.transactions, {
-    //         on: accountJettonWallet.address,
-    //         from: bridgePoolJettonWallet.address,
-    //         op: Op.jetton.internal_transfer,
-    //         success: true
-    //     });
-    //     send_receive_gas_fee = printTxGasStats("receive", receive_tx);
-    //     // gas used:7822
-    //     send_receive_gas_fee = computeGasFee(gasPrices, 7822n);
-    //     console.log(send_receive_gas_fee);
-    //     const receiveInMessage = receive_tx.inMessage!
-    //     let receiveMessageStats = computeMessageForwardFees(msgPrices, receiveInMessage).stats;
-    //     console.log(receiveMessageStats);
-    //
-    //     const send_record_swap_tx = findTransactionRequired(result.transactions, {
-    //         on: bridgeSwap.address,
-    //         from: bridgePool.address,
-    //         op: Op.bridge_pool.record_swap,
-    //         success: true
-    //     });
-    //     send_record_swap_gas_fee = printTxGasStats("record swap", send_record_swap_tx);
-    //     // gas used:9706
-    //     send_record_swap_gas_fee = computeGasFee(gasPrices, 9706n);
-    //     console.log(send_record_swap_gas_fee);
-    //     const recordSwapInMessage = send_record_swap_tx.inMessage!
-    //     let recordSwapMessageStats = computeMessageForwardFees(msgPrices, recordSwapInMessage).stats;
-    //     console.log(recordSwapMessageStats);
-    //     const send_swap_ok_tx = findTransactionRequired(result.transactions, {
-    //         on: bridge.address,
-    //         from: bridgeSwap.address,
-    //         op: Op.bridge.swap_ok,
-    //         success: true
-    //     });
-    //     send_swap_ok_gas_fee = printTxGasStats("swap ok", send_swap_ok_tx);
-    //     // gas used:6592
-    //     send_swap_ok_gas_fee = computeGasFee(gasPrices, 6482n);
-    //     console.log(send_swap_ok_gas_fee);
-    //     const swapOkInMessage = send_swap_ok_tx.inMessage!
-    //     let swapOkMessageStats = computeMessageForwardFees(msgPrices, swapOkInMessage).stats;
-    //     console.log(swapOkMessageStats);
-    //     expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 10000000));
-    //     let liquidityAfter = await bridgePool.getPoolLiquidity();
-    //     expect(liquidityAfter).toBe(BigInt(100000000000 - 10000000));
-    //     expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 10000000));
-    //
+    //     // let exitCode = tx
+    //    
+    //    
     // });
-
-    it('fee', async () => {
-        // let fee = await bridge.getEstimateCreateReceiptFee();
-        // console.log(fee);
-        // let fee1 = await bridge.getEstimateRecordReceiptFee();
-        // console.log(fee1);
-        // let fee2 = await bridge.getEstimateSwapFee();
-        // console.log(fee2);
-        // let fee3 = await bridge.getEstimateRecordSwapFee();
-        // console.log(fee3);
-        // let fee4 = await bridge.getEstimateStorageFee();
-        // console.log(fee4);
-        // let fee5 = await bridge.getEstimateLockFee();
-        // console.log(fee5);
+    it('swap failed already record', async () => {
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        messageId = BigInt(2222);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        expect(result.transactions.length).toEqual(3);
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: false,
+        });
     });
-    it("bridge max storage", async () => {
-        const res1 = await bridge.sendAddJetton(
-            admin.getSender(),
-            toNano('0.5'), [deployer, ...await blockchain.createWallets(20)].map(s => s.address), chainId);
-        expect(res1.transactions).toHaveTransaction({
-            from: admin.address,
+    it('release failed liquidity not enough and after add liquidity success', async () => {
+        console.log(testAccount.address);
+        console.log(bridgePool.address);
+        console.log(bridge.address);
+        console.log(oracle.address);
+
+        const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
+        let user_liq = blockchain.openContract(
+            BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
+        let liquidity = await user_liq.getLiquidity();
+        expect(liquidity.owner).toEqualAddress(testAccount.address);
+        expect(liquidity.bridgePoolAddress).toEqualAddress(bridgePool.address);
+        expect(liquidity.jettonAddress).toEqualAddress(jettonMinter.address);
+        expect(liquidity.liquidity).toBe(toNano('100'));
+        let remove_result = await user_liq.sendRemoveLiquidity(
+            testAccount.getSender(),
+            toNano('0.05'),
+            toNano('100'),
+            true
+        );
+        expect(remove_result.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: userLiquidityAddress,
+            success: true,
+        });
+        expect(remove_result.transactions).toHaveTransaction({
+            from: userLiquidityAddress,
+            to: bridgePool.address,
+            success: true,
+        });
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        for (let i = 0; i < result.transactions.length; i++) {
+            console.log(result.transactions[i].inMessage?.info.src?.toString());
+            console.log(result.transactions[i].inMessage?.info.dest?.toString());
+        }
+        expect(result.transactions.length).toEqual(5);
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
             to: bridge.address,
             success: true,
         });
-        const res11 = await bridge.sendAddJetton(
-            admin.getSender(),
-            toNano('0.5'), [deployer, ...await blockchain.createWallets(20)].map(s => s.address), 1173);
-        expect(res11.transactions).toHaveTransaction({
-            from: admin.address,
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridge.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: oracle.address,
+            success: true
+        });
+        let body = result.transactions[2].outMessages.get(0)?.body;
+        let receiptHash = BigInt(0);
+        if (body != undefined) {
+            let info = body.asSlice();
+            let op = info.loadUint(32);
+            let jetton = info.loadAddress();
+            let message_info = info.loadRef();
+            let m_slice = message_info.asSlice();
+            let messageId = m_slice.loadInt(128);
+            receiptHash = m_slice.loadUintBig(256);
+            console.log(op);
+            console.log(jetton);
+            console.log(messageId);
+            console.log(receiptHash);
+        }
+        let exist = await bridge.get_receipt_hash_exist(receiptHash);
+        expect(exist).toBe(false);
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 100000000000));
+        let tx = findTransactionRequired(result.transactions, {
+            from: bridge.address,
+            to: oracle.address,
+            success: true
+        });
+        let body1 = tx.outMessages.get(0)?.body;
+        if (body1 != undefined) {
+            let info = body1.asSlice();
+            let op = info.loadUint(32);
+            let messageId = info.loadUint(128);
+            let a = info.loadUint(8);
+            let minutes = info.loadUint(32);
+            expect(op).toBe(Op.bridge.resend);
+            expect(messageId).toBe(11111);
+            expect(minutes).toBe(720)
+        }
+        let amount_add_liquidity = toNano('100');
+        let forwardAmount = toNano('0.05');
+        let payload = BridgePool.packAddLiquidityBody();
+        const add_liquidity_res = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('2'),
+            amount_add_liquidity,
+            bridgePool.address,
+            testAccount.address,
+            null,
+            forwardAmount,
+            payload);
+
+        expect(add_liquidity_res.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgePoolJettonWallet.address,
+            success: true,
+        });
+
+        expect(add_liquidity_res.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            success: true,
+        });
+        let result1 = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        expect(result1.transactions.length).toEqual(6);
+        expect(result1.transactions).toHaveTransaction({
+            from: oracle.address,
             to: bridge.address,
             success: true,
         });
-        // 2. set bridge swap
-        let randomWallet1 = (await blockchain.createWallets(20)).map(s => s.address);
-        let randomWallet2 = (await blockchain.createWallets(20)).map(s => s.address);
-        const input = randomWallet1.map((address1, index) => ({
-            jetton_address: address1,
-            contract_address: randomWallet2[index] || ''
-        }));
-        const res2 = await bridge.sendSetBridgeSwap(admin.getSender(), toNano('0.5'), input);
-        expect(res2.transactions).toHaveTransaction({
-            from: admin.address,
-            to: bridge.address,
-            success: true,
+        expect(result1.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
         });
-        // 3. set bridge pool
-        const res3 = await bridge.sendSetBridgePool(
-            admin.getSender(), toNano('0.5'),
-            input);
-        expect(res3.transactions).toHaveTransaction({
-            from: admin.address,
+        expect(result1.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true
+        });
+        expect(result1.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true
+        });
+        // check
+        // 1. check account balance
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 1000000000));
+        // 2. check pool liquidity
+        let liquidityAfter = await bridgePool.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(100000000000 - 1000000000));
+        // 3. check pool jetton wallet balance
+        expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 1000000000));
+        // 4. check swap
+        let swap = await bridgePool.getSwapData(chainId);
+        expect(swap.swapId).toEqual(swapId.beginParse().loadUintBig(256));
+        expect(swap.swappedAmount).toBe(BigInt(1000000000));
+        expect(swap.swappedTimes).toBe(1n);
+        exist = await bridge.get_receipt_hash_exist(receiptHash);
+        expect(exist).toBe(true);
+    });
+
+    it('create receipt fee', async () => {
+        const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
+        // const smc = await blockchain.getContract(userLiquidityAddress);
+        // if (smc.accountState === undefined)
+        //     throw new Error("Can't access wallet account state");
+        // if (smc.accountState.type !== "active")
+        //     throw new Error("Wallet account is not active");
+        // if (smc.account.account === undefined || smc.account.account === null)
+        //     throw new Error("Can't access wallet account!");
+        // console.log("bridge liquidity storage stats:", smc.account.account.storageStats.used);
+        // const state = smc.accountState.state;
+        // const stateCell = beginCell().store(storeStateInit(state)).endCell();
+        // console.log("State init stats:", collectCellStats(stateCell, []));
+
+        console.log(testAccount.address);
+        console.log(accountJettonWallet.address);
+        console.log(bridge.address);
+        console.log(bridgePool.address);
+        console.log(bridgePoolJettonWallet.address);
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
             to: bridge.address,
             success: true,
         });
 
-        const smc = await blockchain.getContract(bridge.address);
-        if (smc.accountState === undefined)
-            throw new Error("Can't access wallet account state");
-        if (smc.accountState.type !== "active")
-            throw new Error("Wallet account is not active");
-        if (smc.account.account === undefined || smc.account.account === null)
-            throw new Error("Can't access wallet account!");
-        console.log("bridge max storage stats:", smc.account.account.storageStats.used);
-        const state = smc.accountState.state;
-        const stateCell = beginCell().store(storeStateInit(state)).endCell();
-        console.log("State init stats:", collectCellStats(stateCell, []));
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true
+        });
+
+        const send_transmit_tx = findTransactionRequired(result.transactions, {
+            on: bridge.address,
+            from: oracle.address,
+            op: Op.bridge.transmit,
+            success: true
+        });
+        send_transmit_gas_fee = printTxGasStats("transmit", send_transmit_tx);
+        // gas used:17650
+        send_transmit_gas_fee = computeGasFee(gasPrices, 17650n);
+        console.log(send_transmit_gas_fee);
+
+        // const send_swap_tx = findTransactionRequired(result.transactions, {
+        //     on: bridgeSwap.address,
+        //     from: bridge.address,
+        //     op: Op.bridge_swap.swap,
+        //     success: true
+        // });
+        // send_swap_gas_fee = printTxGasStats("swap", send_swap_tx);
+        // // gas used:12558
+        // send_swap_gas_fee = computeGasFee(gasPrices, 12558n);
+        // console.log(send_swap_gas_fee);
+        // const swapInMessage = send_swap_tx.inMessage!
+        // let swapMessageStats = computeMessageForwardFees(msgPrices, swapInMessage).stats;
+        // console.log(swapMessageStats);
+        //
+        const send_release_tx = findTransactionRequired(result.transactions, {
+            on: bridgePool.address,
+            from: bridge.address,
+            op: Op.bridge_pool.release,
+            success: true
+        });
+        send_release_gas_fee = printTxGasStats("release", send_release_tx);
+        // gas used:34096
+        send_release_gas_fee = computeGasFee(gasPrices, 34096n);
+        console.log(send_release_gas_fee);
+        const releaseInMessage = send_release_tx.inMessage!
+        let releaseMessageStats = computeMessageForwardFees(msgPrices, releaseInMessage).stats;
+        console.log(releaseMessageStats);
+
+        const send_transfer_tx = findTransactionRequired(result.transactions, {
+            on: bridgePoolJettonWallet.address,
+            from: bridgePool.address,
+            op: Op.jetton.transfer,
+            success: true
+        });
+        send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
+        // gas used:8341
+        send_transfer_to_gas_fee = computeGasFee(gasPrices, 8341n);
+        console.log(send_transfer_to_gas_fee);
+        const transferInMessage = send_transfer_tx.inMessage!
+        let transferMessageStats = computeMessageForwardFees(msgPrices, transferInMessage).stats;
+        console.log(transferMessageStats);
+
+        const receive_tx = findTransactionRequired(result.transactions, {
+            on: accountJettonWallet.address,
+            from: bridgePoolJettonWallet.address,
+            op: Op.jetton.internal_transfer,
+            success: true
+        });
+        send_receive_gas_fee = printTxGasStats("receive", receive_tx);
+        // gas used:7822
+        send_receive_gas_fee = computeGasFee(gasPrices, 7822n);
+        console.log(send_receive_gas_fee);
+        const receiveInMessage = receive_tx.inMessage!
+        let receiveMessageStats = computeMessageForwardFees(msgPrices, receiveInMessage).stats;
+        console.log(receiveMessageStats);
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 1000000000));
+        let liquidityAfter = await bridgePool.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(100000000000 - 1000000000));
+        expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 1000000000));
+
+    });
+    it('swap fee', async () => {
+        const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
+        // const smc = await blockchain.getContract(userLiquidityAddress);
+        // if (smc.accountState === undefined)
+        //     throw new Error("Can't access wallet account state");
+        // if (smc.accountState.type !== "active")
+        //     throw new Error("Wallet account is not active");
+        // if (smc.account.account === undefined || smc.account.account === null)
+        //     throw new Error("Can't access wallet account!");
+        // console.log("bridge liquidity storage stats:", smc.account.account.storageStats.used);
+        // const state = smc.accountState.state;
+        // const stateCell = beginCell().store(storeStateInit(state)).endCell();
+        // console.log("State init stats:", collectCellStats(stateCell, []));
+
+        console.log(testAccount.address);
+        console.log(accountJettonWallet.address);
+        console.log(bridge.address);
+        console.log(bridgePool.address);
+        console.log(bridgePoolJettonWallet.address);
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true
+        });
+
+        const send_transmit_tx = findTransactionRequired(result.transactions, {
+            on: bridge.address,
+            from: oracle.address,
+            op: Op.bridge.transmit,
+            success: true
+        });
+        send_transmit_gas_fee = printTxGasStats("transmit", send_transmit_tx);
+        // gas used:17650
+        send_transmit_gas_fee = computeGasFee(gasPrices, 17650n);
+        console.log(send_transmit_gas_fee);
+
+        // const send_swap_tx = findTransactionRequired(result.transactions, {
+        //     on: bridgeSwap.address,
+        //     from: bridge.address,
+        //     op: Op.bridge_swap.swap,
+        //     success: true
+        // });
+        // send_swap_gas_fee = printTxGasStats("swap", send_swap_tx);
+        // // gas used:12558
+        // send_swap_gas_fee = computeGasFee(gasPrices, 12558n);
+        // console.log(send_swap_gas_fee);
+        // const swapInMessage = send_swap_tx.inMessage!
+        // let swapMessageStats = computeMessageForwardFees(msgPrices, swapInMessage).stats;
+        // console.log(swapMessageStats);
+        //
+        const send_release_tx = findTransactionRequired(result.transactions, {
+            on: bridgePool.address,
+            from: bridge.address,
+            op: Op.bridge_pool.release,
+            success: true
+        });
+        send_release_gas_fee = printTxGasStats("release", send_release_tx);
+        // gas used:34096
+        send_release_gas_fee = computeGasFee(gasPrices, 34096n);
+        console.log(send_release_gas_fee);
+        const releaseInMessage = send_release_tx.inMessage!
+        let releaseMessageStats = computeMessageForwardFees(msgPrices, releaseInMessage).stats;
+        console.log(releaseMessageStats);
+
+        const send_transfer_tx = findTransactionRequired(result.transactions, {
+            on: bridgePoolJettonWallet.address,
+            from: bridgePool.address,
+            op: Op.jetton.transfer,
+            success: true
+        });
+        send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
+        // gas used:8341
+        send_transfer_to_gas_fee = computeGasFee(gasPrices, 8341n);
+        console.log(send_transfer_to_gas_fee);
+        const transferInMessage = send_transfer_tx.inMessage!
+        let transferMessageStats = computeMessageForwardFees(msgPrices, transferInMessage).stats;
+        console.log(transferMessageStats);
+
+        const receive_tx = findTransactionRequired(result.transactions, {
+            on: accountJettonWallet.address,
+            from: bridgePoolJettonWallet.address,
+            op: Op.jetton.internal_transfer,
+            success: true
+        });
+        send_receive_gas_fee = printTxGasStats("receive", receive_tx);
+        // gas used:7822
+        send_receive_gas_fee = computeGasFee(gasPrices, 7822n);
+        console.log(send_receive_gas_fee);
+        const receiveInMessage = receive_tx.inMessage!
+        let receiveMessageStats = computeMessageForwardFees(msgPrices, receiveInMessage).stats;
+        console.log(receiveMessageStats);
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 1000000000));
+        let liquidityAfter = await bridgePool.getPoolLiquidity();
+        expect(liquidityAfter).toBe(BigInt(100000000000 - 1000000000));
+        expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 1000000000));
+
     });
 
-    it("bridge pool max storage", async () => {
-        const smc = await blockchain.getContract(bridgePool.address);
-        if (smc.accountState === undefined)
-            throw new Error("Can't access wallet account state");
-        if (smc.accountState.type !== "active")
-            throw new Error("Wallet account is not active");
-        if (smc.account.account === undefined || smc.account.account === null)
-            throw new Error("Can't access wallet account!");
-        console.log("bridge pool max storage stats:", smc.account.account.storageStats.used);
-        const state = smc.accountState.state;
-        const stateCell = beginCell().store(storeStateInit(state)).endCell();
-        console.log("State init stats:", collectCellStats(stateCell, []));
-    });
+    // it('fee', async () => {
+    //     // let fee = await bridge.getEstimateCreateReceiptFee();
+    //     // console.log(fee);
+    //     // let fee1 = await bridge.getEstimateRecordReceiptFee();
+    //     // console.log(fee1);
+    //     // let fee2 = await bridge.getEstimateSwapFee();
+    //     // console.log(fee2);
+    //     // let fee3 = await bridge.getEstimateRecordSwapFee();
+    //     // console.log(fee3);
+    //     // let fee4 = await bridge.getEstimateStorageFee();
+    //     // console.log(fee4);
+    //     // let fee5 = await bridge.getEstimateLockFee();
+    //     // console.log(fee5);
+    // });
+    // it("bridge max storage", async () => {
+    //     const res1 = await bridge.sendAddJetton(
+    //         admin.getSender(),
+    //         toNano('0.5'), [deployer, ...await blockchain.createWallets(20)].map(s => s.address), chainId);
+    //     expect(res1.transactions).toHaveTransaction({
+    //         from: admin.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     const res11 = await bridge.sendAddJetton(
+    //         admin.getSender(),
+    //         toNano('0.5'), [deployer, ...await blockchain.createWallets(20)].map(s => s.address), 1173);
+    //     expect(res11.transactions).toHaveTransaction({
+    //         from: admin.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     // 2. set bridge swap
+    //     let randomWallet1 = (await blockchain.createWallets(20)).map(s => s.address);
+    //     let randomWallet2 = (await blockchain.createWallets(20)).map(s => s.address);
+    //     const input = randomWallet1.map((address1, index) => ({
+    //         jetton_address: address1,
+    //         contract_address: randomWallet2[index] || ''
+    //     }));
+    //     const res2 = await bridge.sendSetBridgeSwap(admin.getSender(), toNano('0.5'), input);
+    //     expect(res2.transactions).toHaveTransaction({
+    //         from: admin.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //     // 3. set bridge pool
+    //     const res3 = await bridge.sendSetBridgePool(
+    //         admin.getSender(), toNano('0.5'),
+    //         input);
+    //     expect(res3.transactions).toHaveTransaction({
+    //         from: admin.address,
+    //         to: bridge.address,
+    //         success: true,
+    //     });
+    //
+    //     const smc = await blockchain.getContract(bridge.address);
+    //     if (smc.accountState === undefined)
+    //         throw new Error("Can't access wallet account state");
+    //     if (smc.accountState.type !== "active")
+    //         throw new Error("Wallet account is not active");
+    //     if (smc.account.account === undefined || smc.account.account === null)
+    //         throw new Error("Can't access wallet account!");
+    //     console.log("bridge max storage stats:", smc.account.account.storageStats.used);
+    //     const state = smc.accountState.state;
+    //     const stateCell = beginCell().store(storeStateInit(state)).endCell();
+    //     console.log("State init stats:", collectCellStats(stateCell, []));
+    // });
+    //
+    // it("bridge pool max storage", async () => {
+    //     const smc = await blockchain.getContract(bridgePool.address);
+    //     if (smc.accountState === undefined)
+    //         throw new Error("Can't access wallet account state");
+    //     if (smc.accountState.type !== "active")
+    //         throw new Error("Wallet account is not active");
+    //     if (smc.account.account === undefined || smc.account.account === null)
+    //         throw new Error("Can't access wallet account!");
+    //     console.log("bridge pool max storage stats:", smc.account.account.storageStats.used);
+    //     const state = smc.accountState.state;
+    //     const stateCell = beginCell().store(storeStateInit(state)).endCell();
+    //     console.log("State init stats:", collectCellStats(stateCell, []));
+    // });
 
     // it("bridge swap max storage", async () => {
     //     const result = await bridgeSwap.sendCreateSwap(
@@ -1212,15 +2124,8 @@ describe('Pipeline', () => {
     //         to: bridgePoolTonCoin.address,
     //         success: true,
     //     });
-    //     let receiptAccountAddress = await bridgePoolTonCoin.getReceiptAddress(testAccount.address);
-    //     console.log(receiptAccountAddress);
     //     expect(res.transactions).toHaveTransaction({
     //         from: bridgePoolTonCoin.address,
-    //         to: receiptAccountAddress,
-    //         success: true,
-    //     });
-    //     expect(res.transactions).toHaveTransaction({
-    //         from: receiptAccountAddress,
     //         to: bridge.address,
     //         success: true,
     //     });
@@ -1230,57 +2135,57 @@ describe('Pipeline', () => {
     //         success: true,
     //     });
     //
-    //     const createReceiptTx = findTransactionRequired(res.transactions, {
-    //         on: bridge.address,
-    //         from: testAccount.address,
-    //         op: Op.bridge.create_native_receipt,
-    //         success: true
-    //     });
-    //     send_notification_create_receipt_gas_fee = printTxGasStats("create receipt", createReceiptTx);
-    //     // gas used:8055
-    //     send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 8055n);
-    //     console.log(send_notification_create_receipt_gas_fee);
-    //     let stat1 = computeMessageForwardFees(msgPrices, createReceiptTx.inMessage!).stats;
-    //     console.log(stat1);
-    //
-    //     const lockTx = findTransactionRequired(res.transactions, {
-    //         on: bridgePoolTonCoin.address,
-    //         from: bridge.address,
-    //         op: Op.bridge.lock_native_token,
-    //         success: true
-    //     });
-    //     send_notification_lock_gas_fee = printTxGasStats("lock", lockTx);
-    //     // gas used:35443
-    //     send_notification_lock_gas_fee = computeGasFee(gasPrices, 35443n);
-    //     console.log(send_notification_lock_gas_fee);
-    //     let stat2 = computeMessageForwardFees(msgPrices, lockTx.inMessage!).stats;
-    //     console.log(stat2);
-    //
-    //     const recordReceiptTx = findTransactionRequired(res.transactions, {
-    //         on: receiptAccountAddress,
-    //         from: bridgePoolTonCoin.address,
-    //         op: Op.bridge_pool.record_receipt,
-    //         success: true
-    //     });
-    //     send_record_receipt_gas_fee = printTxGasStats("record receipt", recordReceiptTx);
-    //     // gas used:9969
-    //     send_record_receipt_gas_fee = computeGasFee(gasPrices, 9969n);
-    //     console.log(send_record_receipt_gas_fee);
-    //     let stat3 = computeMessageForwardFees(msgPrices, recordReceiptTx.inMessage!).stats;
-    //     console.log(stat3);
-    //
-    //     const receiptOkTx = findTransactionRequired(res.transactions, {
-    //         on: bridge.address,
-    //         from: receiptAccountAddress,
-    //         op: Op.bridge.receipt_ok,
-    //         success: true
-    //     });
-    //     send_receipt_ok_gas_fee = printTxGasStats("receipt ok", receiptOkTx);
-    //     // gas used:22652
-    //     send_receipt_ok_gas_fee = computeGasFee(gasPrices, 22652n);
-    //     console.log(send_receipt_ok_gas_fee);
-    //     let stat4 = computeMessageForwardFees(msgPrices, receiptOkTx.inMessage!).stats;
-    //     console.log(stat4);
+    //     // const createReceiptTx = findTransactionRequired(res.transactions, {
+    //     //     on: bridge.address,
+    //     //     from: testAccount.address,
+    //     //     op: Op.bridge.create_native_receipt,
+    //     //     success: true
+    //     // });
+    //     // send_notification_create_receipt_gas_fee = printTxGasStats("create receipt", createReceiptTx);
+    //     // // gas used:8055
+    //     // send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 8055n);
+    //     // console.log(send_notification_create_receipt_gas_fee);
+    //     // let stat1 = computeMessageForwardFees(msgPrices, createReceiptTx.inMessage!).stats;
+    //     // console.log(stat1);
+    //     //
+    //     // const lockTx = findTransactionRequired(res.transactions, {
+    //     //     on: bridgePoolTonCoin.address,
+    //     //     from: bridge.address,
+    //     //     op: Op.bridge.lock_native_token,
+    //     //     success: true
+    //     // });
+    //     // send_notification_lock_gas_fee = printTxGasStats("lock", lockTx);
+    //     // // gas used:35443
+    //     // send_notification_lock_gas_fee = computeGasFee(gasPrices, 35443n);
+    //     // console.log(send_notification_lock_gas_fee);
+    //     // let stat2 = computeMessageForwardFees(msgPrices, lockTx.inMessage!).stats;
+    //     // console.log(stat2);
+    //     //
+    //     // const recordReceiptTx = findTransactionRequired(res.transactions, {
+    //     //     on: receiptAccountAddress,
+    //     //     from: bridgePoolTonCoin.address,
+    //     //     op: Op.bridge_pool.record_receipt,
+    //     //     success: true
+    //     // });
+    //     // send_record_receipt_gas_fee = printTxGasStats("record receipt", recordReceiptTx);
+    //     // // gas used:9969
+    //     // send_record_receipt_gas_fee = computeGasFee(gasPrices, 9969n);
+    //     // console.log(send_record_receipt_gas_fee);
+    //     // let stat3 = computeMessageForwardFees(msgPrices, recordReceiptTx.inMessage!).stats;
+    //     // console.log(stat3);
+    //     //
+    //     // const receiptOkTx = findTransactionRequired(res.transactions, {
+    //     //     on: bridge.address,
+    //     //     from: receiptAccountAddress,
+    //     //     op: Op.bridge.receipt_ok,
+    //     //     success: true
+    //     // });
+    //     // send_receipt_ok_gas_fee = printTxGasStats("receipt ok", receiptOkTx);
+    //     // // gas used:22652
+    //     // send_receipt_ok_gas_fee = computeGasFee(gasPrices, 22652n);
+    //     // console.log(send_receipt_ok_gas_fee);
+    //     // let stat4 = computeMessageForwardFees(msgPrices, receiptOkTx.inMessage!).stats;
+    //     // console.log(stat4);
     //
     //     let liquidityAfter = await bridgePoolTonCoin.getPoolLiquidity();
     //     expect(liquidityAfter).toBe(toNano('30'));

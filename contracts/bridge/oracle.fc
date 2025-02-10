@@ -30,10 +30,10 @@
         if (resend_time_span > ONEMINUTES) {
             resend_minutes = resend_time_span / ONEMINUTES;
         }
-    } catch (x,n){
+    } catch (x, n) {
         resend_minutes = TENMINUTES;
     }
-    
+
     var payload = begin_cell()
         .store_uint(resend, 32)
         .store_int(message_id, 128)
@@ -44,7 +44,7 @@
 }
 
 () encode_message_and_send_to_oracle(int target_chain_id, slice jetton_address, slice receipt_id, int jetton_amount, slice target_address) impure inline {
-    (var key_hash, var receipt_index) = (receipt_id~load_uint(256), receipt_id~load_uint(256));
+    (var key_hash, var receipt_index) = (receipt_id~load_uint(256), receipt_id~load_uint(64));
     ;;calculate the leaf hash
     int leaf_hash = calculate_leaf_hash(receipt_index, key_hash, jetton_amount, target_address);
 
@@ -96,26 +96,26 @@
     (data_part~load_uint(256), ;; 32 bytes
         data_part~load_uint(256), ;; 32 bytes
         data_part~load_uint(256)); ;; 32 bytes
-    int ref_num = message~load_uint(8); ;; remain_bytes = 32 + 36 = 68 bytes ref_num = 1 
+    int ref_num = message~load_uint(8); ;; remain_bytes = 32 + 36 + 8 = 72 bytes ref_num = 1 
     throw_unless(MESSAGE_DATA_ERROR, ref_num == 1);
     slice message_ref = message~load_ref().begin_parse();
-    int ref_slice_bits = message_ref~load_uint(16); ;; 68 bytes * 8 = 544 bits
-    throw_unless(MESSAGE_DATA_ERROR, ref_slice_bits == 544);
-    slice ref_data_part = message_ref~load_bits(ref_slice_bits); ;;( 32 + 36 + 8 ) * 8 = 608 bits
+    int ref_slice_bits = message_ref~load_uint(16); ;;( 32 + 36 + 8 ) * 8 = 608 bits
+    throw_unless(MESSAGE_DATA_ERROR, ref_slice_bits == 608);
+    slice ref_data_part = message_ref~load_bits(ref_slice_bits);
     int receive_leaf_hash = ref_data_part~load_uint(256); ;; 32 bytes
     slice receipt_target_address = ref_data_part~load_bits(288); ;;ton address: 36bytes
-    int timestamp = ref_data_part~load_uint(32); ;; 8 bytes
+    int timestamp = ref_data_part~load_uint(64); ;; 8 bytes
     throw_unless(INVALID_AMOUNT, receipt_amount > 0);
     int leaf_hash = calculate_leaf_hash(receipt_index, key_hash, receipt_amount, receipt_target_address);
     throw_unless(VERIFICATION_FAILED, leaf_hash == receive_leaf_hash);
     receipt_target_address~load_bits(8); ;; ignore address flag
     int wc = receipt_target_address~load_int(8);
     int address_hash = receipt_target_address~load_uint(256);
-    slice target_address = create_address(wc,address_hash);
-    return (receipt_index, key_hash, receipt_amount, leaf_hash, target_address,timestamp);
+    slice target_address = create_address(wc, address_hash);
+    return (receipt_index, key_hash, receipt_amount, leaf_hash, target_address, timestamp);
 }
 
-() receive_from_oracle(slice in_msg_body,int fee) impure inline {
+() receive_from_oracle(slice in_msg_body, int fee) impure inline {
     var message_id = in_msg_body~load_int(128);
     if (storage::is_pause) {
         resend_receipt_info(message_id, TENMINUTES * 2);
@@ -124,7 +124,7 @@
     var origin_data = in_msg_body~load_ref();
     var data = origin_data.begin_parse();
     (int source_chain_id, int target_chain_id) = (data~load_int(64), data~load_int(64));
-    throw_unless(INVALID_TARGET_CHAIN_ID,target_chain_id == CHAINID);
+    throw_unless(INVALID_TARGET_CHAIN_ID, target_chain_id == CHAINID);
     (slice target_contract, _) = storage::target_contract_dic.udict_get?(CHAIN_ID_KEY_LENGTH, source_chain_id);
     (slice sender_slice, slice receiver_slice) = (data~load_ref().begin_parse(), data~load_ref().begin_parse());
     var sender = sender_slice~load_bits(256);
@@ -143,7 +143,7 @@
     slice jetton_address = info~load_ref().begin_parse();
     info~load_ref(); ;; ignore origin_token, beasue it is used by source chain.
     (int receipt_index, int key_hash, int receipt_amount, int leaf_hash, slice receipt_target_address, int timestamp) = decode_message_and_verification(message);
-    
+
     (var jetton_bridge_pool_address, int found_pool) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton_address);
     if (~ found_pool) {
         resend_receipt_info(message_id, TENMINUTES * 2);

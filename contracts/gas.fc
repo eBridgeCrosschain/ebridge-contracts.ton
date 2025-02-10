@@ -77,10 +77,6 @@ const SEND_INTERNAL_TRANSFER_GAS_CONSUMPTION = 7822;
 const SEND_RELEASE_TRANSAFER_GAS_CONSUMPTION = 309;
 
 
-int calculate_bridge_receipt_account_min_storage_fee() inline {
-    return get_storage_fee(WORKCHAIN, MIN_STORAGE_DURATION, BRIDGE_RECEIPT_ACCOUNT_BITS, BRIDGE_RECEIPT_ACCOUNT_CELLS);
-}
-
 int calculate_bridge_liquidity_account_min_storage_fee() inline {
     return get_storage_fee(WORKCHAIN, MIN_STORAGE_DURATION, BRIDGE_LIQUIDITY_ACCOUNT_BITS, BRIDGE_LIQUIDITY_ACCOUNT_CELLS);
 }
@@ -93,35 +89,25 @@ int calculate_bridge_pool_min_storage_fee() inline {
     return get_storage_fee(WORKCHAIN, MIN_STORAGE_DURATION, BRIDGE_POOL_BITS, BRIDGE_POOL_CELLS);
 }
 
-int calculate_bridge_swap_min_storage_fee() inline {
-    return get_storage_fee(WORKCHAIN, MIN_STORAGE_DURATION, BRIDGE_SWAP_BITS, BRIDGE_SWAP_CELLS);
-}
-
 {- There are following costs:
    1) Gas cost on create receipt
    2) Forward cost for Bridge->BridgeJettonWallet->BridgePoolJettonWallet->BrigdePool lock message
-   3) Forward cost for BrigdePool -> Bridge receipt message
-   4) Storage on Bridge receipt
-   5) Forward cost for Bridge receipt -> Bridge
-   6) Forward cost for Bridge -> oracle 0.01 ton
+   3) Forward cost for BrigdePool -> Bridge
+   4) Forward cost for Bridge -> oracle 0.01 ton
 -}
 (int) calculate_create_receipt_process_fee() impure inline {
     int gas_consumption = get_precompiled_gas_consumption();
     int create_receipt_gas_consumption = null?(gas_consumption) ? SEND_CREATE_RECEIPT_IN_TRANSFER_NOTIFICATION_GAS_CONSUMPTION : gas_consumption;
     int lock_gas_consumption = null?(gas_consumption) ? SEND_LOCK_IN_TRANSFER_NOTIFICATION_GAS_CONSUMPTION : gas_consumption;
-    int record_receipt_gas_consumption = null?(gas_consumption) ? SEND_RECORD_RECEIPT_GAS_CONSUMPTION : gas_consumption;
     int receipt_ok_gas_consumption = null?(gas_consumption) ? SEND_RECEIPT_OK_GAS_CONSUMPTION : gas_consumption;
 
     int gas_fee = get_compute_fee(WORKCHAIN, create_receipt_gas_consumption)
     + get_compute_fee(WORKCHAIN, lock_gas_consumption)
-    + get_compute_fee(WORKCHAIN, record_receipt_gas_consumption)
     + get_compute_fee(WORKCHAIN, receipt_ok_gas_consumption);
     int fwd_fee = get_forward_fee(WORKCHAIN, LOCK_BITS, LOCK_CELLS)
-    + get_forward_fee(WORKCHAIN, RECORD_RECEIPT_BITS, RECORD_RECEIPT_CELLS)
     + get_forward_fee(WORKCHAIN, RECEIPT_OK_BITS, RECEIPT_OK_CELLS);
-    int storage_fee = calculate_bridge_receipt_account_min_storage_fee();
 
-    return gas_fee + fwd_fee + storage_fee + ORACLE_TON;
+    return gas_fee + fwd_fee + ORACLE_TON;
 }
 
 {- There are following costs:
@@ -194,7 +180,7 @@ int calculate_bridge_swap_min_storage_fee() inline {
     return gas_fee + fwd_fee;
 }
 
-(int) calculate_record_swap_process_fee() impure inline {
+(int) calculate_add_native_token_liquidity_fee() impure inline {
     int gas_consumption = get_precompiled_gas_consumption();
     int record_swap_gas_consumption = null?(gas_consumption) ? SEND_RECORD_SWAP_GAS_CONSUMPTION : gas_consumption;
     int swap_ok_gas_consumption = null?(gas_consumption) ? SEND_SWAP_OK_GAS_CONSUMPTION : gas_consumption;
@@ -209,25 +195,25 @@ int calculate_bridge_swap_min_storage_fee() inline {
 (int) calculate_create_native_receipt_process_fee() impure inline {
     int gas_consumption = get_precompiled_gas_consumption();
     int create_receipt_gas_consumption = null?(gas_consumption) ? SEND_CREATE_NATIVE_RECEIPT_GAS_CONSUMPTION : gas_consumption;
-    int lock_gas_consumption = null?(gas_consumption) ? SEND_LOCK_IN_TRANSFER_NOTIFICATION_GAS_CONSUMPTION : gas_consumption;
-    int record_receipt_gas_consumption = null?(gas_consumption) ? SEND_RECORD_RECEIPT_GAS_CONSUMPTION : gas_consumption;
-    int receipt_ok_gas_consumption = null?(gas_consumption) ? SEND_RECEIPT_OK_GAS_CONSUMPTION : gas_consumption;
+    
+    int gas_fee = get_compute_fee(WORKCHAIN, create_receipt_gas_consumption);
+    int fwd_fee = get_forward_fee(WORKCHAIN, CREATE_RECEIPT_BITS, CREATE_RECEIPT_CELLS);
 
-    int gas_fee = get_compute_fee(WORKCHAIN, create_receipt_gas_consumption)
-    + get_compute_fee(WORKCHAIN, lock_gas_consumption)
-    + get_compute_fee(WORKCHAIN, record_receipt_gas_consumption)
-    + get_compute_fee(WORKCHAIN, receipt_ok_gas_consumption);
-    int fwd_fee = get_forward_fee(WORKCHAIN, CREATE_RECEIPT_BITS, CREATE_RECEIPT_CELLS)
-    + get_forward_fee(WORKCHAIN, LOCK_NATIVE_BITS, LOCK_NATIVE_CELLS)
-    + get_forward_fee(WORKCHAIN, RECORD_RECEIPT_BITS, RECORD_RECEIPT_CELLS)
-    + get_forward_fee(WORKCHAIN, RECEIPT_OK_BITS, RECEIPT_OK_CELLS);
-    int storage_fee = calculate_bridge_receipt_account_min_storage_fee();
-
-    return gas_fee + fwd_fee + storage_fee + ORACLE_TON;
+    return gas_fee + fwd_fee + ORACLE_TON;
 }
 
 (int) calculate_release_transfer_fee() impure inline {
     return get_compute_fee(WORKCHAIN, SEND_RELEASE_TRANSAFER_GAS_CONSUMPTION);
 }
 
+(int) calculate_remove_liquidity_fee() impure inline {
+    int gas_consumption = get_precompiled_gas_consumption();
+    int record_swap_gas_consumption = null?(gas_consumption) ? SEND_RECORD_SWAP_GAS_CONSUMPTION : gas_consumption;
+    int swap_ok_gas_consumption = null?(gas_consumption) ? SEND_SWAP_OK_GAS_CONSUMPTION : gas_consumption;
 
+    int gas_fee = get_compute_fee(WORKCHAIN, record_swap_gas_consumption)
+    + get_compute_fee(WORKCHAIN, swap_ok_gas_consumption);
+    int fwd_fee = get_forward_fee(WORKCHAIN, RECORD_SWAP_BITS, RECORD_SWAP_CELLS)
+    + get_forward_fee(WORKCHAIN, SWAP_OK_BITS, SWAP_OK_CELLS);
+    return gas_fee + fwd_fee;
+}

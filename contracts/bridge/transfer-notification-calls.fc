@@ -53,7 +53,7 @@
             .store_slice(target_address)
             .store_slice(from_sender)
             .end_cell();
-        int fwd_amount = ONE_TON * 3;
+        int fwd_amount = ONE_TON;
         var body = create_with_payload_transfer_body(query_id, jetton_amount, jetton_pool_address, my_address(), fwd_amount, payload);
         send_simple_message(0, sender_address, body.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
         return ();

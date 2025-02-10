@@ -38,8 +38,9 @@ global cell storage::receipt_record_dic_bucket;
     storage::pause_controller = ds_1_1_slice~load_msg_addr();
     storage::oracle_address = ds_1_1_slice~load_msg_addr();
     storage::temp_upgrade = ds~load_ref();
-    ;; cell ds_3 = ds~load_ref();
-    ;; slice ds_3_0 = ds_3.begin_parse();
+    ;; cell ds_2 = ds~load_ref();
+    ;; slice ds_2_slice = ds_2.begin_parse();
+    ;; storage::receipt_record_dic_bucket = ds_2_slice~load_dict();
 }
 
 () save_storage() impure inline {
@@ -63,8 +64,5 @@ global cell storage::receipt_record_dic_bucket;
                     .end_cell())
             .end_cell())
         .store_ref(storage::temp_upgrade)
-        ;; .store_ref(
-        ;;     begin_cell()
-        ;;         .end_cell())
         .end_cell());
 }

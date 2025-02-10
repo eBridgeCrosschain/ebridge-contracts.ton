@@ -2,10 +2,9 @@
 #include "../common/dic.fc";
 #include "../common/stdlib.fc";
 #include "../common/utils.fc";
-#include "../common/bridge_receipt_account-utils.fc";
 #include "utils.fc";
 #include "../gas.fc";
-
+#include "receipt_dic_helper.fc";
 
 (slice) get_bridge_pool_address(slice jetton_address) method_id {
     load_storage();
@@ -56,6 +55,27 @@
 (cell) get_upgrade_status() method_id {
     load_storage();
     return storage::temp_upgrade;
+}
+
+(int) get_receipt_hash_status(int receipt_hash,int timestamp) method_id {
+    load_storage();
+    int bucket_key = timestamp / ONEDAY;
+    (cell receipt_hash_dic, int found) = udict_get_ref?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, bucket_key);
+    if (found) {
+        (slice value, int found) = udict_get?(receipt_hash_dic, DEFAULT_KEY_LENGTH, receipt_hash);
+        if (found) {
+            return -1;
+        } else {
+            return 0;
+        }
+    } else {
+            return 0;
+    }
+}
+
+(int) is_receipt_hash_exist(int receipt_hash) method_id {
+    load_storage();
+    return is_receipt_exist(receipt_hash);
 }
 
 ;; (int) get_estimate_create_receipt_fee() method_id {
