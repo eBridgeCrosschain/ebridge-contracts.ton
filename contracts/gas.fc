@@ -116,35 +116,35 @@ int calculate_bridge_pool_min_storage_fee() inline {
    3) Forward cost for Bridge receipt -> Bridge
    4) Forward cost for Bridge -> oracle 0.01 ton
 -}
-(int) calculate_lock_process_fee() impure inline {
-    int gas_consumption = get_precompiled_gas_consumption();
-    int record_receipt_gas_consumption = null?(gas_consumption) ? SEND_RECORD_RECEIPT_GAS_CONSUMPTION : gas_consumption;
-    int receipt_ok_gas_consumption = null?(gas_consumption) ? SEND_RECEIPT_OK_GAS_CONSUMPTION : gas_consumption;
-
-    int gas_fee = get_compute_fee(WORKCHAIN, record_receipt_gas_consumption)
-    + get_compute_fee(WORKCHAIN, receipt_ok_gas_consumption);
-    int fwd_fee = get_forward_fee(WORKCHAIN, RECORD_RECEIPT_BITS, RECORD_RECEIPT_CELLS)
-    + get_forward_fee(WORKCHAIN, RECEIPT_OK_BITS, RECEIPT_OK_CELLS);
-    int storage_fee = calculate_bridge_receipt_account_min_storage_fee();
-
-    return gas_fee + fwd_fee + storage_fee + ORACLE_TON;
-}
+;; (int) calculate_lock_process_fee() impure inline {
+;;     int gas_consumption = get_precompiled_gas_consumption();
+;;     int record_receipt_gas_consumption = null?(gas_consumption) ? SEND_RECORD_RECEIPT_GAS_CONSUMPTION : gas_consumption;
+;;     int receipt_ok_gas_consumption = null?(gas_consumption) ? SEND_RECEIPT_OK_GAS_CONSUMPTION : gas_consumption;
+;; 
+;;     int gas_fee = get_compute_fee(WORKCHAIN, record_receipt_gas_consumption)
+;;     + get_compute_fee(WORKCHAIN, receipt_ok_gas_consumption);
+;;     int fwd_fee = get_forward_fee(WORKCHAIN, RECORD_RECEIPT_BITS, RECORD_RECEIPT_CELLS)
+;;     + get_forward_fee(WORKCHAIN, RECEIPT_OK_BITS, RECEIPT_OK_CELLS);
+;;     int storage_fee = calculate_bridge_receipt_account_min_storage_fee();
+;; 
+;;     return gas_fee + fwd_fee + storage_fee + ORACLE_TON;
+;; }
 
 {- There are following costs:
    1) Storage on Bridge receipt
    2) Forward cost for Bridge receipt -> Bridge
    3) Forward cost for Bridge -> oracle 0.01 ton
 -}
-(int) calculate_receipt_process_fee() impure inline {
-    int gas_consumption = get_precompiled_gas_consumption();
-    int receipt_ok_gas_consumption = null?(gas_consumption) ? SEND_RECEIPT_OK_GAS_CONSUMPTION : gas_consumption;
-
-    int gas_fee = get_compute_fee(WORKCHAIN, receipt_ok_gas_consumption);
-    int fwd_fee = get_forward_fee(WORKCHAIN, RECEIPT_OK_BITS, RECEIPT_OK_CELLS);
-    int storage_fee = calculate_bridge_receipt_account_min_storage_fee();
-
-    return gas_fee + fwd_fee + storage_fee + ORACLE_TON;
-}
+;; (int) calculate_receipt_process_fee() impure inline {
+;;     int gas_consumption = get_precompiled_gas_consumption();
+;;     int receipt_ok_gas_consumption = null?(gas_consumption) ? SEND_RECEIPT_OK_GAS_CONSUMPTION : gas_consumption;
+;; 
+;;     int gas_fee = get_compute_fee(WORKCHAIN, receipt_ok_gas_consumption);
+;;     int fwd_fee = get_forward_fee(WORKCHAIN, RECEIPT_OK_BITS, RECEIPT_OK_CELLS);
+;;     int storage_fee = calculate_bridge_receipt_account_min_storage_fee();
+;; 
+;;     return gas_fee + fwd_fee + storage_fee + ORACLE_TON;
+;; }
 
 {- There are following costs:
    1) Gas cost on transmit
