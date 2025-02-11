@@ -24,21 +24,33 @@ import {findTransaction, findTransactionRequired} from "@ton/test-utils";
 import {Op} from "../wrappers/constants";
 import exp from "constants";
 
-
+let send_transfer_gas_fee: bigint;
+let send_internal_transfer_gas_fee: bigint;
+let send_transfer_to_bridge_gas_fee: bigint;
 let send_notification_create_receipt_gas_fee: bigint;
+let send_transfer_to_bridge_wallet_gas_fee: bigint;
+let send_internal_transfer_to_bridge_pool_gas_fee: bigint;
 let send_notification_lock_gas_fee: bigint;
-let send_record_receipt_gas_fee: bigint;
 let send_receipt_ok_gas_fee: bigint;
 let send_transmit_gas_fee: bigint;
-let send_swap_gas_fee: bigint;
 let send_release_gas_fee: bigint;
-let send_record_swap_gas_fee: bigint;
-let send_swap_ok_gas_fee: bigint;
 let send_transfer_to_gas_fee: bigint;
+let send_transfer_to_account_gas_fee: bigint;
+let send_transfer_to_account_notification_gas_fee: bigint;
 let send_receive_gas_fee: bigint;
+let send_add_liquidity_gas_fee: bigint;
+let send_remove_liquidity_gas_fee: bigint;
+let send_add_native_liquidity_gas_fee: bigint;
 let add_liquidity_gas_fee: bigint;
-let remove_liquidity_gas_fee: bigint;
+let provider_liquidity_gas_fee: bigint;
 let min_tons_for_storage: bigint;
+
+let send_create_native_receipt_gas_fee: bigint;
+let send_lock_native_token_gas_fee: bigint;
+let send_ton_to_user_gas_fee: bigint;
+
+let user_remove_liquidity_gas_fee: bigint;
+let remove_liquidity_gas_fee: bigint;
 
 
 describe('Pipeline', () => {
@@ -227,52 +239,6 @@ describe('Pipeline', () => {
             success: true,
         });
 
-        // // 5. deploy bridge swap contract
-        // bridgeSwap = blockchain.openContract(BridgeSwap.createFromConfig({
-        //     bridgePoolAddress: bridgePool.address,
-        //     jettonAddress: jettonMinter.address,
-        //     bridgeAddress: bridge.address,
-        //     admin: admin.address,
-        //     owner: owner.address,
-        //     tempUpgrade: tempUpgrade,
-        //     swapDic: dic,
-        //     receiptDic: dic
-        // }, bridgeSwap_code));
-        // const deploySwapResult = await bridgeSwap.sendDeploy(deployer.getSender(), toNano('0.1'));
-        //
-        // expect(deploySwapResult.transactions).toHaveTransaction({
-        //     from: deployer.address,
-        //     to: bridgeSwap.address,
-        //     deploy: true,
-        //     success: true,
-        // });
-        //
-        // // 5'. deploy bridge swap contract for toncoin
-        // bridgeSwapTonCoin = blockchain.openContract(BridgeSwap.createFromConfig({
-        //     bridgePoolAddress: bridgePoolTonCoin.address,
-        //     jettonAddress: HOLEADDRESS,
-        //     bridgeAddress: bridge.address,
-        //     admin: admin.address,
-        //     owner: owner.address,
-        //     tempUpgrade: tempUpgrade,
-        //     swapDic: dic,
-        //     receiptDic: dic
-        // }, bridgeSwap_code));
-        // const deploySwapTonCoinResult = await bridgeSwapTonCoin.sendDeploy(deployer.getSender(), toNano('0.1'));
-        //
-        // expect(deploySwapTonCoinResult.transactions).toHaveTransaction({
-        //     from: deployer.address,
-        //     to: bridgeSwapTonCoin.address,
-        //     deploy: true,
-        //     success: true,
-        // });
-
-
-        // // 6. open bridge receipt account - test account
-        // const bridgeReceiptAddress = await bridgePool.getReceiptAddress(testAccount.address);
-        // bridgeReceiptAccount = blockchain.openContract(
-        //     BridgeReceiptAccount.createFromAddress(bridgeReceiptAddress));
-
         // 7. open liquidity account - test account
         const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
         bridgeLiquidityAccount = blockchain.openContract(
@@ -304,6 +270,16 @@ describe('Pipeline', () => {
         expect(await accountJettonWallet.getJettonBalance()).toEqual(initialAccountJettonBalance);
         expect(await jettonMinter.getTotalSupply()).toEqual(initialTotalSupply + initialAccountJettonBalance);
 
+        console.log("test account address",testAccount.address);
+        console.log("bridge address",bridge.address);
+        console.log("bridge pool address",bridgePool.address);
+        console.log("bridge pool toncoin address",bridgePoolTonCoin.address);
+        console.log("jetton minter address",jettonMinter.address);
+        console.log("jetton wallet address",accountJettonWallet.address);
+        console.log("bridge jetton wallet address",bridgeJettonWallet.address);
+        console.log("bridge pool jetton wallet address",bridgePoolJettonWallet.address);
+        console.log("oracle address",oracle.address);
+        
         // bridge 
         // 1. add jetton whitelist
         const res1 = await bridge.sendAddJetton(
@@ -314,23 +290,7 @@ describe('Pipeline', () => {
             to: bridge.address,
             success: true,
         });
-        // // 2. set bridge swap
-        // const res2 = await bridge.sendSetBridgeSwap(admin.getSender(), toNano('0.5'), [{
-        //     jetton_address: jettonMinter.address,
-        //     contract_address: bridgeSwap.address
-        // }, {
-        //     jetton_address: HOLEADDRESS,
-        //     contract_address: bridgeSwapTonCoin.address
-        // }]);
-        // expect(res2.transactions).toHaveTransaction({
-        //     from: admin.address,
-        //     to: bridge.address,
-        //     success: true,
-        // });
-        // let get_res = await bridge.getBridgeSwap(jettonMinter.address);
-        // expect(get_res).toEqualAddress(bridgeSwap.address);
-        // let get_res_ton = await bridge.getBridgeSwap(HOLEADDRESS);
-        // expect(get_res_ton).toEqualAddress(bridgeSwapTonCoin.address);
+       
         // 3. set bridge pool
         const res3 = await bridge.sendSetBridgePool(
             admin.getSender(), toNano('0.5'),
@@ -423,14 +383,7 @@ describe('Pipeline', () => {
         });
         const bridge1 = await bridgePool.getBridgeAddress();
         expect(bridge1).toEqualAddress(bridge.address);
-        // // 1.' set bridge swap address
-        // let r = await bridgePool.sendSetBridgeSwap(
-        //     admin.getSender(), toNano('0.5'), bridgeSwap.address);
-        // expect(r.transactions).toHaveTransaction({
-        //     from: admin.address,
-        //     to: bridgePool.address,
-        //     success: true,
-        // });
+        
         // 2. set jetton wallet
         let res5 = await bridgePool.sendSetJetton(
             admin.getSender(), toNano('0.5'), bridgePoolJettonWallet.address);
@@ -509,7 +462,7 @@ describe('Pipeline', () => {
         expect(res11.isEnable).toBe(true);
         // add jetton liquidity
         let amount_add_liquidity = toNano('100');
-        let forwardAmount = toNano('0.05');
+        let forwardAmount = toNano('1');
         let payload = BridgePool.packAddLiquidityBody();
         const add_liquidity_res = await accountJettonWallet.sendTransfer(
             testAccount.getSender(),
@@ -553,14 +506,6 @@ describe('Pipeline', () => {
         });
         const bridge2 = await bridgePoolTonCoin.getBridgeAddress();
         expect(bridge2).toEqualAddress(bridge.address);
-        // // 1.' set bridge swap address
-        // let r1 = await bridgePoolTonCoin.sendSetBridgeSwap(
-        //     admin.getSender(), toNano('0.5'), bridgeSwapTonCoin.address);
-        // expect(r1.transactions).toHaveTransaction({
-        //     from: admin.address,
-        //     to: bridgePoolTonCoin.address,
-        //     success: true,
-        // });
         // 2. set jetton 
         let res6ton = await bridgePoolTonCoin.sendSetJetton(
             admin.getSender(), toNano('0.5'), HOLEADDRESS);
@@ -593,8 +538,7 @@ describe('Pipeline', () => {
             to: bridgePoolTonCoin.address,
             success: true,
         });
-
-
+        
         const res_get_1 = await bridgePoolTonCoin.getReceiptDailyLimit(chainId);
         expect(res_get_1.remainToken).toBe(BigInt(10000000000000000));
         console.log(res_get_1.refreshTime);
@@ -637,7 +581,7 @@ describe('Pipeline', () => {
         expect(res11_get.rate).toBe(BigInt(1000000000));
         expect(res11_get.isEnable).toBe(true);
         // add native token liquidity
-        let resAddLiquidity = await bridgePoolTonCoin.sendAddNativeLiquidity(testAccount.getSender(), toNano('20.05'), toNano('20'));
+        let resAddLiquidity = await bridgePoolTonCoin.sendAddNativeLiquidity(testAccount.getSender(), toNano('21'), toNano('20'));
         expect(resAddLiquidity.transactions).toHaveTransaction({
             from: testAccount.address,
             to: bridgePoolTonCoin.address,
@@ -1733,7 +1677,7 @@ describe('Pipeline', () => {
             expect(minutes).toBe(720)
         }
         let amount_add_liquidity = toNano('100');
-        let forwardAmount = toNano('0.05');
+        let forwardAmount = toNano('1');
         let payload = BridgePool.packAddLiquidityBody();
         const add_liquidity_res = await accountJettonWallet.sendTransfer(
             testAccount.getSender(),
@@ -1806,7 +1750,476 @@ describe('Pipeline', () => {
         exist = await bridge.get_receipt_hash_exist(receiptHash);
         expect(exist).toBe(true);
     });
+    it('create receipt success pipeline fee', async () => {
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
 
+        let receipt_amount = toNano('10');
+        let forwardAmount = toNano('5');
+        let payload = Bridge.PackCreateReceiptBody(
+            chainId, accountJettonWallet.address,
+            Buffer.from(targetAddressBuffer), jettonMinter.address);
+
+        const result = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('10'),
+            receipt_amount,
+            bridge.address,
+            testAccount.address,
+            beginCell().storeUint(0, 1).endCell(),
+            forwardAmount,
+            payload);
+
+        expect(result.transactions).toHaveTransaction({
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgeJettonWallet.address,
+            to: bridgePoolJettonWallet.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: oracle.address,
+            success: true,
+        });
+        const send_transfer_tx = findTransactionRequired(result.transactions, {
+            from:testAccount.address,
+            to: accountJettonWallet.address,
+            op: Op.jetton.transfer,
+            success: true,
+        });
+        send_transfer_gas_fee = printTxGasStats("transfer", send_transfer_tx);
+        // gas used:8341 gas cost:3336400
+        send_transfer_gas_fee = computeGasFee(gasPrices, 8341n);
+        console.log(send_transfer_gas_fee);
+        const send_account_internal_transfer_tx = findTransactionRequired(result.transactions, {
+            from: accountJettonWallet.address,
+            to: bridgeJettonWallet.address,
+            op: Op.jetton.internal_transfer,
+            success: true,
+        });
+        send_transfer_to_bridge_gas_fee = printTxGasStats("transfer to bridge", send_account_internal_transfer_tx);
+        // gas used:10123 gas cost:4049200
+        send_transfer_to_bridge_gas_fee = computeGasFee(gasPrices, 10123n);
+        console.log(send_transfer_to_bridge_gas_fee);
+        const send_transfer_notification_tx = findTransactionRequired(result.transactions, {
+            from: bridgeJettonWallet.address,
+            to: bridge.address,
+            op: Op.jetton.transfer_notification,
+            success: true,
+        });
+        send_notification_create_receipt_gas_fee = printTxGasStats("transfer notification create receipt ", send_transfer_notification_tx);
+        // gas used:11130 gas cost:4452000
+        send_notification_create_receipt_gas_fee = computeGasFee(gasPrices, 11130n);
+        console.log(send_notification_create_receipt_gas_fee);
+        const send_transfer_to_bridgePool_tx = findTransactionRequired(result.transactions, {
+            from: bridge.address,
+            to: bridgeJettonWallet.address,
+            op: Op.jetton.transfer,
+            success: true,
+        });
+        send_transfer_to_bridge_wallet_gas_fee = printTxGasStats("transfer to bridge wallet", send_transfer_to_bridgePool_tx);
+        // gas used:8341 gas cost:3336400
+        send_transfer_to_bridge_wallet_gas_fee = computeGasFee(gasPrices,  8341n);
+        console.log(send_transfer_to_bridge_wallet_gas_fee);
+        const send_internal_transfer_tx = findTransactionRequired(result.transactions, {
+            from: bridgeJettonWallet.address,
+            to: bridgePoolJettonWallet.address,
+            op: Op.jetton.internal_transfer,
+            success: true,
+        });
+       send_internal_transfer_to_bridge_pool_gas_fee = printTxGasStats("transfer to bridge pool", send_internal_transfer_tx);
+        // gas used:10123 gas cost:4049200
+        send_internal_transfer_to_bridge_pool_gas_fee = computeGasFee(gasPrices, 10123n);
+        console.log(send_internal_transfer_to_bridge_pool_gas_fee);
+        const send_transfer_notification_lock_tx = findTransactionRequired(result.transactions, {
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            op: Op.jetton.transfer_notification,
+            success: true,
+        });
+        send_notification_lock_gas_fee = printTxGasStats("transfer notification lock", send_transfer_notification_lock_tx);
+        // gas used:40853 gas cost:16341200
+        send_notification_lock_gas_fee = computeGasFee(gasPrices, 40853n);
+        console.log(send_notification_lock_gas_fee);
+        const receipt_ok_tx = findTransactionRequired(result.transactions, {
+            from: bridgePool.address,
+            to: bridge.address,
+            op: Op.bridge.receipt_ok,
+            success: true,
+        });
+        send_receipt_ok_gas_fee = printTxGasStats("receipt ok", receipt_ok_tx);
+        // gas used:19815 gas cost:7926000
+        send_receipt_ok_gas_fee = computeGasFee(gasPrices, 19815n);
+        console.log(send_receipt_ok_gas_fee);
+    });
+    it('swap success pipeline fee', async () => {
+        expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6uDXg==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true
+        });
+
+        const send_transmit_tx = findTransactionRequired(result.transactions, {
+            from: oracle.address,
+            to:bridge.address,
+            op: Op.bridge.transmit,
+            success: true
+        });
+        send_transmit_gas_fee = printTxGasStats("transmit", send_transmit_tx);
+        // gas used:22031
+        send_transmit_gas_fee = computeGasFee(gasPrices, 22031n);
+        console.log(send_transmit_gas_fee);
+        const send_release_tx = findTransactionRequired(result.transactions, {
+            from: bridge.address,
+            to: bridgePool.address,
+            op: Op.bridge_pool.release,
+            success: true
+        });
+        send_release_gas_fee = printTxGasStats("release", send_release_tx);
+        // gas used:36689
+        send_release_gas_fee = computeGasFee(gasPrices, 36689n);
+        console.log(send_release_gas_fee);
+        const send_transfer_tx = findTransactionRequired(result.transactions, {
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            op: Op.jetton.transfer,
+            success: true
+        });
+        send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
+        // gas used:8341
+        send_transfer_to_gas_fee = computeGasFee(gasPrices, 8341n);
+        console.log(send_transfer_to_gas_fee);
+        const send_transfer_to_account_tx = findTransactionRequired(result.transactions, {
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            op: Op.jetton.internal_transfer,
+            success: true
+        });
+        send_transfer_to_account_gas_fee = printTxGasStats("transfer to account", send_transfer_to_account_tx);
+        // gas used:7822
+        send_transfer_to_account_gas_fee = computeGasFee(gasPrices, 7822n);
+        console.log(send_transfer_to_account_gas_fee);
+    });
+    it("create native receipt success pipeline fee", async () => {
+        let account_balance_before = await testAccount.getBalance();
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+        let receipt_amount = toNano('10');
+        let res = await bridge.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
+        expect(res.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePoolTonCoin.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridgePoolTonCoin.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: oracle.address,
+            success: true,
+        });
+        const send_create_native_receipt_tx = findTransactionRequired(res.transactions, {
+            from: testAccount.address,
+            to: bridge.address,
+            op: Op.bridge.create_native_receipt,
+            success: true
+        });
+        send_create_native_receipt_gas_fee = printTxGasStats("create native receipt", send_create_native_receipt_tx);
+        // gas used: 6997
+        send_create_native_receipt_gas_fee = computeGasFee(gasPrices, 6997n);
+        console.log(send_create_native_receipt_gas_fee);
+        const send_lock_native_token_tx = findTransactionRequired(res.transactions, {
+            from: bridge.address,
+            to: bridgePoolTonCoin.address,
+            op: Op.bridge_pool.lock_native_token,
+            success: true
+        });
+        send_lock_native_token_gas_fee = printTxGasStats("lock native token", send_lock_native_token_tx);
+        // gas used: 39787
+        send_lock_native_token_gas_fee = computeGasFee(gasPrices, 39787n);
+        console.log(send_lock_native_token_gas_fee);
+    });
+    it('swap native success fee', async () => {
+        let account_balance_before = await testAccount.getBalance();
+        let balanceBefore = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
+        expect(balanceBefore).toBeGreaterThanOrEqual(toNano('20'));
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6uDXg==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.01'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapIdTonCoin,
+            HOLEADDRESS
+        );
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePoolTonCoin.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolTonCoin.address,
+            to: testAccount.address,
+            success: true
+        });
+        const send_release_tx = findTransactionRequired(result.transactions, {
+            from: bridge.address,
+            to: bridgePoolTonCoin.address,
+            op: Op.bridge_pool.release,
+            success: true
+        });
+        send_release_gas_fee = printTxGasStats("release", send_release_tx);
+        // gas used: 36233
+        send_release_gas_fee = computeGasFee(gasPrices, 36233n);
+        console.log(send_release_gas_fee);
+        const send_transfer_tx = findTransactionRequired(result.transactions, {
+            from: bridgePoolTonCoin.address,
+            to: testAccount.address,
+            success: true
+        });
+        send_transfer_to_gas_fee = printTxGasStats("transfer", send_transfer_tx);
+        // gas used: 309
+        send_transfer_to_gas_fee = computeGasFee(gasPrices, 309n);
+        console.log(send_transfer_to_gas_fee);
+    });
+    it('add liquidity success pipeline fee', async () => {
+        const liquidity_account = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
+        const smc   = await blockchain.getContract(liquidity_account);
+        if(smc.accountState === undefined)
+            throw new Error("Can't access account state");
+        if(smc.accountState.type !== "active")
+            throw new Error("Wallet account is not active");
+        if(smc.account.account === undefined || smc.account.account === null)
+            throw new Error("Can't access wallet account!");
+        console.log("liquidity account max storage stats:", smc.account.account.storageStats.used);
+        const state = smc.accountState.state;
+        const stateCell = beginCell().store(storeStateInit(state)).endCell();
+        console.log("State init stats:", collectCellStats(stateCell, []));
+        // add jetton liquidity
+        let amount_add_liquidity = toNano('100');
+        let forwardAmount = toNano('1');
+        let payload = BridgePool.packAddLiquidityBody();
+        const add_liquidity_res = await accountJettonWallet.sendTransfer(
+            testAccount.getSender(),
+            toNano('2'),
+            amount_add_liquidity,
+            bridgePool.address,
+            testAccount.address,
+            null,
+            forwardAmount,
+            payload);
+        const add_liquidity_tx = findTransactionRequired(add_liquidity_res.transactions, {
+            from: bridgePoolJettonWallet.address,
+            to: bridgePool.address,
+            op: Op.jetton.transfer_notification,
+            success: true
+        });
+        add_liquidity_gas_fee = printTxGasStats("add liquidity", add_liquidity_tx);
+        // gas used: 13736
+        add_liquidity_gas_fee = computeGasFee(gasPrices, 13736n);
+        console.log(add_liquidity_gas_fee);
+        const provider_liquidity_tx = findTransactionRequired(add_liquidity_res.transactions, {
+            from: bridgePool.address,
+            to: liquidity_account,
+            op: Op.bridge_pool.provider_liquidity,
+            success: true
+        });
+        provider_liquidity_gas_fee = printTxGasStats("provider liquidity", provider_liquidity_tx);
+        // gas used: 3412
+        provider_liquidity_gas_fee = computeGasFee(gasPrices, 3412n);
+        console.log(provider_liquidity_gas_fee);
+    });
+    it('add native liquidity success pipeline fee', async () => {
+        const liquidity_account = await bridgePoolTonCoin.getPoolLiquidityAccountAddress(testAccount.address);
+        const smc   = await blockchain.getContract(liquidity_account);
+        if(smc.accountState === undefined)
+            throw new Error("Can't access account state");
+        if(smc.accountState.type !== "active")
+            throw new Error("Wallet account is not active");
+        if(smc.account.account === undefined || smc.account.account === null)
+            throw new Error("Can't access wallet account!");
+        console.log("liquidity account max storage stats:", smc.account.account.storageStats.used);
+        const state = smc.accountState.state;
+        const stateCell = beginCell().store(storeStateInit(state)).endCell();
+        console.log("State init stats:", collectCellStats(stateCell, []));
+        let resAddLiquidity = await bridgePoolTonCoin.sendAddNativeLiquidity(testAccount.getSender(), toNano('21'), toNano('20'));
+        const add_liquidity_tx = findTransactionRequired(resAddLiquidity.transactions, {
+            to: bridgePoolTonCoin.address,
+            op: Op.bridge_pool.add_native_token_liquidity,
+            success: true
+        });
+        add_liquidity_gas_fee = printTxGasStats("add liquidity", add_liquidity_tx);
+        // gas used: 13807
+        add_liquidity_gas_fee = computeGasFee(gasPrices, 13807n);
+        console.log(add_liquidity_gas_fee);
+        const provider_liquidity_tx = findTransactionRequired(resAddLiquidity.transactions, {
+            from: bridgePoolTonCoin.address,
+            to: liquidity_account,
+            op: Op.bridge_pool.provider_liquidity,
+            success: true
+        });
+        provider_liquidity_gas_fee = printTxGasStats("provider liquidity", provider_liquidity_tx);
+        // gas used: 3412
+        provider_liquidity_gas_fee = computeGasFee(gasPrices, 3412n);
+        console.log(provider_liquidity_gas_fee);
+    });
+    it('remove liquidity success pipeline fee', async () => {
+        const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
+        let user_liq = blockchain.openContract(
+            BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
+        let remove_result = await user_liq.sendRemoveLiquidity(
+            testAccount.getSender(),
+            toNano('0.1'),
+            toNano('100'),
+            true
+        );
+        const user_remove_liquidity_tx = findTransactionRequired(remove_result.transactions, {
+            from: testAccount.address,
+            to: userLiquidityAddress,
+            success: true
+        });
+        user_remove_liquidity_gas_fee = printTxGasStats("remove liquidity", user_remove_liquidity_tx);
+        // gas used: 6026
+        user_remove_liquidity_gas_fee = computeGasFee(gasPrices, 6026n);
+        console.log(user_remove_liquidity_gas_fee);
+        const remove_liquidity_tx = findTransactionRequired(remove_result.transactions, {
+            from: userLiquidityAddress,
+            to: bridgePool.address,
+            op: Op.bridge_pool.remove_liquidity,
+            success: true
+        });
+        remove_liquidity_gas_fee = printTxGasStats("remove liquidity", remove_liquidity_tx);
+        // gas used: 14626
+        remove_liquidity_gas_fee = computeGasFee(gasPrices, 14626n);
+        console.log(remove_liquidity_gas_fee);
+    });
+    it('remove native liquidity success pipeline fee', async () => {
+        const userLiquidityAddress = await bridgePoolTonCoin.getPoolLiquidityAccountAddress(testAccount.address);
+        let user_liq = blockchain.openContract(
+            BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
+        let remove_result = await user_liq.sendRemoveLiquidity(
+            testAccount.getSender(),
+            toNano('0.1'),
+            toNano('10'),
+            true
+        );
+        const user_remove_liquidity_tx = findTransactionRequired(remove_result.transactions, {
+            from: testAccount.address,
+            to: userLiquidityAddress,
+            success: true
+        });
+        user_remove_liquidity_gas_fee = printTxGasStats("remove liquidity", user_remove_liquidity_tx);
+        // gas used: 6026
+        user_remove_liquidity_gas_fee = computeGasFee(gasPrices, 6026n);
+        console.log(user_remove_liquidity_gas_fee);
+        const remove_liquidity_tx = findTransactionRequired(remove_result.transactions, {
+            from: userLiquidityAddress,
+            to: bridgePoolTonCoin.address,
+            op: Op.bridge_pool.remove_liquidity,
+            success: true
+        });
+        remove_liquidity_gas_fee = printTxGasStats("remove liquidity", remove_liquidity_tx);
+        // gas used: 14898
+        remove_liquidity_gas_fee = computeGasFee(gasPrices, 14626n);
+        console.log(remove_liquidity_gas_fee);
+        const transfer_tx = findTransactionRequired(remove_result.transactions, {
+            from: bridgePoolTonCoin.address,
+            to: testAccount.address,
+            success: true
+        });
+        send_transfer_gas_fee = printTxGasStats("transfer", transfer_tx);
+        // gas used: 309
+        send_transfer_gas_fee = computeGasFee(gasPrices, 309n);
+        console.log(send_transfer_gas_fee);
+    });
     it('create receipt fee', async () => {
         const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(testAccount.address);
         // const smc = await blockchain.getContract(userLiquidityAddress);

@@ -36,7 +36,6 @@ export class BridgePoolLiquidityAccount implements Contract {
             .storeUint(Op.bridge_pool_liquidity_account.account_remove_liquidity, 32)
             .storeUint(queryId,64)
             .storeCoins(amount)
-            .storeBit(isNative)
             .endCell();
     }
 

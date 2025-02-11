@@ -218,7 +218,7 @@ int to_64(int message_id) {
             if (equal_slices(storage::jetton_address, HOLE_ADDRESS)) {
                 ;; release native token
                 var body = begin_cell().store_uint(from_chain_id, 32).end_cell();
-                send_message_nobounce(amount + calculate_release_transfer_fee(), receiver, body, SEND_MODE_PAY_FEES_SEPARETELY);
+                send_message_nobounce(amount + calculate_release_transfer_fwd_fee(), receiver, body, SEND_MODE_PAY_FEES_SEPARETELY);
             } else {
                 var body0 = create_simple_transfer_body(query_id, amount, receiver, storage::bridge_address, 0);
                 body0 = body0.store_uint(swap_ok, 32);
@@ -294,6 +294,7 @@ int to_64(int message_id) {
 
         if (transfer_op == add_liquidity) {
             ;; check token address
+            throw_unless(NOT_ENOUGH_TONS, msg_value >= calculate_add_liquidity_fee());
             throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::jetton_pool_wallet_address));
             storage::liquidity += jetton_amount;
             cell acc_state_init = calculate_bridge_pool_liquidity_account_state_init(from_sender, my_address(), storage::jetton_address, storage::pool_liquidity_account_code);
@@ -346,7 +347,6 @@ int to_64(int message_id) {
     }
 
     if (op == remove_liquidity) {
-        throw_unless(NOT_ENOUGH_TONS, msg_value > calculate_remove_liquidity_fee());
         var liquidity = in_msg_body~load_coins();
         slice owner = in_msg_body~load_msg_addr();
         cell acc_state_init = calculate_bridge_pool_liquidity_account_state_init(owner, my_address(), storage::jetton_address, storage::pool_liquidity_account_code);
