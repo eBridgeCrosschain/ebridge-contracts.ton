@@ -139,13 +139,40 @@
         handle_transfer_notification(sender_address, query_id, jetton_amount, from_sender, ref_cs, fwd_fee, msg_value);
         return ();
     }
+    if (op == create_native_receipt) {
+        if (storage::is_pause) {
+            send_message_nobounce(0,sender_address,begin_cell().store_uint(transfer_bounce_paused,32).end_cell(),SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            return ();
+        }
+        (int target_chain_id, slice target_address, int amount) = (in_msg_body~load_uint(32), in_msg_body~load_bits(256), in_msg_body~load_coins());
+        (var jetton_pool_address, int found) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, HOLE_ADDRESS);
+        if(~ found){
+            send_message_nobounce(0,sender_address,begin_cell().store_uint(transfer_bounce_token_pool_not_exist,32).end_cell(),SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            return ();
+        }
+        int amount_enough = msg_value >= calculate_create_native_receipt_process_fee() + amount;
+        if (~ amount_enough){
+            send_message_nobounce(0,sender_address,begin_cell().store_uint(INSUFFICIENT_TONS,32).end_cell(),SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            return ();
+        }
+        var body = begin_cell()
+            .store_uint(lock_native_token, 32)
+            .store_uint(query_id, 64)
+            .store_uint(target_chain_id, 32)
+            .store_slice(target_address)
+            .store_slice(sender_address)
+            .store_coins(amount)
+            .end_cell();
+        send_simple_message(0, jetton_pool_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+        return ();
+    }
 
     if (op == add_jetton_whitelist) {
         throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::admin));
         int target_chain_id = in_msg_body~load_uint(32);
         slice ref_cs = in_msg_body;
-        ;; int has_refs = 0;
-        ;; do {
+        int has_refs = 0;
+        do {
             slice whitelist_jetton_address = ref_cs~load_msg_addr();
             var key_hash = create_key(target_chain_id, whitelist_jetton_address);
             storage::jetton_whitelist_dic~udict_set_builder(DEFAULT_KEY_LENGTH, key_hash, begin_cell().store_int(-1, 1));
@@ -157,13 +184,13 @@
                     .end_cell(),
                 1
             );
-        ;;     has_refs = ref_cs.slice_refs() > 0;
-        ;;     if (has_refs) {
-        ;;         cell ref = ref_cs~load_ref();
-        ;;         ;; ref_cs.end_parse();
-        ;;         ref_cs = ref.begin_parse();
-        ;;     }
-        ;; } until (~ has_refs);
+            has_refs = ref_cs.slice_refs() > 0;
+            if (has_refs) {
+                cell ref = ref_cs~load_ref();
+                ref_cs.end_parse();
+                ref_cs = ref.begin_parse();
+            }
+        } until (~ has_refs);
         save_storage();
         return ();
     }

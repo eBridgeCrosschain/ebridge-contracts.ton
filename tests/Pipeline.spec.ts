@@ -738,12 +738,18 @@ describe('Pipeline', () => {
         expect(res4.isEnable).toBe(true);
     });
     it("create native receipt success pipeline", async () => {
+        let account_balance_before = await testAccount.getBalance();
         let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
         const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
         let receipt_amount = toNano('10');
-        let res = await bridgePoolTonCoin.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
+        let res = await bridge.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
         expect(res.transactions).toHaveTransaction({
             from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridge.address,
             to: bridgePoolTonCoin.address,
             success: true,
         });
@@ -757,6 +763,10 @@ describe('Pipeline', () => {
             to: oracle.address,
             success: true,
         });
+        let account_balance = await testAccount.getBalance();
+        let diff = account_balance_before - account_balance;
+        console.log(diff);
+        expect(account_balance).toBeLessThan(account_balance_before - toNano('10'));
 
         let receipt = await bridgePoolTonCoin.getReceiptInfo(chainId);
         expect(receipt.totalAmount).toBe(toNano('10'));
@@ -933,6 +943,43 @@ describe('Pipeline', () => {
         });
         let balance = await accountJettonWallet.getJettonBalance();
         expect(balance).toEqual(toNano('900.23'));
+    });
+    it("create native receipt failed paused", async () => {
+        console.log(testAccount.address);
+        console.log(bridge.address);
+        let account_balance_before = await testAccount.getBalance();
+        
+        let res = await bridge.sendPause(pauseController.getSender(), toNano('0.5'));
+        expect(res.transactions).toHaveTransaction({
+            from: pauseController.address,
+            to: bridge.address,
+            success: true,
+        });
+        const status = await bridge.getPaused();
+        expect(status).toBe(true);
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+        let receipt_amount = toNano('10');
+        let result = await bridge.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
+        for (let i = 0; i < result.transactions.length; i++) {
+            console.log(result.transactions[i].inMessage?.info.src?.toString());
+            console.log(result.transactions[i].inMessage?.info.dest?.toString());
+        }
+        expect(result.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: testAccount.address,
+            success: true,
+        });
+        let account_balance = await testAccount.getBalance();
+        let diff = account_balance_before - account_balance;
+        console.log(diff);
+        expect(account_balance).toBeLessThan(account_balance_before);
+        expect(account_balance).toBeGreaterThan(account_balance_before - toNano('1'));
     });
     it('create receipt failed jetton not support', async () => {
         console.log(testAccount.address);
@@ -1120,6 +1167,43 @@ describe('Pipeline', () => {
         });
         let balance = await accountJettonWallet.getJettonBalance();
         expect(balance).toEqual(toNano('900.23'));
+    });
+    it('lock native failed error limit', async () => {
+        let refreshTime = getUTCMidnight();
+        let restonlimit = await bridgePoolTonCoin.sendSetDailyLimit(
+            admin.getSender(),
+            toNano('0.5'),
+            [{
+                chainId: chainId,
+                limitType: 0,
+                refreshTime: refreshTime,
+                dailyLimit: 1000000000
+            }]);
+        let account_balance_before = await testAccount.getBalance();
+        let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
+        const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
+        let receipt_amount = toNano('10');
+        let res = await bridge.sendCreateNativeReceipt(testAccount.getSender(), toNano('10.5'), chainId, targetAddressBuffer, receipt_amount);
+        expect(res.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePoolTonCoin.address,
+            success: true,
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: bridgePoolTonCoin.address,
+            to: testAccount.address,
+            success: true,
+        });
+        let account_balance = await testAccount.getBalance();
+        let diff = account_balance_before - account_balance;
+        console.log(diff);
+        expect(account_balance).toBeLessThan(account_balance_before);
+        expect(account_balance).toBeGreaterThan(account_balance_before - toNano('1'));
     });
     // it('receipt ok failed bounce', async () => {
     //     let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";

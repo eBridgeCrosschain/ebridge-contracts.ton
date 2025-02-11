@@ -4,7 +4,7 @@ const excesses = 0xd53276db;
 
 ;; bridge
 const lock = "lock"c;
-const create_native_receipt = "create_native_receipt"c;
+const lock_native_token = "lock_native_token"c;
 const release = "release"c;
 const add_liquidity = "add_liquidity"c;
 const add_native_token_liquidity = "add_native_token_liquidity"c;

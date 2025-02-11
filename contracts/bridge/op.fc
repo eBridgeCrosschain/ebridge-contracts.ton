@@ -15,6 +15,7 @@ const resend = 0x00000009;
 
 ;; bridge pool
 const lock = "lock"c;
+const lock_native_token = "lock_native_token"c;
 const resend_to_oracle = "resend_to_oracle"c;
 const receipt_ok = "receipt_ok"c;
 const release = "release"c;
