@@ -3,7 +3,6 @@
 #include "common/message.fc";
 #include "common/dic.fc";
 #include "common/utils.fc";
-#include "common/bridge_receipt_account-utils.fc";
 #include "gas.fc";
 #include "bridge/params.fc";
 #include "bridge_pool/storage.fc";
@@ -218,7 +217,7 @@ int to_64(int message_id) {
             if (equal_slices(storage::jetton_address, HOLE_ADDRESS)) {
                 ;; release native token
                 var body = begin_cell().store_uint(from_chain_id, 32).end_cell();
-                send_message_nobounce(amount + calculate_release_transfer_fwd_fee(), receiver, body, SEND_MODE_PAY_FEES_SEPARETELY);
+                send_message_nobounce(amount + calculate_release_transfer_cal_fee(), receiver, body, SEND_MODE_PAY_FEES_SEPARETELY);
             } else {
                 var body0 = create_simple_transfer_body(query_id, amount, receiver, storage::bridge_address, 0);
                 body0 = body0.store_uint(swap_ok, 32);

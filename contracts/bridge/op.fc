@@ -43,7 +43,6 @@ const cancel_admin_upgrade = "cancel_admin_upgrade"c;
 const finalize_upgrades = "finalize_upgrades"c;
 
 ;; async "getter" calls
-const getter_bridge_swap_address = "getter_bridge_swap_address"c;
-const getter_bridge_pool_address = "getter_bridge_pool_address"c;
-const is_jetton_support = "is_jetton_support"c;
-const getter_oracle_address = "getter_oracle_address"c;
+const getter_bridge_pool_address = 0x10000001;
+const is_jetton_support = 0x10000002;
+const getter_oracle_address = 0x10000003;

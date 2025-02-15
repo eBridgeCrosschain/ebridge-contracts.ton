@@ -41,7 +41,7 @@ const TRANSMIT_CELLS = 11;
 const RELEASE_BITS = 1575; ;;32+128+256+(256+256)+256+(3+8+256)+124
 const RELEASE_CELLS = 4;
 
-const RELEASE_TRANSFER_BITS = 32;
+const RELEASE_TRANSFER_BITS = 0;
 const RELEASE_TRANSFER_CELLS = 1;
 
 const ADD_LIQUIDITY_BITS = 32;
@@ -183,8 +183,10 @@ int forward_init_state_overhead() inline {
     return gas_fee + fwd_fee;
 }
 
-(int) calculate_release_transfer_fwd_fee(){
-    return get_forward_fee(WORKCHAIN, RELEASE_TRANSFER_BITS, RELEASE_TRANSFER_CELLS);
+(int) calculate_release_transfer_cal_fee(){
+    int gas_consumption = get_precompiled_gas_consumption();
+    int release_transfer_gas_consumption = null?(gas_consumption) ? SEND_RELEASE_TRANSAFER_GAS_CONSUMPTION : gas_consumption;
+    return get_compute_fee(WORKCHAIN, release_transfer_gas_consumption);
 }
 
 (int) calculate_add_liquidity_fee() impure inline {

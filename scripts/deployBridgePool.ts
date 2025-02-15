@@ -18,18 +18,20 @@ export async function run(provider: NetworkProvider) {
         .storeAddress(null)
         .endCell();
     let bridgeReceiptAccountCode = await compile('BridgeReceiptAccount');
-
+    let receipt_dic = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Cell());
+    let receiptRecordDic = Dictionary.empty(Dictionary.Keys.BigInt(16), Dictionary.Values.Cell());
     const bridgePool = provider.open(BridgePool.createFromConfig({
         bridge_address: bridgeAddress.address,
-        bridge_receipt_account_code: bridgeReceiptAccountCode,
-        bridge_swap_address: null,
-        jetton_address: nativeToken.address,
+        jetton_address: jettonAddress.address,
         daily_limit: dic,
         rate_limit: dic,
         pool_liquidity_account_code: await compile("BridgePoolLiquidityAccount"),
         admin: provider.sender().address!,
         owner: provider.sender().address!,
-        temp_upgrade: tempUpgrade
+        temp_upgrade: tempUpgrade,
+        swap_dict: dic,
+        receipt_dict: receipt_dic,
+        receipt_owner_dict: receiptRecordDic
     }, await compile('BridgePool')));
 
     await bridgePool.sendDeploy(provider.sender(), toNano('0.05'));

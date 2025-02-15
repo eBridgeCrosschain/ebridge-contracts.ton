@@ -4,7 +4,6 @@
 #include "bridge/errors.fc";
 #include "bridge/getter.fc";
 #include "bridge/owner-calls.fc";
-#include "common/bridge_receipt_account-utils.fc";
 #include "bridge/oracle.fc";
 #include "bridge/transfer-notification-calls.fc";
 #include "bridge/params.fc";
@@ -59,7 +58,7 @@
         ;; Handler oracle call
         throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::oracle_address));
         throw_unless(INSUFFICIENT_FEES, msg_value >= ORACLE_TON);
-        receive_from_oracle(in_msg_body, SWAP_FEE);
+        receive_from_oracle(in_msg_body);
         return ();
     }
     if (op == receipt_ok) {

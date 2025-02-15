@@ -88,12 +88,12 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //     toNano('0.01'),
     //     code2
     // );
-    // let code3 = await compile('BridgePool');
-    // await bridgePool.sendInitCodeUpgrade(
-    //     provider.sender(),
-    //     toNano('0.02'),
-    //     code3
-    // );
+    let code3 = await compile('BridgePool');
+    await bridgePool.sendInitCodeUpgrade(
+        provider.sender(),
+        toNano('0.02'),
+        code3
+    );
     //
     // await bridge.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
     // await bridgeSwap.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));

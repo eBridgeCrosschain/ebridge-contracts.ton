@@ -11,4 +11,4 @@ const account_remove_liquidity = "account_remove_liquidity"c;
 
 
 ;; async "get" calls
-const getter_lp_account_data = "getter_lp_account_data"c;
+const getter_lp_account_data = 0x10000010;

@@ -543,5 +543,10 @@ export class BridgePool implements Contract {
             swappedTimes: stack.readBigNumber()
         }
     }
+    
+    async getTransferFee(provider: ContractProvider) {
+        const result = await provider.get('get_estimate_release_transfer_fwd_fee', []);
+        return result.stack.readBigNumber();
+    }
 }
 

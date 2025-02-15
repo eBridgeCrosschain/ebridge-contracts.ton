@@ -2,13 +2,11 @@ import {Blockchain, BlockchainSnapshot, SandboxContract, TreasuryContract} from 
 import {Address, beginCell, BitString, Cell, Dictionary, storeStateInit, toNano, Transaction} from '@ton/core';
 import {Bridge} from '../wrappers/Bridge';
 import {BridgePool} from '../wrappers/BridgePool';
-import {BridgeSwap} from '../wrappers/BridgeSwap';
 import '@ton/test-utils';
 import {compile} from '@ton/blueprint';
 import {Buffer} from "buffer";
 import {JettonMinter} from "../wrappers/JettonMinter";
 import {JettonWallet} from "../wrappers/JettonWallet";
-import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 import {BridgePoolLiquidityAccount} from "../wrappers/BridgePoolLiquidityAccount";
 import aelf from "aelf-sdk";
 import {
@@ -603,14 +601,14 @@ describe('Pipeline', () => {
         const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
 
         let receipt_amount = toNano('10');
-        let forwardAmount = toNano('5');
+        let forwardAmount = toNano('0.5');
         let payload = Bridge.PackCreateReceiptBody(
             chainId, accountJettonWallet.address,
             Buffer.from(targetAddressBuffer), jettonMinter.address);
 
         const result = await accountJettonWallet.sendTransfer(
             testAccount.getSender(),
-            toNano('10'),
+            toNano('0.7'),
             receipt_amount,
             bridge.address,
             testAccount.address,
@@ -1234,7 +1232,7 @@ describe('Pipeline', () => {
     // });
     it('swap success', async () => {
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ7ADzw==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;
@@ -1294,7 +1292,7 @@ describe('Pipeline', () => {
         let account_balance_before = await testAccount.getBalance();
         let balanceBefore = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
         expect(balanceBefore).toBeGreaterThanOrEqual(toNano('20'));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ7ADzw==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;
@@ -1338,6 +1336,8 @@ describe('Pipeline', () => {
         expect(balance).toBeGreaterThanOrEqual(toNano('20') - toNano('10'));
         expect(balance).toBeLessThan(balanceBefore);
 
+        let transfer_fee = await bridgePoolTonCoin.getTransferFee();
+        console.log(transfer_fee);
         let account_balance = await testAccount.getBalance();
         let diff = account_balance - account_balance_before;
         console.log(diff);
@@ -1581,7 +1581,7 @@ describe('Pipeline', () => {
         expect(liquidity.liquidity).toBe(toNano('100'));
         let remove_result = await user_liq.sendRemoveLiquidity(
             testAccount.getSender(),
-            toNano('0.05'),
+            toNano('0.1'),
             toNano('100'),
             true
         );
@@ -2013,7 +2013,7 @@ describe('Pipeline', () => {
         let account_balance_before = await testAccount.getBalance();
         let balanceBefore = (await blockchain.getContract(bridgePoolTonCoin.address)).balance;
         expect(balanceBefore).toBeGreaterThanOrEqual(toNano('20'));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6uDXg==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ7ADzw==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;

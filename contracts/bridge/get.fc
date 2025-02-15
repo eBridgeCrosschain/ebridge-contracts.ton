@@ -78,26 +78,23 @@
     return is_receipt_exist(receipt_hash);
 }
 
-;; (int) get_estimate_create_receipt_fee() method_id {
-;;     return calculate_create_receipt_process_fee();
-;; }
-;; 
-;; (int) get_estimate_swap_fee() method_id {
-;;     return calculate_swap_process_fee();
-;; }
-;; 
-;; (int) get_estimate_record_receipt_fee() method_id {
-;;     return calculate_receipt_process_fee();
-;; }
-;; 
-;; (int) get_estimate_lock_fee() method_id {
-;;     return calculate_lock_process_fee();
-;; }
-;; 
-;; (int) get_estimate_record_swap_fee() method_id {
-;;     return calculate_record_swap_process_fee();
-;; }
+(int) get_estimate_create_receipt_fee() method_id {
+    return calculate_create_receipt_process_fee();
+}
 
-;; (int) get_estimate_storage_fee() method_id {
-;;     return calculate_bridge_receipt_account_min_storage_fee();
-;; }
+(int) get_estimate_lock_fwd_fee() method_id {
+    return calculate_transfer_lock_fwd_fee();
+}
+
+(int) get_estimate_swap_fee() method_id {
+    return calculate_swap_process_fee();
+}
+
+(int) get_estimate_create_native_fee() method_id {
+    return calculate_create_native_receipt_process_fee();
+}
+
+(int) get_estimate_release_transfer_fee() method_id {
+    return calculate_release_transfer_fee();
+}
+

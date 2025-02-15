@@ -35,7 +35,7 @@
         var last_refresh_time = current_daily_limit~load_uint(64);
         var current_daily_limit_amount = current_daily_limit~load_uint(256);
         var new_remain_token_amount = 0;
-        if (now() - last_refresh_time > ONEDAY) {
+        if (now() - last_refresh_time >= ONEDAY) {
             new_remain_token_amount = daily_limit;
         } else {
             var use_amount = current_daily_limit_amount - remain_token_amount;

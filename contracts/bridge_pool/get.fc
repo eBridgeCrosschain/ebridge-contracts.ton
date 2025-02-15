@@ -1,9 +1,11 @@
 #include "../common/stdlib.fc";
 #include "../common/dic.fc";
+#include "../gas.fc";
 #include "storage.fc";
 #include "bridge_pool_liquidity_account-utils.fc";
 #include "limiter.fc";
 #include "params.fc";
+
 
 (int) get_pool_liquidity() method_id {
     load_storage();
@@ -106,4 +108,24 @@
         return (swap_id_hash,chain_id,origin_share,target_share,swapped_amount,swapped_times);
     }
     return (0,0,0,0,0,0);
+}
+
+(int) get_estimate_release_transfer_fwd_fee() method_id {
+    return calculate_release_transfer_cal_fee();
+}
+
+(int) get_estimate_add_liquidity_fee() method_id {
+    return calculate_add_liquidity_fee();
+}
+
+(int) get_estimate_add_native_liquidity_fee() method_id {
+    return calculate_add_native_token_liquidity_fee();
+}
+
+(int) get_estimate_remove_liquidity_fee() method_id {
+    return calculate_remove_liquidity_fee();
+}
+
+(int) get_estimate_remove_native_liquidity_fee() method_id {
+    return calculate_remove_native_liquidity_fee();
 }

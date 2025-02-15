@@ -33,10 +33,9 @@ const cancel_admin_upgrade = "cancel_admin_upgrade"c;
 const finalize_upgrades = "finalize_upgrades"c;
 
 ;; async "get" calls
-const getter_pool_data = "getter_pool_data"c;
-const getter_pool_liquidity_account_address = "getter_pool_liquidity_account_address"c;
-const getter_receipt_daily_limit = "getter_receipt_daily_limit"c;
-const getter_swap_daily_limit = "getter_swap_daily_limit"c;
-const getter_receipt_rate_limit_state = "getter_receipt_rate_limit_state"c;
-const getter_swap_rate_limit_state = "getter_swap_rate_limit_state"c;
-const getter_bridge_receipt_address = "getter_bridge_receipt_address"c;
+const getter_pool_data = 0x10000004;
+const getter_pool_liquidity_account_address = 0x10000005;
+const getter_receipt_daily_limit = 0x10000006;
+const getter_swap_daily_limit = 0x10000007;
+const getter_receipt_rate_limit_state = 0x10000008;
+const getter_swap_rate_limit_state = 0x10000009;

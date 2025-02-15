@@ -115,7 +115,7 @@
     return (receipt_index, key_hash, receipt_amount, leaf_hash, target_address, timestamp);
 }
 
-() receive_from_oracle(slice in_msg_body, int fee) impure inline {
+() receive_from_oracle(slice in_msg_body) impure inline {
     var message_id = in_msg_body~load_int(128);
     if (storage::is_pause) {
         resend_receipt_info(message_id, TENMINUTES * 2);

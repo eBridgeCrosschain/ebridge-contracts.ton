@@ -1,7 +1,0 @@
-#include "../common/stdlib.fc";
-#include "../common/dic.fc";
-#include "../common/message.fc";
-#include "op.fc";
-#include "storage.fc";
-#include "errors.fc";
-#include "params.fc";
