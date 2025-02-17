@@ -72,13 +72,13 @@
     (slice target_contract, _) = storage::target_contract_dic.udict_get?(32, target_chain_id);
     cell tx = begin_cell()
         .store_uint(send_bridge_info_to_oracle, 32)
-        .store_uint(target_chain_id, 64)
+        .store_uint(target_chain_id, 32)
         .store_ref(begin_cell()
             .store_slice(target_contract)
             .end_cell())
         .store_ref(message)
         .store_ref(begin_cell()
-            .store_uint(target_chain_id, 64)
+            .store_uint(target_chain_id, 32)
             .store_ref(begin_cell().store_slice(target_contract).end_cell())
             .store_ref(begin_cell().store_slice(jetton_address).end_cell())
             .store_uint(jetton_amount, 256)
@@ -123,7 +123,7 @@
     }
     var origin_data = in_msg_body~load_ref();
     var data = origin_data.begin_parse();
-    (int source_chain_id, int target_chain_id) = (data~load_int(64), data~load_int(64));
+    (int source_chain_id, int target_chain_id) = (data~load_int(32), data~load_int(32));
     throw_unless(INVALID_TARGET_CHAIN_ID, target_chain_id == CHAINID);
     (slice target_contract, _) = storage::target_contract_dic.udict_get?(CHAIN_ID_KEY_LENGTH, source_chain_id);
     (slice sender_slice, slice receiver_slice) = (data~load_ref().begin_parse(), data~load_ref().begin_parse());
