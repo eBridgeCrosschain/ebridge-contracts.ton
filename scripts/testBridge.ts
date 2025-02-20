@@ -7,21 +7,18 @@ import {Buffer} from "buffer";
 import aelf from "aelf-sdk";
 import {JettonMinter} from "../wrappers/JettonMinter";
 import {JettonWallet} from "../wrappers/JettonWallet";
-import {BridgeSwap} from "../wrappers/BridgeSwap";
 import {BridgePool} from "../wrappers/BridgePool";
 import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 
 
-const bridgeAddress = Address.parseFriendly("EQDZV48b9MC5w1DQsUPTZcmKpGzt13sbMvHrWqcQqTQUVdrR");
+const bridgeAddress = Address.parseFriendly("kQDS511tzowt2x1xyIDgpglhaz6wG9uVP2t4BixFTViYQoM_");
 console.log(bridgeAddress.address);
 const add = Address.parseFriendly("EQA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qDb2");
 
-const bridgePoolAddress = Address.parseFriendly("EQAOWkc0ArTeXP6MkgVx1-Zelk21uRq5flcjwBmw2Tjt5yey");
-const nativePoolAddress = Address.parseFriendly("EQBcYW6bUy77wlQFLRBGl2aaYhFgliD_Jfcx7AUPv-ii-Ati");
-const bridgeSwapAddress = Address.parseFriendly("EQB6PCFSgqSkv0308G2ZQsZPjS63375DXKQ_Bs_vBiAqSK3l");
-const nativeSwapAddress = Address.parseFriendly("EQBun5DRg-z0z9SZiMp6_PaTqtcJSt6pCOTfr_O2tGeMLQuE");
+const bridgePoolAddress = Address.parseFriendly("kQCOgvqpldcUabiUJdgtHffTy9_-IfvIoZ9Rk26D8q5uVDf9");
+const nativePoolAddress = Address.parseFriendly("kQCPfgNN-077aNCCUlKm59ZbDDbwdRfiuOyofEr41sw1KTEC");
 const jettonMinter = Address.parseFriendly("EQBSKUt9k20Gz8RqG71xloqnzcFHt0MdWg1UnWcyU5Xf9CsU");
-const testAccount = Address.parseFriendly("EQA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qDb2");
+const testAccount = Address.parseFriendly("0QA0lOMwJ1Unpc3cOLvqHaz7WYYht9MPceAFz4qhpk89Sxek");
 const nativeToken = Address.parseFriendly("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
 
 const chainId = 1931928;
@@ -34,8 +31,6 @@ export async function run(provider: NetworkProvider, args: string[]) {
     const bridge = provider.open(Bridge.createFromAddress(bridgeAddress.address));
     const bridgePool = provider.open(BridgePool.createFromAddress(bridgePoolAddress.address));
     const nativePool = provider.open(BridgePool.createFromAddress(nativePoolAddress.address));
-    const bridgeSwap = provider.open(BridgeSwap.createFromAddress(bridgeSwapAddress.address));
-    const nativeSwap = provider.open(BridgeSwap.createFromAddress(nativeSwapAddress.address));
     const jetton_minter = provider.open(JettonMinter.createFromAddress(jettonMinter.address));
     console.log(add.address);
 
@@ -82,19 +77,14 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //     toNano('0.01'),
     //     code1
     // );
-    // let code2 = await compile('BridgeSwap');
-    // await bridgeSwap.sendInitCodeUpgrade(
+    
+    // let code3 = await compile('BridgePool');
+    // await bridgePool.sendInitCodeUpgrade(
     //     provider.sender(),
-    //     toNano('0.01'),
-    //     code2
+    //     toNano('0.1'),
+    //     code3
     // );
-    let code3 = await compile('BridgePool');
-    await bridgePool.sendInitCodeUpgrade(
-        provider.sender(),
-        toNano('0.02'),
-        code3
-    );
-    //
+
     // await bridge.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
     // await bridgeSwap.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
     await bridgePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));

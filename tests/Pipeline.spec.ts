@@ -599,7 +599,6 @@ describe('Pipeline', () => {
     it('create receipt success pipeline', async () => {
         let targetAddress = "JKjoabe2wyrdP1P8TvNyD4GZP6z1PuMvU2y5yJ4JTeBjTMAoX";
         const targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
-
         let receipt_amount = toNano('10');
         let forwardAmount = toNano('0.5');
         let payload = Bridge.PackCreateReceiptBody(
@@ -2497,6 +2496,77 @@ describe('Pipeline', () => {
         expect(liquidityAfter).toBe(BigInt(100000000000 - 1000000000));
         expect(await bridgePoolJettonWallet.getJettonBalance()).toEqual(BigInt(100000000000 - 1000000000));
 
+    });
+    
+    it('decode send to oracle message', async () => {
+        let body = "te6cckECBgEAAUwAA1sAAAAAAAAAUwAdepiAGlzrrbnRhbtjrjkQHBTBLC1n1gN7cqftbwDFiKmrEwhQBAECAcYDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCmLS0c32SE1X0eIDgAnWYMoYqPWFLs+NeW6eGHKV4vQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEXAAEDAkgAHXqYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARFwAEBQCGAgA7GZ8UsWmJ/THf6UQzoc2aeiRAOGGGcSW7YmtMkzH+HtJOgGAS9EbYtDvoSIPlV+LR7pHyNPkwROec/ts6r0TxAABAlfa/uRxI7mZ+L8lx472Z5Qg7Pp3kMA/olIVgnJVMsRoAQ4AKRSlvsm2g2fiNQ3euMtFU+bgo9uhjq0Gqk6zmSnK7/pArtk06";
+        let c = Cell.fromBase64(body);
+        let sli = c.asSlice();
+        let op = sli.loadUint(32);
+        let targetChainId = sli.loadUint(32);
+        let targetContractRef = sli.loadRef();
+        let targetContractSlice = targetContractRef.asSlice();
+        let targetContractAddress = targetContractSlice.loadBuffer(32);
+        console.log(aelf.utils.base58.encode(targetContractAddress));
+        let messageRef = sli.loadRef();
+        let messageSlice = messageRef.asSlice();
+        console.log(messageSlice);
+        let config = sli.loadRef();
+        let configSlice = config.asSlice();
+        let chainId = configSlice.loadUint(32);
+        console.log(chainId);
+        let contractRef = configSlice.loadRef();
+        let contractSlice = contractRef.asSlice();
+        let contractAddress = contractSlice.loadBuffer(32);
+        console.log(aelf.utils.base58.encode(contractAddress));
+        let data = configSlice.loadRef();
+        let dataSlice = data.asSlice();
+        let jettonAddress = dataSlice.loadAddress();
+        console.log(jettonAddress);
+        let amount = configSlice.loadUintBig(256);
+        console.log(amount);
+    });
+    it('decode from oracle message', async () => {
+        let body = "te6cckECFwEAAzUAAosAAAADw4KfbGN9hp2DK+PGal/VhZZUOxTsp5brVDc5lfSC8m6AGlzrrbnRhbtjrjkQHBTBLC1n1gN7cqftbwDFiKmrEwhQAQIEIAAAAAAAmHobAAAAAAAABEwDBAUGAQHADABA82M4D38R10jOpEWTOcNjK0ws1T1GMe1ZMCP4Q0OR5EYAQ4AaXOutudGFu2OuORAcFMEsLWfWA3typ+1vAMWIqasTCFABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ8wpqYCZZG5MIbyfyvpbsblcJFUHEPaZLBIKhNPfY3oQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQcEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICQoLAJ4CYN6QAfXZX7bcLM2dzuf15/naePUfOtCES90NRZ3RXyC00QA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qNC5AAAAAGe0QmwAAEBuO+UjqNeo+CUPSDXxQr6EoMu5rbN0Zta94dpYPR1jOABga1FEUzUxMXR6b3d0MngxeHlJRGdwZ2xoYXo2d0c5dVZQMnQ0Qml4RlRWaVlRb00vAEOACkUpb7JtoNn4jUN3rjLRVPm4KPboY6tBqpOs5kpyu/6QAAhVU0RUAgPP2A0OAgEgDxABAWIWAQFYEQIBIBITAIBbr4YG4XiW3CVO7mvriMJACRhtWrPkxyQWY0E6D0aYmxxZV64/zLJIJtU3ZhdHNm12wBGMdF5WYt8w6egPq+sIAQEgFAEBIBUAgAZ7qosmjHkWJIM9row1JNZfhcTc/v7bQ4DfsfhmCJ8zuzmxFqZlQEO8ESrHRxM2FFsq0RbsvPjr6wT4b2+FVAgAgJ0LmNZF2pdLQskNrisQfrKimIOikF0uvC+WSCQrfXTR78jY0V09IuS5G59jWIr0gjj9apFvc6z0uETj2wcL8g0AgMVsZwYTcKW9FET0zNJLbidfrROozmtY1bMt8Vdmj1GAsZ2wevIaiQaQmghkGj7FlBtWjDtxDmqTQ3jOrrrFGg5jsMpS";
+        let c = Cell.fromBase64(body);
+        let sli = c.asSlice();
+        let op = sli.loadUint(32);
+        let messageId = sli.loadUintBig(128);
+        console.log(messageId);
+        let originData = sli.loadRef();
+        let originDataSlice = originData.asSlice();
+        let chainId = originDataSlice.loadUint(32);
+        let targetChainId = originDataSlice.loadUint(32);
+        console.log(chainId);
+        console.log(targetChainId);
+        let sender1 = originDataSlice.loadRef();
+        let sender1Slice = sender1.asSlice();
+        let sender = sender1Slice.loadBuffer(32);
+        console.log(aelf.utils.base58.encode(sender));
+        let receiver1 = originDataSlice.loadRef();
+        let receiver1Slice = receiver1.asSlice();
+        let receiver = receiver1Slice.loadAddress();
+        console.log(receiver);
+        let message = originDataSlice.loadRef();
+        let messageSlice = message.asSlice();
+        let sliceBits = messageSlice.loadUint(16);
+        console.log(sliceBits);
+        let data = messageSlice.loadBuffer(sliceBits / 8);
+        console.log(data.toString('base64'));
+        let ref = messageSlice.loadUint(8);
+        let refInfo = messageSlice.loadRef();
+        let refInfoSlice = refInfo.asSlice();
+        sliceBits = refInfoSlice.loadUint(16);
+        console.log(sliceBits);
+        let data1 = refInfoSlice.loadBuffer(sliceBits / 8);
+        console.log(data1.toString('base64'));
+        let convertInfo = originDataSlice.loadRef();
+        let infoSlice = convertInfo.asSlice();
+        let swapId = infoSlice.loadRef();
+        let swapIdSlice = swapId.asSlice();
+        let swapId1 = swapIdSlice.loadBuffer(32);
+        console.log(swapId1.toString('base64'));
+        
     });
 
     // it('fee', async () => {

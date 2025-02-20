@@ -74,6 +74,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // 1. add jetton whitelist
     // await addJettonWhitelist(bridge, admin, chainId)
     // await addJettonWhitelist(bridge, admin, chainIdMain);
+    //
+    // let res = await bridge.getIsJettonSupport(chainIdMain, jettonMinter.address);
+    // console.log(res);
     // 3. set bridge pool
     // await setBridgePool(bridge, admin);
     // // 4. set target contract
@@ -101,16 +104,14 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // // get pool
     // let pool = await bridge.getBridgePool(jettonMinter.address);
     // console.log(pool);
-    // let targetContractAddress = await bridge.getTargetContractAddress(chainIdMain);
-    // console.log(aelf.utils.base58.encode(targetContractAddress));
+    let targetContractAddress = await bridge.getTargetContractAddress(chainIdMain);
+    console.log(aelf.utils.base58.encode(targetContractAddress));
+    targetContractAddress = await bridge.getTargetContractAddress(chainId);
+    console.log(aelf.utils.base58.encode(targetContractAddress));
     // get swap info
     let swapInfo = await bridgePool.getSwapData(chainId);
     // swapId:6akJ+WNN/7uYAH2YHHjbc11djaEkxzpWPI9gK/jdDns=
-    let hex = swapInfo.swapId.toString(16);
-    if (hex.length % 2) hex = '0' + hex; // 确保 hex 长度是偶数
-    const bytes = Uint8Array.from(Buffer.from(hex, 'hex'));
-    let swapId =  Buffer.from(bytes).toString('base64');
-    console.log(swapId);
+    console.log(swapInfo.swapId.toString('base64'));
     console.log(swapInfo.fromChainId);
     console.log(swapInfo.originShare);
     console.log(swapInfo.targetShare);
@@ -118,11 +119,6 @@ export async function run(provider: NetworkProvider, args: string[]) {
     console.log(swapInfo.swappedTimes);
     // // get swap info
     // let swapInfoMain = await bridgePool.getSwapData(chainIdMain);
-    // // swapId:
-    // let hex = swapInfoMain.swapId.toString(16);
-    // if (hex.length % 2) hex = '0' + hex; // 确保 hex 长度是偶数
-    // const bytes = Uint8Array.from(Buffer.from(hex, 'hex'));
-    // let swapId =  Buffer.from(bytes).toString('base64');
     // console.log(swapId);
     // console.log(swapInfoMain.fromChainId);
     // console.log(swapInfoMain.originShare);
@@ -140,17 +136,17 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // console.log(jetton.jettonAddress);
     // console.log(jetton.poolJettonWalletAddress);
     // get daily limit
-    let dailyLimit = await bridgePool.getReceiptDailyLimit(chainId);
-    console.log(dailyLimit.dailyLimit);
-    console.log(dailyLimit.refreshTime);
-    console.log(dailyLimit.remainToken);
-    // get rate limit
-    let rateLimit = await bridgePool.getReceiptRateLimit(chainId);
-    console.log(rateLimit.tokenCapacity);
-    console.log(rateLimit.rate);
-    console.log(rateLimit.currentTokenAmount);
-    console.log(rateLimit.isEnable);
-    console.log(rateLimit.refreshTime);
+    // let dailyLimit = await bridgePool.getReceiptDailyLimit(chainId);
+    // console.log(dailyLimit.dailyLimit);
+    // console.log(dailyLimit.refreshTime);
+    // console.log(dailyLimit.remainToken);
+    // // get rate limit
+    // let rateLimit = await bridgePool.getReceiptRateLimit(chainId);
+    // console.log(rateLimit.tokenCapacity);
+    // console.log(rateLimit.rate);
+    // console.log(rateLimit.currentTokenAmount);
+    // console.log(rateLimit.isEnable);
+    // console.log(rateLimit.refreshTime);
     // // get daily limit
     // dailyLimit = await bridgePool.getSwapDailyLimit(chainId);
     // console.log(dailyLimit.dailyLimit);

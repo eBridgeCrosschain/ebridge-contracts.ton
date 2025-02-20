@@ -638,8 +638,8 @@ export class Bridge implements Contract {
         return result.stack.readBigNumber()
     }
 
-    async getEstimateRecordReceiptFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_record_receipt_fee', []);
+    async getEstimateLockFwdFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_lock_fwd_fee', []);
         return res.stack.readBigNumber();
     }
 
@@ -648,17 +648,12 @@ export class Bridge implements Contract {
         return res.stack.readBigNumber();
     }
 
-    async getEstimateStorageFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_storage_fee', []);
+    async getEstimateCreateNativeFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_create_native_fee', []);
         return res.stack.readBigNumber();
     }
-    async getEstimateRecordSwapFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_record_swap_fee', []);
-        return res.stack.readBigNumber();
-    }
-    
-    async getEstimateLockFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_lock_fee', []);
+    async getEstimateReleaseTransferFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_release_transfer_fee', []);
         return res.stack.readBigNumber();
     }
     
