@@ -89,7 +89,7 @@
     (var receipt_info, var found) = udict_get?(storage::receipt_dic, CHAIN_ID_KEY_LENGTH, target_chain_id);
     if (found) {
         var total_amount = receipt_info~load_uint(256);
-        var index = receipt_info~load_uint(256);
+        var index = receipt_info~load_uint(64);
         return (index, total_amount);
     } else {
         return (0, 0);

@@ -8,14 +8,6 @@
     return now() / ONEDAY;
 }
 
-() cleanup_expired_receipt_buckets(int current_date) inline {
-    int expire_date = current_date - 2;
-    (cell value, int found) = udict_get_ref?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, expire_date);
-    if (found) {
-        (storage::receipt_record_dic_bucket,_) = udict_delete?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, expire_date);
-    }
-}
-
 (int) is_receipt_exist(int receipt_hash) inline {
     int bucket_key = get_current_date();
     (cell receipt_hash_dic, int found) = udict_get_ref?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, bucket_key);
@@ -58,7 +50,12 @@
     }
     receipt_hash_dic = udict_set(receipt_hash_dic, DEFAULT_KEY_LENGTH, receipt_hash, begin_cell().store_uint(timestamp,64).end_cell().begin_parse());
     storage::receipt_record_dic_bucket = udict_set_ref(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, bucket_key, receipt_hash_dic);
-    cleanup_expired_receipt_buckets(bucket_key);
+    int expire_date = EXPIRE_TIME / ONEDAY;
+    int expire_day = bucket_key - expire_date;
+    (cell value, int found) = udict_get_ref?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, expire_day);
+    if (found) {
+        (storage::receipt_record_dic_bucket,_) = udict_delete?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, expire_day);
+    }
     return -1;
 }
 

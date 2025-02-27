@@ -84,7 +84,7 @@
             .store_uint(jetton_amount, 256)
             .end_cell())
         .end_cell();
-    send_simple_message(TO_ORACLE_TON, storage::oracle_address, tx, SEND_MODE_PAY_FEES_SEPARETELY);
+    send_simple_message(ORACLE_TON, storage::oracle_address, tx, SEND_MODE_PAY_FEES_SEPARETELY);
 }
 
 (int, int, int, int, slice, int) decode_message_and_verification(slice message) impure inline {
@@ -138,7 +138,7 @@
     if (cell_null?(swap_id_ref)) {
         throw(SWAP_ID_REF_IS_NULL);
     }
-    info~load_uint(64); ;;ignore it, beasue it is equal to target_chain_id
+    info~load_uint(32); ;;ignore it, beasue it is equal to target_chain_id
     info~load_ref(); ;;ignore target_contract_address, beasue it is equal to sender
     slice jetton_address = info~load_ref().begin_parse();
     info~load_ref(); ;; ignore origin_token, beasue it is used by source chain.
@@ -149,7 +149,7 @@
         resend_receipt_info(message_id, TENMINUTES * 2);
         return ();
     }
-    if (timestamp + TWODAYS < now()) {
+    if (timestamp + EXPIRE_TIME < now()) {
         ;; expired bridge message.
         throw(EXPIRED_BRIDGE_MESSAGE);
     }
@@ -180,5 +180,5 @@
     } else {
         fee = calculate_swap_process_fee();
     }
-    send_simple_message(fee, jetton_bridge_pool_address, payload, SEND_MODE_PAY_FEES_SEPARETELY | SEND_MODE_BOUNCE_TRANSACTION);
+    send_simple_message(fee, jetton_bridge_pool_address, payload, 17);
 }

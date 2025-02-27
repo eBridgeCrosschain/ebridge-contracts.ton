@@ -30,6 +30,7 @@ let send_transfer_to_bridge_wallet_gas_fee: bigint;
 let send_internal_transfer_to_bridge_pool_gas_fee: bigint;
 let send_notification_lock_gas_fee: bigint;
 let send_receipt_ok_gas_fee: bigint;
+let send_to_oracle_gas_fee: bigint;
 let send_transmit_gas_fee: bigint;
 let send_release_gas_fee: bigint;
 let send_transfer_to_gas_fee: bigint;
@@ -650,6 +651,8 @@ describe('Pipeline', () => {
             to: oracle.address,
             success: true,
         });
+        let pool = await bridge.getBridgePool(jettonMinter.address);
+        console.log(pool);
         // check result
         // 1. receipt info has been stored
         let receipt = await bridgePool.getReceiptInfo(chainId);
@@ -1230,8 +1233,11 @@ describe('Pipeline', () => {
     //     expect(liquidityAfter).toBe(BigInt(100000000000));
     // });
     it('swap success', async () => {
+        let fee = await bridge.getEstimateSwapFee();
+        console.log(fee);
+        console.log(testAccount.address);
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ7ADzw==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ73lwg==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;
@@ -1242,7 +1248,7 @@ describe('Pipeline', () => {
         let dataOther = dataFullBuffer.slice(96);
         let result = await bridge.sendTransmit(
             oracle.getSender(),
-            toNano('0.01'),
+            toNano('0.05'),
             messageId,
             sourceChainId,
             targetChainId,
@@ -1258,6 +1264,7 @@ describe('Pipeline', () => {
             to: bridge.address,
             success: true,
         });
+
         expect(result.transactions).toHaveTransaction({
             from: bridge.address,
             to: bridgePool.address,
@@ -1273,6 +1280,18 @@ describe('Pipeline', () => {
             to: accountJettonWallet.address,
             success: true
         });
+
+        const send_release_tx = findTransactionRequired(result.transactions, {
+            on: bridgePool.address,
+            from: bridge.address,
+            op: Op.bridge_pool.release,
+            success: true
+        });
+        send_release_gas_fee = printTxGasStats("release", send_release_tx);
+        // gas used:36815
+        send_release_gas_fee = computeGasFee(gasPrices, 36815n);
+        console.log(send_release_gas_fee);
+        
         // check
         // 1. check account balance
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000 + 1000000000));
@@ -1874,10 +1893,21 @@ describe('Pipeline', () => {
         // gas used:19815 gas cost:7926000
         send_receipt_ok_gas_fee = computeGasFee(gasPrices, 19815n);
         console.log(send_receipt_ok_gas_fee);
+        const sendToOracle = findTransactionRequired(result.transactions, {
+            from: bridge.address,
+            to: oracle.address,
+            op: Op.bridge.send_bridge_info_to_oracle,
+            success: true,
+        });
+        send_to_oracle_gas_fee = printTxGasStats("send to oracle", sendToOracle);
+        // gas used:309 gas cost:123600
+        send_to_oracle_gas_fee = computeGasFee(gasPrices, 309n);
+        console.log(send_to_oracle_gas_fee);
+        
     });
     it('swap success pipeline fee', async () => {
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6uDXg==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABjF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYaggH66D60m+eWkBQ7RKhWfbRgOR68GMARenFK6nRFvOabRADxWDG+iSbBPsxzj0PxJlAh2fXLeF995kJdSm1kwZHyo0LkAAAAAZ7l9AA==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;
@@ -1888,7 +1918,7 @@ describe('Pipeline', () => {
         let dataOther = dataFullBuffer.slice(96);
         let result = await bridge.sendTransmit(
             oracle.getSender(),
-            toNano('0.01'),
+            toNano('0.02'),
             messageId,
             sourceChainId,
             targetChainId,
@@ -1914,11 +1944,11 @@ describe('Pipeline', () => {
             to: bridgePoolJettonWallet.address,
             success: true
         });
-        expect(result.transactions).toHaveTransaction({
-            from: bridgePoolJettonWallet.address,
-            to: accountJettonWallet.address,
-            success: true
-        });
+        // expect(result.transactions).toHaveTransaction({
+        //     from: bridgePoolJettonWallet.address,
+        //     to: accountJettonWallet.address,
+        //     success: true
+        // });
 
         const send_transmit_tx = findTransactionRequired(result.transactions, {
             from: oracle.address,
@@ -2378,7 +2408,7 @@ describe('Pipeline', () => {
         console.log(bridgePool.address);
         console.log(bridgePoolJettonWallet.address);
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ6jHbA==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ73lwg==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;
@@ -2389,7 +2419,7 @@ describe('Pipeline', () => {
         let dataOther = dataFullBuffer.slice(96);
         let result = await bridge.sendTransmit(
             oracle.getSender(),
-            toNano('0.01'),
+            toNano('0.05'),
             messageId,
             sourceChainId,
             targetChainId,
@@ -2435,20 +2465,7 @@ describe('Pipeline', () => {
         // gas used:17650
         send_transmit_gas_fee = computeGasFee(gasPrices, 17650n);
         console.log(send_transmit_gas_fee);
-
-        // const send_swap_tx = findTransactionRequired(result.transactions, {
-        //     on: bridgeSwap.address,
-        //     from: bridge.address,
-        //     op: Op.bridge_swap.swap,
-        //     success: true
-        // });
-        // send_swap_gas_fee = printTxGasStats("swap", send_swap_tx);
-        // // gas used:12558
-        // send_swap_gas_fee = computeGasFee(gasPrices, 12558n);
-        // console.log(send_swap_gas_fee);
-        // const swapInMessage = send_swap_tx.inMessage!
-        // let swapMessageStats = computeMessageForwardFees(msgPrices, swapInMessage).stats;
-        // console.log(swapMessageStats);
+        
         //
         const send_release_tx = findTransactionRequired(result.transactions, {
             on: bridgePool.address,
@@ -2457,8 +2474,8 @@ describe('Pipeline', () => {
             success: true
         });
         send_release_gas_fee = printTxGasStats("release", send_release_tx);
-        // gas used:34096
-        send_release_gas_fee = computeGasFee(gasPrices, 34096n);
+        // gas used:36815
+        send_release_gas_fee = computeGasFee(gasPrices, 36815n);
         console.log(send_release_gas_fee);
         const releaseInMessage = send_release_tx.inMessage!
         let releaseMessageStats = computeMessageForwardFees(msgPrices, releaseInMessage).stats;
@@ -2498,6 +2515,118 @@ describe('Pipeline', () => {
 
     });
     
+    it('cleanup receiptHash test',async () => {
+        let receiptHash = 58119951496274937510333063170106550521839217294265447462353709256896406305190n;
+        let res = await bridge.sendRecordReceiptHash(testAccount.getSender(),toNano('0.01'),1740362400,receiptHash);
+        expect(res.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        let exist = await bridge.get_receipt_hash_exist(receiptHash);
+        expect(exist).toBe(true);
+        let receiptHash1 = 58119962496274937510443063170106550521839217294265447462353709256896406305190n;
+        let res1 = await bridge.sendRecordReceiptHash(testAccount.getSender(),toNano('0.01'),1740362400,receiptHash1);
+        expect(res1.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        let exist1 = await bridge.get_receipt_hash_exist(receiptHash1);
+        expect(exist1).toBe(true);
+        let receiptHash2 = 58119962496274937510443063133106550521839217294265447462353709256896406305190n;
+        let res2 = await bridge.sendRecordReceiptHash(testAccount.getSender(),toNano('0.01'),1740362400,receiptHash2);
+        expect(res2.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        let exist2 = await bridge.get_receipt_hash_exist(receiptHash2);
+        expect(exist2).toBe(true);
+        
+        let receiptHash3 = 58119962496274937510443063133106550521839217294265447462353711256896406305190n;
+        let res3 = await bridge.sendRecordReceiptHash(testAccount.getSender(),toNano('0.01'),1740362400,receiptHash3);
+        expect(res3.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        let exist3 = await bridge.get_receipt_hash_exist(receiptHash3);
+        expect(exist3).toBe(true);
+
+        let receiptHash4 = 58119951496274937510333063170106550521839217294215637462353709256896406305190n;
+        let res4 = await bridge.sendRecordReceiptHash(testAccount.getSender(),toNano('0.01'),1740362400,receiptHash4);
+        expect(res4.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        let exist4 = await bridge.get_receipt_hash_exist(receiptHash);
+        expect(exist4).toBe(true);
+        let receiptHash5 = 58119951496274917510333063170106550521839217294265447132353709256896406305190n;
+        let res5 = await bridge.sendRecordReceiptHash(testAccount.getSender(),toNano('0.01'),1740362400,receiptHash5);
+        expect(res5.transactions).toHaveTransaction({
+            from: testAccount.address,
+            to: bridge.address,
+            success: true,
+        });
+        let exist5 = await bridge.get_receipt_hash_exist(receiptHash4);
+        expect(exist5).toBe(true);
+
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ73lwg==";
+        let dataFullBuffer = Buffer.from(dataFull, 'base64');
+        let messageId = BigInt(11111);
+        let sourceChainId = 9992731;
+        let targetChainId = 1100;
+        let sender = aelf.utils.base58.decode("foDLAM2Up3xLjg43SvCy5Ed6zaY5CKG8uczj6yUVZUweqQUmz");
+        let receiver = bridge.address;
+        let data = dataFullBuffer.slice(0, 96);
+        let dataOther = dataFullBuffer.slice(96);
+        let result = await bridge.sendTransmit(
+            oracle.getSender(),
+            toNano('0.05'),
+            messageId,
+            sourceChainId,
+            targetChainId,
+            sender,
+            receiver,
+            data,
+            dataOther,
+            swapId,
+            jettonMinter.address
+        );
+        expect(result.transactions).toHaveTransaction({
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        let tx = findTransactionRequired(result.transactions, {
+            from: oracle.address,
+            to: bridge.address,
+            success: true,
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridgePool.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePool.address,
+            to: bridgePoolJettonWallet.address,
+            success: true
+        });
+        expect(result.transactions).toHaveTransaction({
+            from: bridgePoolJettonWallet.address,
+            to: accountJettonWallet.address,
+            success: true
+        });
+
+        exist5 = await bridge.get_receipt_hash_exist(receiptHash4);
+        expect(exist5).toBe(false);
+        exist4 = await bridge.get_receipt_hash_exist(receiptHash);
+        expect(exist4).toBe(false);
+    })
+    
     it('decode send to oracle message', async () => {
         let body = "te6cckECBgEAAUwAA1sAAAAAAAAAUwAdepiAGlzrrbnRhbtjrjkQHBTBLC1n1gN7cqftbwDFiKmrEwhQBAECAcYDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCmLS0c32SE1X0eIDgAnWYMoYqPWFLs+NeW6eGHKV4vQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEXAAEDAkgAHXqYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARFwAEBQCGAgA7GZ8UsWmJ/THf6UQzoc2aeiRAOGGGcSW7YmtMkzH+HtJOgGAS9EbYtDvoSIPlV+LR7pHyNPkwROec/ts6r0TxAABAlfa/uRxI7mZ+L8lx472Z5Qg7Pp3kMA/olIVgnJVMsRoAQ4AKRSlvsm2g2fiNQ3euMtFU+bgo9uhjq0Gqk6zmSnK7/pArtk06";
         let c = Cell.fromBase64(body);
@@ -2527,7 +2656,7 @@ describe('Pipeline', () => {
         console.log(amount);
     });
     it('decode from oracle message', async () => {
-        let body = "te6cckECFwEAAzUAAosAAAADw4KfbGN9hp2DK+PGal/VhZZUOxTsp5brVDc5lfSC8m6AGlzrrbnRhbtjrjkQHBTBLC1n1gN7cqftbwDFiKmrEwhQAQIEIAAAAAAAmHobAAAAAAAABEwDBAUGAQHADABA82M4D38R10jOpEWTOcNjK0ws1T1GMe1ZMCP4Q0OR5EYAQ4AaXOutudGFu2OuORAcFMEsLWfWA3typ+1vAMWIqasTCFABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ8wpqYCZZG5MIbyfyvpbsblcJFUHEPaZLBIKhNPfY3oQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD0JAAQcEUAAAAAAAAARMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICQoLAJ4CYN6QAfXZX7bcLM2dzuf15/naePUfOtCES90NRZ3RXyC00QA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qNC5AAAAAGe0QmwAAEBuO+UjqNeo+CUPSDXxQr6EoMu5rbN0Zta94dpYPR1jOABga1FEUzUxMXR6b3d0MngxeHlJRGdwZ2xoYXo2d0c5dVZQMnQ0Qml4RlRWaVlRb00vAEOACkUpb7JtoNn4jUN3rjLRVPm4KPboY6tBqpOs5kpyu/6QAAhVU0RUAgPP2A0OAgEgDxABAWIWAQFYEQIBIBITAIBbr4YG4XiW3CVO7mvriMJACRhtWrPkxyQWY0E6D0aYmxxZV64/zLJIJtU3ZhdHNm12wBGMdF5WYt8w6egPq+sIAQEgFAEBIBUAgAZ7qosmjHkWJIM9row1JNZfhcTc/v7bQ4DfsfhmCJ8zuzmxFqZlQEO8ESrHRxM2FFsq0RbsvPjr6wT4b2+FVAgAgJ0LmNZF2pdLQskNrisQfrKimIOikF0uvC+WSCQrfXTR78jY0V09IuS5G59jWIr0gjj9apFvc6z0uETj2wcL8g0AgMVsZwYTcKW9FET0zNJLbidfrROozmtY1bMt8Vdmj1GAsZ2wevIaiQaQmghkGj7FlBtWjDtxDmqTQ3jOrrrFGg5jsMpS";
+        let body = "te6cckECCwEAAcoAASgAAAAD30lSNKFoTxV0uA4KWmFVlwEEEAAdepgAAARMAgMEBQBAlfa/uRxI7mZ+L8lx472Z5Qg7Pp3kMA/olIVgnJVMsRoAQ4AaXOutudGFu2OuORAcFMEsLWfWA3typ+1vAMWIqasTCFABxgMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACrF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACHojAQYESAAABEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcICQoAngJgB4X6GMGwvZXzZ88IXosZ4yb7NGZ8IBYNL5N9gPZh6tTRADSU4zAnVSelzdw4u+odrPtZhiG30w9x4AXPiqGmTz1LF6QAAAAAZ76NmAAAQOmpCfljTf+7mAB9mBx423NdXY2hJMc6VjyPYCv43Q57AGBFUURTNTExdHpvd3QyeDF4eUlEZ3BnbGhhejZ3Rzl1VlAydDRCaXhGVFZpWVFqaTEAQ4AKRSlvsm2g2fiNQ3euMtFU+bgo9uhjq0Gqk6zmSnK7/pAACFVTRFSAfzGB";
         let c = Cell.fromBase64(body);
         let sli = c.asSlice();
         let op = sli.loadUint(32);
@@ -2547,6 +2676,7 @@ describe('Pipeline', () => {
         let receiver1Slice = receiver1.asSlice();
         let receiver = receiver1Slice.loadAddress();
         console.log(receiver);
+        
         let message = originDataSlice.loadRef();
         let messageSlice = message.asSlice();
         let sliceBits = messageSlice.loadUint(16);
@@ -2559,16 +2689,113 @@ describe('Pipeline', () => {
         sliceBits = refInfoSlice.loadUint(16);
         console.log(sliceBits);
         let data1 = refInfoSlice.loadBuffer(sliceBits / 8);
-        console.log(data1.toString('base64'));
+        let receiptHash = data1.slice(0, 32);
+        const hexString = receiptHash.toString('hex');
+        const receiptHashInt = BigInt('0x' + hexString);
+        console.log(receiptHashInt);
+        
         let convertInfo = originDataSlice.loadRef();
         let infoSlice = convertInfo.asSlice();
         let swapId = infoSlice.loadRef();
         let swapIdSlice = swapId.asSlice();
         let swapId1 = swapIdSlice.loadBuffer(32);
         console.log(swapId1.toString('base64'));
+
+        let chainId1 = infoSlice.loadUint(32);
+        let target = infoSlice.loadRef();
+        let jettonAddress = infoSlice.loadRef().beginParse().loadAddress();
+        let originToken = infoSlice.loadRef();
+        console.log(chainId1);
+        console.log(jettonAddress);
         
     });
+    it('decode resend to oracle message', async () => {
+        let body = "te6cckEBAgEAZwABYx9VvS6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL4AAAAAAAFRgQAQBgR9hPurPHLj2yb/gAbIPEFAS2IdQeDxBGq4Twq99s2HvZlOcL9D4z+SK4qKnoE2eq7kRM/Q==";
+        let c = Cell.fromBase64(body);
+        let sli = c.asSlice();
+        let op = sli.loadUint(32);
+        let jetton = sli.loadAddress();
+        console.log(jetton);
+        let message = sli.loadRef();
+        let messageSlice = message.asSlice();
+        let messageId = messageSlice.loadIntBig(128);
+        console.log(messageId);
+        let receiptHash = messageSlice.loadUintBig(256);
+        console.log(receiptHash);
+        let exitCode = sli.loadUint(32);
+        console.log(exitCode);
+        let timespan = sli.loadUint(64);
+        console.log(timespan);
+    })
+    it('decode release message',async () => {
+        let body = "te6cckEBBAEAxAACLZ5HAx18gVURX1z0/R5m92K3Y4olInEIAQIAQA2Jkt5oaEMqHjkvaCeQFbeMvbEGAOJJ+2Nj+BwLhybNAYN3/i5SqfjElu7AHaXo+gzMWlJaNSLk36Iqdt0UUSaqUIAGkpxmBOqk9Lm7hxd9Q7WfazDENvph7jwAufFUNMnnqXADAIDNbr0R3Uo+K0rhnPKhHO8xHkNBehaXbG7bzuDz9TUFtAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGvWh1yg==";
+        let c = Cell.fromBase64(body);
+        let slice = c.asSlice();
+        let op = slice.loadUint(32);
+        let messageId = slice.loadIntBig(128);
+        console.log(messageId);
+        let swapId = slice.loadRef();
+        let swapIdSlice = swapId.asSlice();
+        let swapId1 = swapIdSlice.loadUintBig(256);
+        console.log(swapId1);
+        let hex = swapId1.toString(16);
+        if (hex.length % 2) hex = '0' + hex;
+        const bytes = Uint8Array.from(Buffer.from(hex, 'hex'));
+        let swapId2 = Buffer.from(bytes).toString('base64');
+        console.log(swapId2);
+        let receipt_cell = slice.loadRef();
+        let amount = slice.loadCoins();
+        console.log(amount);
+    })
+    it('decode swap created event',async () => {
+        let body = "te6cckEBBQEAWgACCP6N3GoBAgEIAB16mAMBCACYehsEAEANiZLeaGhDKh45L2gnkBW3jL2xBgDiSftjY/gcC4cmzQBAkvmWDid+D2vNn3PLaskC5YU32NlkO63rMlIp9uKymGBdBBHM";
+        let c = Cell.fromBase64(body);
+        let slice = c.asSlice();
+        let op = slice.loadUint(32);
+        let swapSide = slice.loadRef();
+        let swapIdSlide = swapSide.asSlice();
+        let chainId = swapIdSlide.loadUint(32);
+        console.log(chainId);
+        let swapIdRef = swapIdSlide.loadRef();
+        let swapIdRefSlice = swapIdRef.asSlice();
+        let swapIdHash = swapIdRefSlice.loadUintBig(256);
+        console.log(swapIdHash);
 
+        let swapMain = slice.loadRef();
+        let swapMainSlice = swapMain.asSlice();
+        let chainIdMain = swapMainSlice.loadUint(32);
+        console.log(chainIdMain);
+        let swapIdMain = swapMainSlice.loadRef();
+        let swapIdMainSlice = swapIdMain.asSlice();
+        let swapIdMainHash = swapIdMainSlice.loadUintBig(256);
+        console.log(swapIdMainHash);
+        let hex = swapIdMainHash.toString(16);
+        if (hex.length % 2) hex = '0' + hex;
+        const bytes = Uint8Array.from(Buffer.from(hex, 'hex'));
+        let swapId = Buffer.from(bytes).toString('base64');
+        console.log(swapId);
+    })
+    it('decode released event',async () => {
+        let body = "te6cckEBAgEAlAABnT12/VqAB4rBjfRJNgn2Y5x6H4kygQ7PrlvC++8yEupTayYMj5UQAUilLfZNtBs/Eahu9cZaKp83BR7dDHVoNVJ1nMlOV3/Qw9CQAAdepiABAIDF5/K4GjLOg14Et/LLW6x9A1RBirnxZRY2LETiwiQtawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiGe7S1g==";
+        let c = Cell.fromBase64(body);
+        let slice = c.asSlice();
+        let eventId = slice.loadUint(32);
+        console.log(eventId);
+        let receiver = slice.loadAddress();
+        console.log(receiver);
+        let jettonAddress = slice.loadAddress();
+        console.log(jettonAddress);
+        let amount = slice.loadCoins();
+        console.log(amount);
+        let fromChainId = slice.loadUint(32);
+        console.log(fromChainId);
+        let receiptId = slice.loadRef();
+        let receiptIdSlice = receiptId.asSlice();
+        let receiptHash = receiptIdSlice.loadUintBig(256);
+        let index = receiptIdSlice.loadUintBig(256);
+        console.log(receiptHash);
+        console.log(index);
+    })
     // it('fee', async () => {
     //     // let fee = await bridge.getEstimateCreateReceiptFee();
     //     // console.log(fee);

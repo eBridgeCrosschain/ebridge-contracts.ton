@@ -73,6 +73,29 @@
     }
 }
 
+(int,cell) get_receipt_hash(int timestamp) method_id {
+    load_storage();
+    int bucket_key = timestamp / ONEDAY;
+    (cell receipt_hash_dic, int found) = udict_get_ref?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, bucket_key);
+    if (found) {
+        return (found, receipt_hash_dic);
+    } else {
+        return (found, null());
+    }
+}
+
+(int,cell) get_receipt_hash_two_days_ago() method_id {
+    load_storage();
+    int key = now() / ONEDAY;
+    int bucket_key = key - 1;
+    (cell receipt_hash_dic, int found) = udict_get_ref?(storage::receipt_record_dic_bucket, BUCKET_KEY_LENGTH, bucket_key);
+    if (found) {
+        return (found, receipt_hash_dic);
+    } else {
+        return (found, null());
+    }
+}
+
 (int) is_receipt_hash_exist(int receipt_hash) method_id {
     load_storage();
     return is_receipt_exist(receipt_hash);
@@ -96,5 +119,13 @@
 
 (int) get_estimate_release_transfer_fee() method_id {
     return calculate_release_transfer_fee();
+}
+
+(int,int,int) get_estimate_transfer_lock_fwd_fee_split() method_id {
+    return calculate_transfer_lock_fwd_fee_split();
+}
+
+(int) get_liquidity_account_fee() method_id {
+    return forward_init_state_overhead() + calculate_bridge_liquidity_account_min_storage_fee();
 }
 

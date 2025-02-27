@@ -128,11 +128,11 @@
         try {
             ref_cs = in_msg_body~load_ref();
         } catch (_, n) {
-            return_jetton_to_user(query_id, jetton_amount, from_sender, sender_address, sender_address, fwd_fee, n);
+            return_jetton_to_user(query_id, jetton_amount, from_sender, from_sender, sender_address, fwd_fee, n);
             return ();
         }
         if (msg_value < calculate_create_receipt_process_fee()) {
-            return_jetton_to_user(query_id, jetton_amount, from_sender, sender_address, sender_address, fwd_fee, INSUFFICIENT_FEES);
+            return_jetton_to_user(query_id, jetton_amount, from_sender, from_sender, sender_address, fwd_fee, INSUFFICIENT_FEES);
             return ();
         }
         handle_transfer_notification(sender_address, query_id, jetton_amount, from_sender, ref_cs, fwd_fee, msg_value);

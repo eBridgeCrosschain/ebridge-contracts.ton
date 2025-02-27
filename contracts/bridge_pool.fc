@@ -37,17 +37,17 @@
         var index_value = 0;
         if (found) {
             var total_amount = receipt_info~load_uint(256);
-            var index = receipt_info~load_uint(256);
+            var index = receipt_info~load_uint(64);
             total_amount += amount;
             index += 1;
             index_value = index;
             storage::receipt_dic~udict_set_builder(CHAIN_ID_KEY_LENGTH,
                 target_chain_id,
-                begin_cell().store_uint(total_amount, 256).store_uint(index, 256));
+                begin_cell().store_uint(total_amount, 256).store_uint(index, 64));
         } else {
             storage::receipt_dic~udict_set_builder(CHAIN_ID_KEY_LENGTH,
                 target_chain_id,
-                begin_cell().store_uint(amount, 256).store_uint(1, 256));
+                begin_cell().store_uint(amount, 256).store_uint(1, 64));
             index_value = 1;
         }
         (int wc, int address_hash) = parse_std_addr(storage::jetton_address);
@@ -69,7 +69,12 @@
         int combined_key = (target_chain_id << 64) | index_value;
         receipt_owner = udict_set(receipt_owner, 96, combined_key, owner);
         storage::receipt_owner_tmp_dic = udict_set_ref(storage::receipt_owner_tmp_dic, BUCKET_KEY_LENGTH, current_day, receipt_owner);
-        cleanup_expired_receipt_owner();
+        int current_day = now() / ONEDAY;
+        int expire_date = current_day - 1;
+        (cell value, int found) = idict_get_ref?(storage::receipt_owner_tmp_dic, BUCKET_KEY_LENGTH, expire_date);
+        if (found) {
+            (storage::receipt_owner_tmp_dic, _) = idict_delete?(storage::receipt_owner_tmp_dic, BUCKET_KEY_LENGTH, expire_date);
+        }
         body = begin_cell()
             .store_uint(receipt_ok, 32)
             .store_uint(target_chain_id, 32)
@@ -217,11 +222,11 @@ int to_64(int message_id) {
             if (equal_slices(storage::jetton_address, HOLE_ADDRESS)) {
                 ;; release native token
                 var body = begin_cell().store_uint(from_chain_id, 32).end_cell();
-                send_message_nobounce(amount + calculate_release_transfer_cal_fee(), receiver, body, SEND_MODE_PAY_FEES_SEPARETELY);
+                send_message_nobounce(amount, receiver, body, SEND_MODE_PAY_FEES_SEPARETELY);
             } else {
                 var body0 = create_simple_transfer_body(query_id, amount, receiver, storage::bridge_address, 0);
                 body0 = body0.store_uint(swap_ok, 32);
-                send_simple_message(msg_value, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_REGULAR);
+                send_simple_message(0, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             }
             ;; 5. update swap info
             swapped_amount += amount;

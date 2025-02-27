@@ -535,7 +535,7 @@ export class BridgePool implements Contract {
             }
         ]);
         return {
-            swapId: stack.readBuffer(),
+            swapId: stack.readBigNumber(),
             fromChainId: stack.readNumber(),
             originShare: stack.readNumber(),
             targetShare: stack.readNumber(),

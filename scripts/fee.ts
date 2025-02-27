@@ -24,6 +24,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     let lockFwdFee = await bridge.getEstimateLockFwdFee();
     console.log(`Lock fwd fee: ${lockFwdFee}`);
     
+    let lockSplitFee = await bridge.getEstimateTransferLockFwdFeeSplit();
+    console.log(`Lock split fee: ${lockSplitFee.totalFee} , ${lockSplitFee.gasFee}, ${lockSplitFee.fwdFee}`);
+    
     console.log("Start to get swap fee");
     let swapFee = await bridge.getEstimateSwapFee();
     console.log(`Swap fee: ${swapFee}`);
@@ -55,5 +58,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     console.log("Start to get remove native token liquidity fee");
     let removeNativeLiquidityFee = await bridgePool.getRemoveNativeLiquidityFee();
     console.log(`Remove native token liquidity fee: ${removeNativeLiquidityFee}`);
+    
+    console.log("Start to get liquidity account storage fee");
+    let liquidityAccountStorageFee = await bridge.get_liquidity_account_fee();
+    console.log(`Liquidity account storage fee: ${liquidityAccountStorageFee}`);
     
 }
