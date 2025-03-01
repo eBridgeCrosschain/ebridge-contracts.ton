@@ -25,12 +25,14 @@
 }
 
 () resend_receipt_info(int message_id, int resend_time_span) impure inline_ref {
-    int resend_minutes = ONEMINUTES;
+    ;; resend_time_span is in seconds
+    int resend_minutes = ONEMINUTES; ;;1 minute
     try {
-        if (resend_time_span > ONEMINUTES) {
-            resend_minutes = resend_time_span / ONEMINUTES;
+        if (resend_time_span >= ONEMINUTESFORSECONDS) {
+            resend_minutes = resend_time_span / ONEMINUTESFORSECONDS;
         }
     } catch (x, n) {
+        ;; consider the case of overflow
         resend_minutes = TENMINUTES;
     }
 
@@ -84,7 +86,7 @@
             .store_uint(jetton_amount, 256)
             .end_cell())
         .end_cell();
-    send_simple_message(ORACLE_TON, storage::oracle_address, tx, SEND_MODE_PAY_FEES_SEPARETELY);
+    send_simple_message(TO_ORACLE_TON, storage::oracle_address, tx, SEND_MODE_PAY_FEES_SEPARETELY);
 }
 
 (int, int, int, int, slice, int) decode_message_and_verification(slice message) impure inline {
@@ -118,7 +120,7 @@
 () receive_from_oracle(slice in_msg_body) impure inline {
     var message_id = in_msg_body~load_int(128);
     if (storage::is_pause) {
-        resend_receipt_info(message_id, TENMINUTES * 2);
+        resend_receipt_info(message_id, TENMINUTESFORSECONDS * 2);
         return ();
     }
     var origin_data = in_msg_body~load_ref();
@@ -146,7 +148,7 @@
 
     (var jetton_bridge_pool_address, int found_pool) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton_address);
     if (~ found_pool) {
-        resend_receipt_info(message_id, TENMINUTES * 2);
+        resend_receipt_info(message_id, TENMINUTESFORSECONDS * 2);
         return ();
     }
     if (timestamp + EXPIRE_TIME < now()) {
@@ -170,6 +172,7 @@
                 .store_uint(receipt_index, 256)
                 .end_cell())
             .store_uint(leaf_hash, 256)
+            .store_uint(timestamp, 64)
             .store_slice(receipt_target_address)
             .end_cell())
         .store_coins(receipt_amount)

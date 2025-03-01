@@ -57,8 +57,32 @@
     if (op == transmit) {
         ;; Handler oracle call
         throw_unless(UNAUTHORIZED, equal_slices(sender_address, storage::oracle_address));
-        throw_unless(INSUFFICIENT_FEES, msg_value >= ORACLE_TON);
+        throw_unless(INSUFFICIENT_FEES, msg_value >= RECEIVE_FROM_ORACLE_TON);
         receive_from_oracle(in_msg_body);
+        return ();
+    }
+    
+    if(op == 1){
+        int timestamp = in_msg_body~load_uint(64);
+        int receipt_hash = in_msg_body~load_uint(256);
+        int success = record_receipt_buckets_test(timestamp, receipt_hash);
+        if (success) {
+            save_storage();
+        } else {
+            throw(ALREADY_RECORD);
+        }
+        emit_log_simple(1,storage::receipt_record_dic_bucket,1);
+        return ();
+    }
+    if (op == 2) {
+        int timestamp = in_msg_body~load_uint(64);
+        int receipt_hash = in_msg_body~load_uint(256);
+        int success = record_receipt_buckets(timestamp, receipt_hash);
+        if (success) {
+            save_storage();
+        } else {
+            throw(ALREADY_RECORD);
+        }
         return ();
     }
     if (op == receipt_ok) {
@@ -108,8 +132,8 @@
         throw_unless(UNAUTHORIZED, found_pool & equal_slices(sender_address, jetton_pool_address));
         (var message_info, var exit_code, var time_span) = (in_msg_body~load_ref(), in_msg_body~load_uint(32), in_msg_body~load_uint(64));
         var message = message_info.begin_parse();
-        (int message_id, int receipt_hash) = (message~load_int(128), message~load_uint(256));
-        int success = clear_failed_receipt_hash(receipt_hash);
+        (int message_id, int receipt_hash, int timestamp) = (message~load_int(128), message~load_uint(256),message~load_uint(64));
+        int success = clear_failed_receipt_hash(timestamp,receipt_hash);
         if (success) {
             resend_receipt_info(message_id, time_span);
         } else {
@@ -128,11 +152,11 @@
         try {
             ref_cs = in_msg_body~load_ref();
         } catch (_, n) {
-            return_jetton_to_user(query_id, jetton_amount, from_sender, from_sender, sender_address, fwd_fee, n);
+            return_jetton_to_user(query_id, jetton_amount, from_sender, from_sender, sender_address, n);
             return ();
         }
         if (msg_value < calculate_create_receipt_process_fee()) {
-            return_jetton_to_user(query_id, jetton_amount, from_sender, from_sender, sender_address, fwd_fee, INSUFFICIENT_FEES);
+            return_jetton_to_user(query_id, jetton_amount, from_sender, from_sender, sender_address, INSUFFICIENT_FEES);
             return ();
         }
         handle_transfer_notification(sender_address, query_id, jetton_amount, from_sender, ref_cs, fwd_fee, msg_value);

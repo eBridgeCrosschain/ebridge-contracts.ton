@@ -92,7 +92,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //     code3
     // );
 
-    await bridge.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
+    // await bridge.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
     // await bridgeSwap.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
     // await bridgePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
     // await nativePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
@@ -112,9 +112,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // let swap = await bridgePool.getBridgeSwapAddress();
     // console.log(swap);
     //
-    // let res = await bridge.get_receipt_hash_two_days_ago();
-    // console.log(res.found);
-    // console.log(res.dic);
+    let res = await bridge.get_receipt_hash_two_days_ago();
+    console.log(res.found);
+    console.log(res.dic);
     //
     // let res1 = await bridge.get_receipt_hash(1740561185);
     // console.log(res1.found);

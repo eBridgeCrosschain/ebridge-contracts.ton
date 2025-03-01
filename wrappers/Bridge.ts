@@ -558,6 +558,24 @@ export class Bridge implements Contract {
         });
     }
 
+    async sendCleanReceiptHash(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        timestamp: number,
+        hash:bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(2, 32)
+                .storeUint(timestamp, 64)
+                .storeUint(hash,256)
+                .endCell()
+        });
+    }
+
     async sendCreateNativeReceipt(
         provider: ContractProvider,
         via: Sender,
@@ -685,10 +703,13 @@ export class Bridge implements Contract {
         }
     }
     
-    async get_receipt_hash_exist(provider: ContractProvider, hash: bigint) {
+    async get_receipt_hash_exist(provider: ContractProvider, hash: bigint,timestamp: number) {
         const result = await provider.get('is_receipt_hash_exist', [{
             type: 'int',
             value: BigInt(hash)
+        },{
+            type: 'int',
+            value: BigInt(timestamp)
         }]);
         return result.stack.readBoolean();
     }

@@ -159,7 +159,6 @@
                 .end_cell(),
             1
         );
-        save_storage();
         return (true, 0);
     } else {
         return (false, DAILY_LIMIT_NOT_EXISTED);
@@ -214,7 +213,6 @@
                 .end_cell(),
             1
         );
-        save_storage();
         return (true, 0, 0);
     } else {
         return (true, 0, 0);

@@ -110,10 +110,6 @@
     return (0,0,0,0,0,0);
 }
 
-(int) get_estimate_release_transfer_fwd_fee() method_id {
-    return calculate_release_transfer_cal_fee();
-}
-
 (int) get_estimate_add_liquidity_fee() method_id {
     return calculate_add_liquidity_fee();
 }
