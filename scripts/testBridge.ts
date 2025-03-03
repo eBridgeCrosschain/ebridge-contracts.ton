@@ -1,27 +1,24 @@
 import {compile, NetworkProvider} from "@ton/blueprint";
 import {Bridge} from "../wrappers/Bridge";
-import {Address, beginCell, toNano} from '@ton/core';
+import {Address, beginCell, Dictionary, toNano} from '@ton/core';
 import {randomAddress} from "@ton/test-utils";
 import bs58 from "bs58";
 import {Buffer} from "buffer";
 import aelf from "aelf-sdk";
 import {JettonMinter} from "../wrappers/JettonMinter";
 import {JettonWallet} from "../wrappers/JettonWallet";
-import {BridgeSwap} from "../wrappers/BridgeSwap";
 import {BridgePool} from "../wrappers/BridgePool";
 import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 
 
-const bridgeAddress = Address.parseFriendly("EQDZV48b9MC5w1DQsUPTZcmKpGzt13sbMvHrWqcQqTQUVdrR");
+const bridgeAddress = Address.parseFriendly("kQDS511tzowt2x1xyIDgpglhaz6wG9uVP2t4BixFTViYQoM_");
 console.log(bridgeAddress.address);
 const add = Address.parseFriendly("EQA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qDb2");
 
-const bridgePoolAddress = Address.parseFriendly("EQAOWkc0ArTeXP6MkgVx1-Zelk21uRq5flcjwBmw2Tjt5yey");
-const nativePoolAddress = Address.parseFriendly("EQBcYW6bUy77wlQFLRBGl2aaYhFgliD_Jfcx7AUPv-ii-Ati");
-const bridgeSwapAddress = Address.parseFriendly("EQB6PCFSgqSkv0308G2ZQsZPjS63375DXKQ_Bs_vBiAqSK3l");
-const nativeSwapAddress = Address.parseFriendly("EQBun5DRg-z0z9SZiMp6_PaTqtcJSt6pCOTfr_O2tGeMLQuE");
+const bridgePoolAddress = Address.parseFriendly("kQCOgvqpldcUabiUJdgtHffTy9_-IfvIoZ9Rk26D8q5uVDf9");
+const nativePoolAddress = Address.parseFriendly("kQCPfgNN-077aNCCUlKm59ZbDDbwdRfiuOyofEr41sw1KTEC");
 const jettonMinter = Address.parseFriendly("EQBSKUt9k20Gz8RqG71xloqnzcFHt0MdWg1UnWcyU5Xf9CsU");
-const testAccount = Address.parseFriendly("EQA8VgxvokmwT7Mc49D8SZQIdn1y3hffeZCXUptZMGR8qDb2");
+const testAccount = Address.parseFriendly("0QA0lOMwJ1Unpc3cOLvqHaz7WYYht9MPceAFz4qhpk89Sxek");
 const nativeToken = Address.parseFriendly("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
 
 const chainId = 1931928;
@@ -34,8 +31,6 @@ export async function run(provider: NetworkProvider, args: string[]) {
     const bridge = provider.open(Bridge.createFromAddress(bridgeAddress.address));
     const bridgePool = provider.open(BridgePool.createFromAddress(bridgePoolAddress.address));
     const nativePool = provider.open(BridgePool.createFromAddress(nativePoolAddress.address));
-    const bridgeSwap = provider.open(BridgeSwap.createFromAddress(bridgeSwapAddress.address));
-    const nativeSwap = provider.open(BridgeSwap.createFromAddress(nativeSwapAddress.address));
     const jetton_minter = provider.open(JettonMinter.createFromAddress(jettonMinter.address));
     console.log(add.address);
 
@@ -45,7 +40,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
         )
     );
     let receipt_amount = BigInt(3000000);
-    let forwardAmount = toNano('0.15');
+    let forwardAmount = toNano('0.1');
     let targetAddress = "ZVJHCVCzixThco58iqe4qnE79pmxeDuYtMsM8k71RhLLxdqB5";
     let targetAddressBuffer = aelf.utils.base58.decode(targetAddress);
     const deployJettonWallet = await userWallet(provider.sender().address!);
@@ -56,7 +51,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
         Buffer.from(targetAddressBuffer), jetton_minter.address);
     // await deployJettonWallet.sendTransfer(
     //     provider.sender(),
-    //     toNano('0.2'),
+    //     toNano('0.15'),
     //     receipt_amount,
     //     bridge.address,
     //     provider.sender().address!,
@@ -82,22 +77,27 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //     toNano('0.01'),
     //     code1
     // );
-    // let code2 = await compile('BridgeSwap');
-    // await bridgeSwap.sendInitCodeUpgrade(
+
+    // let code2 = await compile('BridgePool');
+    // await bridgePool.sendInitCodeUpgrade(
     //     provider.sender(),
-    //     toNano('0.01'),
+    //     toNano('0.1'),
     //     code2
     // );
-    let code3 = await compile('BridgePool');
-    await bridgePool.sendInitCodeUpgrade(
-        provider.sender(),
-        toNano('0.02'),
-        code3
-    );
     //
+    // let code3 = await compile('BridgePool');
+    // await nativePool.sendInitCodeUpgrade(
+    //     provider.sender(),
+    //     toNano('0.1'),
+    //     code3
+    // );
+
     // await bridge.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
     // await bridgeSwap.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
-    await bridgePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
+    // await bridgePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
+    // await nativePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
+    
+    // await bridge.sendCleanReceiptHash1(provider.sender(), toNano('0.01'));
 
     // await bridgePool.sendCancelUpgrade(provider.sender(), toNano('0.01'));
     // await bridgeSwap.sendCancelUpgrade(provider.sender(), toNano('0.02'));
@@ -113,4 +113,20 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //
     // let swap = await bridgePool.getBridgeSwapAddress();
     // console.log(swap);
+    //
+    // let res = await bridge.get_receipt_hash_two_days_ago();
+    // console.log(res.found);
+    // console.log(res.dic);
+    //
+    // let res1 = await bridge.get_receipt_hash(1740561185);
+    // console.log(res1.found);
+    // console.log(res1.dic);
+    
+    //
+    // let res1 = await bridge.get_receipt_hash(1740182400);
+    // console.log(res1.found);
+    // console.log(res1.dic);
+    //
+    // let exist = await bridge.get_receipt_hash_exist(3402906703721786632110540633291984486971845989414150205649244399666043415252n);
+    // console.log(exist);
 }

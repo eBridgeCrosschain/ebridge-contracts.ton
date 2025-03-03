@@ -11,7 +11,7 @@
     if (op == init_code_upgrade) { 
         (int end_code, _, int end_owner, slice owner,int end_admin,slice admin) = unpack_temp_upgrade(storage::temp_upgrade);
         throw_unless(INVALID_CALL, end_code == 0); ;; upgrade already in progress
-        storage::temp_upgrade = pack_temp_upgrade(now() + ONEMINUTES,  in_msg_body~load_ref(), end_owner, owner,end_admin,admin);
+        storage::temp_upgrade = pack_temp_upgrade(now() + ONEMINUTESFORSECONDS,  in_msg_body~load_ref(), end_owner, owner,end_admin,admin);
         save_storage();
         return ();
     }
@@ -19,7 +19,7 @@
     if (op == init_owner_upgrade) { 
         (int end_code, cell new_code, int end_owner, _,int end_admin,slice admin) = unpack_temp_upgrade(storage::temp_upgrade);
         throw_unless(INVALID_CALL, end_owner == 0); ;; upgrade already in progress
-        storage::temp_upgrade = pack_temp_upgrade(end_code, new_code, now() + ONEMINUTES, in_msg_body~load_msg_addr(),end_admin,admin);
+        storage::temp_upgrade = pack_temp_upgrade(end_code, new_code, now() + ONEMINUTESFORSECONDS, in_msg_body~load_msg_addr(),end_admin,admin);
         save_storage();
         return ();
     }
@@ -27,7 +27,7 @@
     if (op == init_admin_upgrade) { 
         (int end_code, cell new_code,int end_owner,slice owner,int end_admin, _) = unpack_temp_upgrade(storage::temp_upgrade);
         throw_unless(INVALID_CALL, end_admin == 0); ;; upgrade already in progress
-        storage::temp_upgrade = pack_temp_upgrade(end_code, new_code, end_owner, owner,now() + ONEMINUTES, in_msg_body~load_msg_addr());
+        storage::temp_upgrade = pack_temp_upgrade(end_code, new_code, end_owner, owner,now() + ONEMINUTESFORSECONDS, in_msg_body~load_msg_addr());
         save_storage();
         return ();
     }

@@ -281,7 +281,7 @@ export class Bridge implements Contract {
             .endCell()
         let convertInfo = beginCell()
             .storeRef(swapId)
-            .storeUint(targetChainId, 64)
+            .storeUint(targetChainId, 32)
             .storeRef(beginCell()
                 .storeAddress(receiver)
                 .endCell())
@@ -296,8 +296,8 @@ export class Bridge implements Contract {
             .storeUint(Op.bridge.transmit, 32)
             .storeUint(messageId, 128)
             .storeRef(beginCell()
-                .storeUint(sourceChainId, 64)
-                .storeUint(targetChainId, 64)
+                .storeUint(sourceChainId, 32)
+                .storeUint(targetChainId, 32)
                 .storeRef(beginCell()
                     .storeBuffer(sender, 32)
                     .endCell())
@@ -539,6 +539,56 @@ export class Bridge implements Contract {
         });
 
     }
+    
+    async sendRecordReceiptHash(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        timestamp: number,
+        hash:bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(1, 32)
+                .storeUint(timestamp, 64)
+                .storeUint(hash,256)
+                .endCell()
+        });
+    }
+
+    async sendCleanReceiptHash(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        timestamp: number,
+        hash:bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(2, 32)
+                .storeUint(timestamp, 64)
+                .storeUint(hash,256)
+                .endCell()
+        });
+    }
+
+    async sendCleanReceiptHash1(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(1, 32)
+                .endCell()
+        });
+    }
 
     async sendCreateNativeReceipt(
         provider: ContractProvider,
@@ -638,8 +688,8 @@ export class Bridge implements Contract {
         return result.stack.readBigNumber()
     }
 
-    async getEstimateRecordReceiptFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_record_receipt_fee', []);
+    async getEstimateLockFwdFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_lock_fwd_fee', []);
         return res.stack.readBigNumber();
     }
 
@@ -648,26 +698,63 @@ export class Bridge implements Contract {
         return res.stack.readBigNumber();
     }
 
-    async getEstimateStorageFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_storage_fee', []);
+    async getEstimateCreateNativeFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_create_native_fee', []);
         return res.stack.readBigNumber();
     }
-    async getEstimateRecordSwapFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_record_swap_fee', []);
-        return res.stack.readBigNumber();
-    }
-    
-    async getEstimateLockFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_lock_fee', []);
+    async getEstimateReleaseTransferFee(provider: ContractProvider) {
+        const res = await provider.get('get_estimate_release_transfer_fee', []);
         return res.stack.readBigNumber();
     }
     
-    async get_receipt_hash_exist(provider: ContractProvider, hash: bigint) {
+    //get_estimate_transfer_lock_fwd_fee_split
+    async getEstimateTransferLockFwdFeeSplit(provider: ContractProvider) {
+        const {stack}  = await provider.get('get_estimate_transfer_lock_fwd_fee_split', []);
+        return {
+            totalFee:stack.readBigNumber(),
+            gasFee:stack.readBigNumber(),
+            fwdFee:stack.readBigNumber()
+        }
+    }
+    
+    async get_receipt_hash_exist(provider: ContractProvider, hash: bigint,timestamp: number) {
         const result = await provider.get('is_receipt_hash_exist', [{
             type: 'int',
             value: BigInt(hash)
+        },{
+            type: 'int',
+            value: BigInt(timestamp)
         }]);
         return result.stack.readBoolean();
+    }
+    
+    async get_receipt_hash(provider: ContractProvider, timestamp: number) {
+        const {stack}  = await provider.get('get_receipt_hash', [{
+            type: 'int',
+            value: BigInt(timestamp)
+        }]);
+        return {
+            found:stack.readBoolean(),
+            dic:stack.readCellOpt()
+        }
+    }
+    
+    async get_receipt_hash_two_days_ago(provider: ContractProvider) {
+        const {stack}  = await provider.get('get_receipt_hash_two_days_ago', []);
+        return {
+            found:stack.readBoolean(),
+            dic:stack.readCellOpt()
+        }
+    }
+    
+    async get_message_id_receipt_dic(provider: ContractProvider) {
+        const res = await provider.get('get_message_id_receipt_dic', []);
+        return res.stack.readCellOpt();
+    }
+    
+    async get_liquidity_account_fee(provider: ContractProvider) {
+        const res = await provider.get('get_liquidity_account_fee', []);
+        return res.stack.readBigNumber();
     }
 }
 

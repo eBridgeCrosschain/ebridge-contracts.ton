@@ -101,8 +101,8 @@ describe('Bridge', () => {
         let swapContractDicDefault = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.Address());
         let jettonWhitelistDicDefault = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
         let targetContractDicDefault = Dictionary.empty();
+        let receiptRecordDic = Dictionary.empty(Dictionary.Keys.BigInt(16), Dictionary.Values.Cell());
         bridge = blockchain.openContract(Bridge.createFromConfig({
-            bridge_swap_address_dic: swapContractDicDefault,
             bridge_pool_address_dic: poolContractDicDefault,
             oracle_address: oracleAddress,
             jetton_whitelist_dic: jettonWhitelistDicDefault,
@@ -111,8 +111,8 @@ describe('Bridge', () => {
             admin: admin.address,
             owner: owner.address,
             temp_upgrade: tempUpgrade,
-            bridge_receipt_account_code: bridgeReceiptAccountCode,
-            target_contract_dic: targetContractDicDefault
+            target_contract_dic: targetContractDicDefault,
+            receipt_record_dic: receiptRecordDic
         }, code));
 
 

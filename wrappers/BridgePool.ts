@@ -548,5 +548,25 @@ export class BridgePool implements Contract {
         const result = await provider.get('get_estimate_release_transfer_fwd_fee', []);
         return result.stack.readBigNumber();
     }
+    
+    async getAddLiquidityFee(provider: ContractProvider) {
+        const result = await provider.get('get_estimate_add_liquidity_fee', []);
+        return result.stack.readBigNumber();
+    }
+    
+    async getAddNativeLiquidityFee(provider: ContractProvider) {
+        const result = await provider.get('get_estimate_add_native_liquidity_fee', []);
+        return result.stack.readBigNumber();
+    }
+    
+    async getRemoveLiquidityFee(provider: ContractProvider) {
+        const result = await provider.get('get_estimate_remove_liquidity_fee', []);
+        return result.stack.readBigNumber();
+    }
+    
+    async getRemoveNativeLiquidityFee(provider: ContractProvider) {
+        const result = await provider.get('get_estimate_remove_native_liquidity_fee', []);
+        return result.stack.readBigNumber();
+    }
 }
 

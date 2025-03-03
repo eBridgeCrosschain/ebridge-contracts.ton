@@ -18,6 +18,8 @@ global cell storage::swap_dic;
 ;; record ton -> aelf
 ;; `receipt_dic` is HashMap with `target_chain_id` int key, value is `index:int;total_amount:int`
 global cell storage::receipt_dic;
+;; tmp dic for receipt owner
+;; expire and clear after 2 day
 global cell storage::receipt_owner_tmp_dic;
 
 () load_storage() impure inline {
