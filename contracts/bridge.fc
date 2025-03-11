@@ -21,8 +21,8 @@
         ;; ignore empty messages
         return ();
     }
-    var cs = in_msg_full.begin_parse();
-    var flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
 
     slice sender_address = cs~load_msg_addr();
 
@@ -103,11 +103,11 @@
         return ();
     }
     if (op == resend_to_oracle) {
-        var jetton_address = in_msg_body~load_msg_addr();
+        slice jetton_address = in_msg_body~load_msg_addr();
         (slice jetton_pool_address, int found_pool) = storage::bridge_pool_address_dic.dict_get?(KEY_LENGTH, jetton_address);
         throw_unless(UNAUTHORIZED, found_pool & equal_slices(sender_address, jetton_pool_address));
-        (var message_info, var exit_code, var time_span) = (in_msg_body~load_ref(), in_msg_body~load_uint(32), in_msg_body~load_uint(64));
-        var message = message_info.begin_parse();
+        (cell message_info, int exit_code, int time_span) = (in_msg_body~load_ref(), in_msg_body~load_uint(32), in_msg_body~load_uint(64));
+        slice message = message_info.begin_parse();
         (int message_id, int receipt_hash, int timestamp) = (message~load_int(128), message~load_uint(256),message~load_uint(64));
         int success = clear_failed_receipt_hash(timestamp,receipt_hash);
         if (success) {

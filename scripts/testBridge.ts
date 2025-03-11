@@ -77,7 +77,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //     toNano('0.01'),
     //     code1
     // );
-
+    //
     // let code2 = await compile('BridgePool');
     // await bridgePool.sendInitCodeUpgrade(
     //     provider.sender(),
@@ -92,9 +92,9 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //     code3
     // );
 
-    // await bridge.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
+    await bridge.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
     // await bridgeSwap.sendFinalizeUpgradeCode(provider.sender(), toNano('0.01'));
-    // await bridgePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
+    await bridgePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
     // await nativePool.sendFinalizeUpgradeCode(provider.sender(), toNano('0.02'));
     
     // await bridge.sendCleanReceiptHash1(provider.sender(), toNano('0.01'));

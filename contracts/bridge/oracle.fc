@@ -11,11 +11,11 @@
 
 (int) calculate_leaf_hash(int receipt_index, int key_hash, int jetton_amount, slice target_address) impure inline {
     int receipt_index_hash = string_hash(begin_cell().store_uint(receipt_index, 256).end_cell().begin_parse());
-    var receipt_id = begin_cell().store_uint(key_hash, 256).store_uint(receipt_index_hash, 256).end_cell();
-    var receipt_hash = string_hash(receipt_id.begin_parse());
-    var amount_hash = string_hash(begin_cell().store_uint(jetton_amount, 256).end_cell().begin_parse());
-    var target_address_hash = string_hash(target_address);
-    var leaf_cell = begin_cell()
+    cell receipt_id = begin_cell().store_uint(key_hash, 256).store_uint(receipt_index_hash, 256).end_cell();
+    int receipt_hash = string_hash(receipt_id.begin_parse());
+    int amount_hash = string_hash(begin_cell().store_uint(jetton_amount, 256).end_cell().begin_parse());
+    int target_address_hash = string_hash(target_address);
+    cell leaf_cell = begin_cell()
         .store_uint(receipt_hash, 256)
         .store_uint(amount_hash, 256)
         .store_uint(target_address_hash, 256)
@@ -36,7 +36,7 @@
         resend_minutes = TENMINUTES;
     }
 
-    var payload = begin_cell()
+    cell payload = begin_cell()
         .store_uint(resend, 32)
         .store_int(message_id, 128)
         .store_int(0x01, 8)
@@ -46,7 +46,7 @@
 }
 
 () encode_message_and_send_to_oracle(int target_chain_id, slice jetton_address, slice receipt_id, int jetton_amount, slice target_address) impure inline {
-    (var key_hash, var receipt_index) = (receipt_id~load_uint(256), receipt_id~load_uint(64));
+    (int key_hash, int receipt_index) = (receipt_id~load_uint(256), receipt_id~load_uint(64));
     ;;calculate the leaf hash
     int leaf_hash = calculate_leaf_hash(receipt_index, key_hash, jetton_amount, target_address);
 
@@ -118,22 +118,22 @@
 }
 
 () receive_from_oracle(slice in_msg_body) impure inline {
-    var message_id = in_msg_body~load_int(128);
+    int message_id = in_msg_body~load_int(128);
     if (storage::is_pause) {
         resend_receipt_info(message_id, TENMINUTESFORSECONDS * 2);
         return ();
     }
-    var origin_data = in_msg_body~load_ref();
-    var data = origin_data.begin_parse();
+    cell origin_data = in_msg_body~load_ref();
+    slice data = origin_data.begin_parse();
     (int source_chain_id, int target_chain_id) = (data~load_int(32), data~load_int(32));
     throw_unless(INVALID_TARGET_CHAIN_ID, target_chain_id == CHAINID);
     (slice target_contract, _) = storage::target_contract_dic.udict_get?(CHAIN_ID_KEY_LENGTH, source_chain_id);
     (slice sender_slice, slice receiver_slice) = (data~load_ref().begin_parse(), data~load_ref().begin_parse());
-    var sender = sender_slice~load_bits(256);
-    var receiver = receiver_slice~load_bits(267);
+    slice sender = sender_slice~load_bits(256);
+    slice receiver = receiver_slice~load_bits(267);
     throw_unless(INVALID_SOURCE_CHAIN_CONTRACT, equal_slices(sender, target_contract));
     throw_unless(INVALID_RECEIVER_CHAIN_CONTRACT, equal_slices(receiver, my_address()));
-    var message = data~load_ref().begin_parse();
+    slice message = data~load_ref().begin_parse();
     cell convert_info = data~load_ref();
     slice info = convert_info.begin_parse();
     cell swap_id_ref = info~load_ref();
@@ -146,7 +146,7 @@
     info~load_ref(); ;; ignore origin_token, beasue it is used by source chain.
     (int receipt_index, int key_hash, int receipt_amount, int leaf_hash, slice receipt_target_address, int timestamp) = decode_message_and_verification(message);
 
-    (var jetton_bridge_pool_address, int found_pool) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton_address);
+    (slice jetton_bridge_pool_address, int found_pool) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton_address);
     if (~ found_pool) {
         resend_receipt_info(message_id, TENMINUTESFORSECONDS * 2);
         return ();
@@ -161,7 +161,7 @@
         throw(ALREADY_RECORD);
     }
     save_storage();
-    var payload = begin_cell()
+    cell payload = begin_cell()
         .store_uint(release, 32)
         .store_int(message_id, 128)
         .store_ref(swap_id_ref)

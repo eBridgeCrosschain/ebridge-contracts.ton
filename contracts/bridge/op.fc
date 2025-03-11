@@ -46,3 +46,8 @@ const finalize_upgrades = "finalize_upgrades"c;
 const getter_bridge_pool_address = 0x10000001;
 const is_jetton_support = 0x10000002;
 const getter_oracle_address = 0x10000003;
+
+;; "response"
+const response_bridge_pool_address = 0x80000001;
+const response_is_jetton_support = 0x80000002;
+const response_oracle_address = 0x80000003;

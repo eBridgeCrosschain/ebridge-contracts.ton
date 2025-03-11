@@ -15,8 +15,8 @@
         ;; ignore empty messages
         return ();
     }
-    var cs = in_msg_full.begin_parse();
-    var flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
 
     slice sender_address = cs~load_msg_addr();
 

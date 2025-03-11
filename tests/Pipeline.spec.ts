@@ -341,12 +341,11 @@ describe('Pipeline', () => {
         let body = result.transactions[1].outMessages.get(0)?.body;
         if (body != undefined) {
             let info = body.asSlice();
-            let swapInfo = info.loadRef().asSlice();
-            let fromChainId = swapInfo.loadUint(32);
-            let swapId_log = swapInfo.loadRef();
+            let fromChainId = info.loadUint(32);
+            let swapId_log = info.loadUintBig(256);
             console.log(fromChainId);
-            console.log(swapId_log.asSlice().loadBuffer(32).toString('hex'));
-            swapId = swapId_log;
+            console.log(swapId_log);
+            swapId = beginCell().storeUint(swapId_log,256).endCell();
         }
         // 1'. create toncoin swap
         const resultTon = await bridgePoolTonCoin.sendCreateSwap(
@@ -364,12 +363,11 @@ describe('Pipeline', () => {
         let bodyTon = resultTon.transactions[1].outMessages.get(0)?.body;
         if (bodyTon != undefined) {
             let info = bodyTon.asSlice();
-            let swapInfo = info.loadRef().asSlice();
-            let fromChainId = swapInfo.loadUint(32);
-            let swapId_log = swapInfo.loadRef();
+            let fromChainId = info.loadUint(32);
+            let swapId_log = info.loadUintBig(256);
             console.log(fromChainId);
-            console.log(swapId_log.asSlice().loadBuffer(32).toString('hex'));
-            swapIdTonCoin = swapId_log;
+            console.log(swapId_log);
+            swapIdTonCoin = beginCell().storeUint(swapId_log,256).endCell();
         }
         // bridge pool
         // 1. set bridge address
@@ -1237,7 +1235,7 @@ describe('Pipeline', () => {
         console.log(fee);
         console.log(testAccount.address);
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ8J2Nw==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ9BNRg==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;
@@ -1361,7 +1359,7 @@ describe('Pipeline', () => {
     });
     it('swap success repeated', async () => {
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(900230000000));
-        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ8F8+Q==";
+        let dataFull = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOjUpRAARZumaYhqYvjEujTCabv7BPasf/W7hyDBYWDqmrkBBckRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ9BNRg==";
         let dataFullBuffer = Buffer.from(dataFull, 'base64');
         let messageId = BigInt(11111);
         let sourceChainId = 9992731;
@@ -1386,7 +1384,7 @@ describe('Pipeline', () => {
         expect(await accountJettonWallet.getJettonBalance()).toEqual(BigInt(901230000000));
         let liquidityAfter = await bridgePool.getPoolLiquidity();
         console.log(liquidityAfter);
-        let dataFull1 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArp97zAAucUeiOwqLAojROQ7erKl4BCk74mz4/6WEnpncRWOEjgRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ8J0Hg==";
+        let dataFull1 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJTrftWgsEIWehE9Or/iLtKXLuipEbS5x/YIrmX0HqJkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArp97zAAucUeiOwqLAojROQ7erKl4BCk74mz4/6WEnpncRWOEjgRAG8DjMpBpA6PC7sdvIeJYlTvFDLNXiGt7VherY/NVHZRPJMAAAAAZ9BNRg==";
         let dataFullBuffer1 = Buffer.from(dataFull1, 'base64');
         let messageId1 = BigInt(2222);
         let data1 = dataFullBuffer1.slice(0, 96);

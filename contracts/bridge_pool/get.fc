@@ -21,7 +21,7 @@
 
 (int, int, int) get_receipt_daily_limit(int target_chain_id) method_id {
     load_storage();
-    var key_hash = create_key(target_chain_id, RECEIPT);
+    int key_hash = create_key(target_chain_id, RECEIPT);
     (slice receipt_daily_limit, int found) = storage::daily_limit.udict_get?(DEFAULT_KEY_LENGTH, key_hash);
     if (found) {
         (int cur_remain_token_amount, int cur_refresh_time, int cur_daily_limit) =
@@ -35,7 +35,7 @@
 
 (int, int, int) get_swap_daily_limit(int from_chain_id) method_id {
     load_storage();
-    var key_hash = create_key(from_chain_id, SWAP);
+    int key_hash = create_key(from_chain_id, SWAP);
     (slice swap_daily_limit, int found) = storage::daily_limit.udict_get?(DEFAULT_KEY_LENGTH, key_hash);
     if (found) {
         (int cur_remain_token_amount, int cur_refresh_time, int cur_daily_limit) =
@@ -49,13 +49,13 @@
 
 (int, int, int, int, int) get_receipt_rate_limit_state(int target_chain_id) method_id {
     load_storage();
-    var key_hash = create_key(target_chain_id, RECEIPT);
+    int key_hash = create_key(target_chain_id, RECEIPT);
     return get_rate_limit(key_hash);
 }
 
 (int, int, int, int, int) get_swap_rate_limit_state(int from_chain_id) method_id {
     load_storage();
-    var key_hash = create_key(from_chain_id, SWAP);
+    int key_hash = create_key(from_chain_id, SWAP);
     return get_rate_limit(key_hash);
 }
 
@@ -86,10 +86,10 @@
 
 (int, int) get_receipt_info(int target_chain_id) method_id {
     load_storage();
-    (var receipt_info, var found) = udict_get?(storage::receipt_dic, CHAIN_ID_KEY_LENGTH, target_chain_id);
+    (slice receipt_info, int found) = udict_get?(storage::receipt_dic, CHAIN_ID_KEY_LENGTH, target_chain_id);
     if (found) {
-        var total_amount = receipt_info~load_uint(256);
-        var index = receipt_info~load_uint(64);
+        int total_amount = receipt_info~load_uint(256);
+        int index = receipt_info~load_uint(64);
         return (index, total_amount);
     } else {
         return (0, 0);

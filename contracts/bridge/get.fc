@@ -14,8 +14,8 @@
 
 (int) get_is_jetton_support(int target_chain_id, slice jetton_address) method_id {
     load_storage();
-    var token_whitelist = storage::jetton_whitelist_dic;
-    var key_hash = create_key(target_chain_id, jetton_address);
+    cell token_whitelist = storage::jetton_whitelist_dic;
+    int key_hash = create_key(target_chain_id, jetton_address);
     (slice whitelist, int is_support) = udict_get?(token_whitelist, DEFAULT_KEY_LENGTH, key_hash);
     return is_support;
 }

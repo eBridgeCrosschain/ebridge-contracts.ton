@@ -14,8 +14,7 @@ global cell storage::temp_upgrade;
 global cell storage::target_contract_dic;
 ;; temporary storage dictionary that automatically clears expired entries
 ;; expire time is 2 day
-;; `receipt_record_dic_bucket` is HashMap with `current timestamp` int key, value is `receipt_dic`
-;; `receipt_dic` is HashMap with `receipt_hash` int key, value is `receipt timestamp:int`
+;; `receipt_record_dic_bucket` is HashMap with `current timestamp + receipt_hash` cell key, value is `is_exist:int`
 global cell storage::receipt_record_dic_bucket;
 
 () load_storage() impure inline {
