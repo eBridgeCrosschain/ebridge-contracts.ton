@@ -89,7 +89,7 @@
 }
 
 (int) get_estimate_swap_fee() method_id {
-    return calculate_swap_process_fee();
+    return calculate_release_jetton_fee();
 }
 
 (int) get_estimate_create_native_fee() method_id {
@@ -97,6 +97,6 @@
 }
 
 (int) get_estimate_release_transfer_fee() method_id {
-    return calculate_release_transfer_fee();
+    return calculate_release_native_fee();
 }
 

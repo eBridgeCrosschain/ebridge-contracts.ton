@@ -71,19 +71,19 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //
     // console.log(bs58.encode(target));
     //
-    // let code1 = await compile('Bridge');
-    // await bridge.sendInitCodeUpgrade(
-    //     provider.sender(),
-    //     toNano('0.01'),
-    //     code1
-    // );
-    //
-    // let code2 = await compile('BridgePool');
-    // await bridgePool.sendInitCodeUpgrade(
-    //     provider.sender(),
-    //     toNano('0.1'),
-    //     code2
-    // );
+    let code1 = await compile('Bridge');
+    await bridge.sendInitCodeUpgrade(
+        provider.sender(),
+        toNano('0.01'),
+        code1
+    );
+
+    let code2 = await compile('BridgePool');
+    await bridgePool.sendInitCodeUpgrade(
+        provider.sender(),
+        toNano('0.1'),
+        code2
+    );
     //
     // let code3 = await compile('BridgePool');
     // await nativePool.sendInitCodeUpgrade(

@@ -154,15 +154,6 @@
             .store_uint(refresh_time, 64)
             .store_uint(cur_daily_limit, 256);
         storage::daily_limit~udict_set_builder(DEFAULT_KEY_LENGTH, key_hash, new_value);
-        emit_log_simple(DAILY_LIMIT_CONSUMED,
-            begin_cell()
-                .store_uint(DAILY_LIMIT_CONSUMED, 32)
-                .store_uint(chain_id, 32)
-                .store_uint(limit_type, 1)
-                .store_uint(amount, 256)
-                .end_cell(),
-            1
-        );
         return (true, 0);
     } else {
         return (false, DAILY_LIMIT_NOT_EXISTED);
@@ -208,15 +199,6 @@
                 .store_uint(current_rate, 256)
                 .end_cell());
         storage::rate_limit~udict_set_builder(DEFAULT_KEY_LENGTH, key_hash, new_value);
-        emit_log_simple(RATE_LIMIT_CONSUMED,
-            begin_cell()
-                .store_uint(RATE_LIMIT_CONSUMED, 32)
-                .store_uint(chain_id, 32)
-                .store_uint(limit_type, 1)
-                .store_uint(amount, 256)
-                .end_cell(),
-            1
-        );
         return (true, 0, 0);
     } else {
         return (true, 0, 0);

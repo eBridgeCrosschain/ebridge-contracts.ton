@@ -233,7 +233,7 @@ int to_64(int message_id) {
             } else {
                 var body0 = create_simple_transfer_body(query_id, amount, receiver, storage::bridge_address, 0);
                 body0 = body0.store_uint(swap_ok, 32);
-                send_simple_message(0, storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+                send_simple_message(calculate_release_transfer_fee(), storage::jetton_pool_wallet_address, body0.end_cell(), SEND_MODE_REGULAR);
             }
             ;; 5. update swap info
             swapped_amount += amount;
@@ -245,6 +245,15 @@ int to_64(int message_id) {
                 .store_uint(swapped_amount, 256)
                 .store_uint(swapped_times, 256)
                 .end_cell()
+            );
+            emit_log_simple(LIMIT_CONSUMED,
+                begin_cell()
+                    .store_uint(LIMIT_CONSUMED, 32)
+                    .store_uint(from_chain_id, 32)
+                    .store_uint(SWAP, 1)
+                    .store_uint(amount, 256)
+                    .end_cell(),
+                1
             );
         } else {
             resend_to_bridge(receipt_hash, timestamp, message_id, error, min_wait_seconds);
@@ -309,6 +318,16 @@ int to_64(int message_id) {
                 var success_record = record_receipt(owner, query_id, target_chain_id, target_address, jetton_amount, 0, 0);
                 if (~ success_record) {
                     return ();
+                } else {
+                    emit_log_simple(LIMIT_CONSUMED,
+                        begin_cell()
+                            .store_uint(LIMIT_CONSUMED, 32)
+                            .store_uint(target_chain_id, 32)
+                            .store_uint(RECEIPT, 1)
+                            .store_uint(jetton_amount, 256)
+                            .end_cell(),
+                        1
+                    );
                 }
             } else {
                 var body = create_simple_transfer_body(query_id, jetton_amount, owner, owner, 0);
@@ -364,6 +383,16 @@ int to_64(int message_id) {
             var success_record = record_receipt(owner, query_id, target_chain_id, target_address, amount, -1, msg_value - amount);
             if (~ success_record) {
                 return ();
+            } else {
+                emit_log_simple(LIMIT_CONSUMED,
+                    begin_cell()
+                        .store_uint(LIMIT_CONSUMED, 32)
+                        .store_uint(target_chain_id, 32)
+                        .store_uint(RECEIPT, 1)
+                        .store_uint(amount, 256)
+                        .end_cell(),
+                    1
+                );
             }
         } else {
             send_message_nobounce(0, owner, begin_cell().store_uint(error, 32).end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);

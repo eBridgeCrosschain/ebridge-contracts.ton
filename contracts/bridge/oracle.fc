@@ -179,9 +179,9 @@
         .end_cell();
     int fee = 0;
     if(equal_slices(jetton_address, HOLE_ADDRESS)){
-        fee = calculate_release_transfer_fee();
+        fee = calculate_release_native_fee();
     } else {
-        fee = calculate_swap_process_fee();
+        fee = calculate_release_jetton_fee();
     }
     send_simple_message(fee, jetton_bridge_pool_address, payload, SEND_MODE_PAY_FEES_SEPARETELY | SEND_MODE_BOUNCE_TRANSACTION);
 }
