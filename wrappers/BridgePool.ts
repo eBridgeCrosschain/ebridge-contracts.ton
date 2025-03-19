@@ -347,6 +347,18 @@ export class BridgePool implements Contract {
             body: BridgePool.packAddNativeLiquidityBody(amount)
         });
     }
+    
+    async sendTest(provider: ContractProvider, via: Sender, value: bigint,chainId:number,index:number) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(0x00000001, 32)
+                .storeUint(chainId, 32)
+                .storeUint(index, 64)
+                .endCell()
+        });
+    }
 
     async sendInitCodeUpgrade(
         provider: ContractProvider,
@@ -568,5 +580,6 @@ export class BridgePool implements Contract {
         const result = await provider.get('get_estimate_remove_native_liquidity_fee', []);
         return result.stack.readBigNumber();
     }
+    
 }
 

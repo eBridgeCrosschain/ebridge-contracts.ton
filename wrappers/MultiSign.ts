@@ -5,11 +5,12 @@ import {
     Contract,
     contractAddress,
     ContractProvider,
-    Dictionary, MessageRelaxed,
+    Dictionary, internal, MessageRelaxed,
     Sender,
     SendMode, storeMessageRelaxed, toNano
 } from '@ton/core';
 import {Op} from "./constants";
+import {MultiSigOrder} from "./MultiSignOrder";
 
 export type MultiSigConfig = {
     threshold: number;
@@ -25,7 +26,13 @@ export type UpdateRequest = {
 };
 export type TransferRequest = { type: 'transfer', sendMode: SendMode, message: MessageRelaxed };
 
-export type Action = TransferRequest | UpdateRequest;
+export type SetTargetContractRequest = {
+    type: 'set_target_contract', sendMode: SendMode, message: MessageRelaxed
+}
+export type AddJettonWhitelistRequest = {
+    type: 'add_jetton_whitelist', sendMode: SendMode, message: MessageRelaxed
+}
+export type Action = AddJettonWhitelistRequest | SetTargetContractRequest | UpdateRequest;
 
 function arrayToCell(arr: Array<Address>): Dictionary<number, Address> {
     let dict = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Address());
@@ -71,7 +78,7 @@ export class MultiSig implements Contract {
     static createFromConfig(config: MultiSigConfig, code: Cell, workchain = 0) {
         const data = MultiSigConfigToCell(config);
         const init = {code, data};
-        return new MultiSig(contractAddress(workchain, init), init,config);
+        return new MultiSig(contractAddress(workchain, init), init, config);
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, value: bigint) {
@@ -81,11 +88,20 @@ export class MultiSig implements Contract {
             body: beginCell().endCell(),
         });
     }
+    
 
-    static packTransferRequest(transfer: TransferRequest) {
-        let message = beginCell().store(storeMessageRelaxed(transfer.message)).endCell();
+    static packSetTargetContractRequest(setTargetContract: SetTargetContractRequest) {
+        let message = beginCell().store(storeMessageRelaxed(setTargetContract.message)).endCell();
         return beginCell().storeUint(Op.actions.send_message, 32)
-            .storeUint(transfer.sendMode, 8)
+            .storeUint(setTargetContract.sendMode, 8)
+            .storeRef(message)
+            .endCell();
+    }
+    
+    static packAddJettonWhitelistRequest(addJettonWhitelist: AddJettonWhitelistRequest) {
+        let message = beginCell().store(storeMessageRelaxed(addJettonWhitelist.message)).endCell();
+        return beginCell().storeUint(Op.actions.send_message, 32)
+            .storeUint(addJettonWhitelist.sendMode, 8)
             .storeRef(message)
             .endCell();
     }
@@ -98,22 +114,19 @@ export class MultiSig implements Contract {
             .endCell();
     }
 
-    // static packOrder(actions: Array<Action>) {
-    //     let order_dict = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Cell());
-    //     if (actions.length > 255) {
-    //         throw new Error("For action chains above 255, use packLarge method");
-    //     } else {
-    //         // pack transfers to the order_body cell
-    //         for (let i = 0; i < actions.length; i++) {
-    //             const action = actions[i];
-    //             const actionCell = action.type === "transfer" ? Multisig.packTransferRequest(action) : Multisig.packUpdateRequest(action);
-    //             order_dict.set(i, actionCell);
-    //         }
-    //         return beginCell().storeDictDirect(order_dict).endCell();
-    //     }
-    // }
+    static packOrder(action: Action) {
+        let actionCell = new Cell();
+        if (action.type === "add_jetton_whitelist") {
+            actionCell = MultiSig.packAddJettonWhitelistRequest(action)
+        } else if (action.type === "set_target_contract") {
+            actionCell = MultiSig.packSetTargetContractRequest(action)
+        } else if (action.type === "update") {
+            actionCell = MultiSig.packUpdateRequest(action)
+        }
+        return actionCell;
+    }
 
-    static newOrderMessage(actions: Cell,
+    static newOrderMessage(action: Action | Cell,
                            expirationDate: number,
                            isSigner: boolean,
                            addrIdx: number,
@@ -124,13 +137,16 @@ export class MultiSig implements Contract {
             .storeUint(query_id, 64)
             .storeBit(isSigner)
             .storeUint(addrIdx, 8)
-            .storeUint(expirationDate, 48)
-
-        return msgBody.storeRef(actions).endCell();
+            .storeUint(expirationDate, 48);
+        if(action instanceof Cell) {
+            return msgBody.storeRef(action).endCell();
+        }
+        let order_cell = MultiSig.packOrder(action);
+        return msgBody.storeRef(order_cell).endCell();
     }
 
     async sendNewOrder(provider: ContractProvider, via: Sender,
-                       actions: Cell,
+                       actions: Action | Cell,
                        expirationDate: number, value: bigint = toNano('1'), addrIdx?: number, isSigner?: boolean) {
         if (this.configuration === undefined) {
             throw new Error("Configuration is not set: use createFromConfig or loadConfiguration");
@@ -154,13 +170,17 @@ export class MultiSig implements Contract {
         }
 
         let newActions: Cell;
-        newActions = actions;
+        if (actions instanceof Cell) {
+            newActions = actions;
+        } else {
+            newActions = MultiSig.packOrder(actions);
+        }
+        console.log(newActions);
         await provider.internal(via, {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             value,
             body: MultiSig.newOrderMessage(newActions, expirationDate, isSigner, addrIdx)
         });
-        //console.log(await provider.get("get_order_address", []));
     }
 
     async getOrderAddress(provider: ContractProvider, orderSeqno: bigint) {
@@ -168,8 +188,9 @@ export class MultiSig implements Contract {
         return stack.readAddress();
     }
 
-    async getOrderEstimate(provider: ContractProvider, order: Cell, expiration_date: bigint) {
-        const {stack} = await provider.get('get_order_estimate', [{type: "cell", cell: order}, {
+    async getOrderEstimate(provider: ContractProvider, order: Action, expiration_date: bigint) {
+        const orderCell = MultiSig.packOrder(order);
+        const {stack} = await provider.get('get_order_estimate', [{type: "cell", cell: orderCell}, {
             type: "int",
             value: expiration_date
         }]);

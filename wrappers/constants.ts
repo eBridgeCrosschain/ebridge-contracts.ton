@@ -98,8 +98,7 @@ export abstract class Op {
         finalize_upgrades: 0x6378509f
     }
     static readonly bridge_pool_event = {
-        DAILY_LIMIT_CONSUMED: 0xc3de3da2,
-        RATE_LIMIT_CONSUMED: 0x7a170c15,
+        LIMIT_CONSUMED: 0xb9ac7cea,
         DAILY_LIMIT_CHANGED: 0x40839634,
         RATE_LIMIT_CHANGED: 0xef662842,
         LOCKED: 0x1a2a0f17,
@@ -164,5 +163,23 @@ export abstract class Errors {
         MAX_CAPACITY_EXCEEDED: 91,
         TOKEN_RATE_LIMIT_REACHED: 92,
         LIQUIDITY_NOT_ENOUGH: 93
+    }
+    static readonly multisig = {
+        unauthorized_new_order : 1007,
+        invalid_new_order : 1008,
+        not_enough_ton : 100,
+        unauthorized_execute : 101,
+        singers_outdated : 102,
+        invalid_dictionary_sequence: 103,
+        expired: 111
+    }
+    static readonly order = {
+        unauthorized_init : 104,
+        already_approved : 107,
+        already_inited : 105,
+        unauthorized_sign : 106,
+        expired: 111,
+        unknown_op: 0xffff,
+        already_executed: 112
     }
 };

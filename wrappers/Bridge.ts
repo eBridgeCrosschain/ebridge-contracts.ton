@@ -251,6 +251,15 @@ export class Bridge implements Contract {
             .endCell();
     }
 
+    static packAdminUpgradeBody(newAdmin: Address): Cell {
+        let queryId = Bridge.getQueryId();
+        return beginCell()
+            .storeUint(Op.bridge.init_admin_upgrade, 32)
+            .storeUint(queryId, 64)
+            .storeAddress(newAdmin)
+            .endCell();
+    }
+
     static packFinalizeUpgradeBody(): Cell {
         let queryId = Bridge.getQueryId();
         return beginCell()
@@ -280,17 +289,15 @@ export class Bridge implements Contract {
                 .endCell())
             .endCell()
         let convertInfo = beginCell()
-            .storeRef(swapId)
             .storeUint(targetChainId, 32)
-            .storeRef(beginCell()
-                .storeAddress(receiver)
-                .endCell())
             .storeRef(beginCell()
                 .storeAddress(jetton)
                 .endCell())
             .storeRef(beginCell()
                 .storeUint(1, 1)
                 .endCell())
+            .storeUint(1,256)
+            .storeRef(swapId)
             .endCell();
         return beginCell()
             .storeUint(Op.bridge.transmit, 32)
@@ -491,6 +498,19 @@ export class Bridge implements Contract {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: Bridge.packInitCodeUpgradeBody(code)
+        });
+    }
+    
+    async sendAdminUpgrade(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        newAdmin: Address
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packAdminUpgradeBody(newAdmin)
         });
     }
     
@@ -728,14 +748,10 @@ export class Bridge implements Contract {
         return result.stack.readBoolean();
     }
     
-    async get_receipt_hash(provider: ContractProvider, timestamp: number) {
-        const {stack}  = await provider.get('get_receipt_hash', [{
-            type: 'int',
-            value: BigInt(timestamp)
-        }]);
+    async get_receipt_hash_status(provider: ContractProvider) {
+        const {stack}  = await provider.get('get_receipt_hash_min', []);
         return {
-            found:stack.readBoolean(),
-            dic:stack.readCellOpt()
+            dic:stack.readBuffer()
         }
     }
     

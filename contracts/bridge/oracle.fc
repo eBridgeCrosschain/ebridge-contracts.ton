@@ -136,14 +136,14 @@
     slice message = data~load_ref().begin_parse();
     cell convert_info = data~load_ref();
     slice info = convert_info.begin_parse();
+    info~load_uint(32); ;;ignore it, beasue it is equal to target_chain_id
+    slice jetton_address = info~load_ref().begin_parse();
+    info~load_ref(); ;; ignore origin_token, beasue it is used by source chain.
+    info~load_uint(256); ;; ignore it, because it is used by oracle
     cell swap_id_ref = info~load_ref();
     if (cell_null?(swap_id_ref)) {
         throw(SWAP_ID_REF_IS_NULL);
     }
-    info~load_uint(32); ;;ignore it, beasue it is equal to target_chain_id
-    info~load_ref(); ;;ignore target_contract_address, beasue it is equal to sender
-    slice jetton_address = info~load_ref().begin_parse();
-    info~load_ref(); ;; ignore origin_token, beasue it is used by source chain.
     (int receipt_index, int key_hash, int receipt_amount, int leaf_hash, slice receipt_target_address, int timestamp) = decode_message_and_verification(message);
 
     (slice jetton_bridge_pool_address, int found_pool) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton_address);

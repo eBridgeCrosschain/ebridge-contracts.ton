@@ -163,7 +163,7 @@ int to_64(int message_id) {
                 total_amount -= amount;
                 storage::receipt_dic~udict_set_builder(CHAIN_ID_KEY_LENGTH,
                     target_chain_id,
-                    begin_cell().store_uint(total_amount, 256).store_uint(index_value, 256));
+                    begin_cell().store_uint(total_amount, 256).store_uint(index_value, 64));
                 storage::liquidity -= amount;
                 ;; found receipt owner
                 var current_day = now() / ONEDAY;
