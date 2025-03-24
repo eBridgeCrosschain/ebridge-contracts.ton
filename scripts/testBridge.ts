@@ -72,7 +72,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //         bridge_address: buffer
     //     }]);
 
-    // let target = await bridge.getTargetContractAddress(chainId);
+    let target = await bridge.getTargetContractAddress(chainId);
     //
     // console.log(bs58.encode(target));
     //
@@ -138,8 +138,14 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //
     // let res = await bridge.get_receipt_hash_status();
     // console.log(res.dic.toString('hex'));
+    //
+    // let con = await bridge.getTargetContractAddress(1);
+    // let a = aelf.utils.base58.encode(con);
+    // console.log(a.toString());
     
-    let con = await bridge.getTargetContractAddress(1);
-    let a = aelf.utils.base58.encode(con);
-    console.log(a.toString());
+    // let oracle = await bridge.getOracleAddress();
+    // console.log(oracle);
+    
+    // let liq = await bridgePool.getPoolLiquidity();
+    // console.log(liq);
 }

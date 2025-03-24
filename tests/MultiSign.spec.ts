@@ -25,7 +25,7 @@ import {JettonWallet} from "../wrappers/JettonWallet";
 import {BridgePool} from "../wrappers/BridgePool";
 import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 import aelf from "aelf-sdk";
-import {MultiSig, SetTargetContractRequest, UpdateRequest} from "../wrappers/MultiSign";
+import {MultiSig, MultiSigConfig, SetTargetContractRequest, UpdateRequest} from "../wrappers/MultiSign";
 import {Errors, Op} from "../wrappers/constants";
 import {MultiSigOrder} from "../wrappers/MultiSignOrder";
 import exp from "constants";
@@ -439,6 +439,67 @@ describe('MultiSign', () => {
         expect(jettonWhitelist).toEqual(true);
 
     });
+    
+    it('new order repeated',async () => {
+        let orderAddress = await multiSign.getOrderAddress(0n);
+        let res = await multiSign.sendNewOrder(deployer.getSender(),
+            testMsg, curTime() + 1000);
+        expect(res.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: multiSign.address,
+            success: true
+        });
+        expect(res.transactions).toHaveTransaction({
+            from: multiSign.address,
+            to: orderAddress,
+            deploy: true,
+            success: true
+        });
+        let order = blockchain.openContract(MultiSigOrder.createFromAddress(orderAddress));
+        let resApprove = await order.sendApprove(deployer.getSender(), 0, toNano('0.1'), 111);
+        expect(resApprove.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: orderAddress,
+            success: true
+        });
+        await order.sendApprove(member2.getSender(), 3, toNano('0.1'), 112);
+        await order.sendApprove(member1.getSender(), 2, toNano('0.1'), 113);
+        let resApprove4 = await order.sendApprove(member4.getSender(), 5, toNano('0.1'), 114);
+        expect(resApprove4.transactions).toHaveTransaction({
+            from: orderAddress,
+            to: multiSign.address,
+            op: Op.multisig.execute
+        });
+        let orderAddress1 = await multiSign.getOrderAddress(1n);
+        let res2 = await multiSign.sendNewOrder(deployer.getSender(),
+            testMsg, curTime() + 1000);
+        expect(res2.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: multiSign.address,
+            success: true
+        });
+        expect(res2.transactions).toHaveTransaction({
+            from: multiSign.address,
+            to: orderAddress1,
+            deploy: true,
+            success: true
+        });
+        let order1 = blockchain.openContract(MultiSigOrder.createFromAddress(orderAddress1));
+        resApprove = await order1.sendApprove(deployer.getSender(), 0, toNano('0.1'), 111);
+        expect(resApprove.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: orderAddress1,
+            success: true
+        });
+        await order1.sendApprove(member2.getSender(), 3, toNano('0.1'), 112);
+        await order1.sendApprove(member1.getSender(), 2, toNano('0.1'), 113);
+        resApprove4 = await order1.sendApprove(member4.getSender(), 5, toNano('0.1'), 114);
+        expect(resApprove4.transactions).toHaveTransaction({
+            from: orderAddress1,
+            to: multiSign.address,
+            op: Op.multisig.execute
+        });
+    });
 
     it('order expiration time should exceed current time', async () => {
         let orderAddress = await multiSign.getOrderAddress(0n);
@@ -785,6 +846,77 @@ describe('MultiSign', () => {
             aborted: true,
             success: false,
             exitCode: Errors.multisig.singers_outdated
+        });
+    });
+    it('multisig should not execute orders deployed by other multisig contract', async () => {
+        const coolHacker = await blockchain.treasury('1337');
+        const newConfig : MultiSigConfig = {
+            threshold: 1,
+            signers: [coolHacker.address],
+            proposers: [proposer.address],
+            orderCode
+        };
+
+        const evilMultisig = blockchain.openContract(MultiSig.createFromConfig(newConfig,code));
+
+        const legitData = await multiSign.getMultisigData();
+        let res = await evilMultisig.sendDeploy(coolHacker.getSender(), toNano('10'));
+        expect(res.transactions).toHaveTransaction({
+            from: coolHacker.address,
+            to: evilMultisig.address,
+            deploy: true,
+            success: true
+        });
+        const evilPayload: SetTargetContractRequest = {
+            type: "set_target_contract",
+            sendMode: 1,
+            message: internal_relaxed({
+                to: coolHacker.address,
+                value: toNano('100000'),
+                body: beginCell().storeUint(1337, 32).endCell()
+            })
+        };
+        let orderPayload = MultiSig.packSetTargetContractRequest(evilPayload)
+
+        const mock_signers = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Address());
+        // Copy the real signers
+        for (let i = 0; i < legitData.signers.length; i++) {
+            mock_signers.set(i, legitData.signers[i]);
+        }
+        const evalOrder: SetTargetContractRequest = {
+            type: "set_target_contract",
+            sendMode: 1,
+            message: internal_relaxed({
+                to: multiSign.address,
+                value: toNano('0.01'),
+                body: beginCell().storeUint(Op.multisig.execute, 32)
+                    .storeUint(0, 64)
+                    .storeUint(legitData.nextOrderSeqno, 256)
+                    .storeUint(0xffffffffffff, 48)
+                    .storeUint(0xff, 8)
+                    .storeUint(BigInt('0x' + beginCell().storeDictDirect(mock_signers).endCell().hash().toString('hex')), 256) // pack legit hash
+                    .storeRef(orderPayload) // Finally eval payload
+                    .endCell()
+            })
+        };
+
+        res = await evilMultisig.sendNewOrder(coolHacker.getSender(), evalOrder, curTime() + 100);
+        let order = await evilMultisig.getOrderAddress(0n);
+        let orderContract = blockchain.openContract(MultiSigOrder.createFromAddress(order));
+        let resApprove = await orderContract.sendApprove(coolHacker.getSender(), 0, toNano('0.1'), 0);
+
+        expect(resApprove.transactions).toHaveTransaction({
+            from: evilMultisig.address,
+            to: multiSign.address,
+            op: Op.multisig.execute,
+            aborted: true,
+            success: false, 
+            exitCode: Errors.multisig.unauthorized_execute
+        });
+        // No funds exfiltrated
+        expect(resApprove.transactions).not.toHaveTransaction({
+            from: multiSign.address,
+            to: coolHacker.address
         });
     });
 });

@@ -26,45 +26,62 @@ export async function run(provider: NetworkProvider, args: string[]) {
     const member3 = Address.parseFriendly("0QBugMoruW7eM0tsP90ZoJTII8-gfaDHX8-jwBVXAW_ogg6R");
     const member4 = Address.parseFriendly("0QAPgLg9eRDcqUyiAaZmTCcrfyol9LjTUdzR5Beie6y6DAZH");
     let signers = [proposer.address, member1.address, member2.address, member3.address, member4.address];
+    const timestampUTCSeconds = Math.floor(Date.now() / 1000);
+    const oneDayLaterSeconds = timestampUTCSeconds + 24 * 60 * 60;
     let config = {
         threshold: 1,
         signers,
         proposers: [proposer.address],
         orderCode
     };
-    const multiSign = provider.open(MultiSig.createFromConfig(config,code));
-    // let body = beginCell()
-    //     .storeUint(0x18,8)
-    //     .storeAddress(bridgeAddress.address)
-    //     .storeCoins(toNano('0.05'))
-    //     .storeUint(1,107)
-    //     .storeRef(Bridge.packSetTargetContractBody(Op.bridge.set_target_contract, configs))
-    //     .endCell();
-    // await multiSign.sendNewOrder(provider.sender(),
-    //     beginCell().storeUint(Op.actions.send_message,32).storeUint(0,8).storeRef(body).endCell(),
-    //     1742457410,toNano('0.1'),0,true);
-    const masterMsg = Bridge.packSetTargetContractBody(Op.bridge.set_target_contract, targetContractconfigs);
-
-    await multiSign.sendNewOrder(provider.sender(),{
-        type: 'set_target_contract',
-        sendMode: 1,
-        message: {
-            info: {
-                type: 'internal',
-                ihrDisabled: false,
-                bounce: true,
-                bounced: false,
-                dest: bridgeAddress.address,
-                value: {
-                    coins: toNano('0.1') // ton amount
-                },
-                ihrFee: 0n,
-                forwardFee: 0n,
-                createdLt: 0n,
-                createdAt: 0
-            },
-            body: masterMsg
-        }
-    },1742457410,toNano('0.1'),0,true);
+    const multiSign = provider.open(MultiSig.createFromConfig(config, code));
+    // const masterMsg = Bridge.packSetTargetContractBody(Op.bridge.set_target_contract, targetContractconfigs);
+    //
+    // await multiSign.sendNewOrder(provider.sender(), {
+    //     type: 'set_target_contract',
+    //     sendMode: 1,
+    //     message: {
+    //         info: {
+    //             type: 'internal',
+    //             ihrDisabled: false,
+    //             bounce: true,
+    //             bounced: false,
+    //             dest: bridgeAddress.address,
+    //             value: {
+    //                 coins: toNano('0.1') // ton amount
+    //             },
+    //             ihrFee: 0n,
+    //             forwardFee: 0n,
+    //             createdLt: 0n,
+    //             createdAt: 0
+    //         },
+    //         body: masterMsg
+    //     }
+    // }, 1742457410, toNano('0.1'), 0, true);
+    // let newOracle = "EQChOx2UsaWRVb8k9NAARNKaNqHVC-uQ98Ff3Uy-qDgqBtMg";
+    // const changeOracleMessage = Bridge.packSetOracleBody(Address.parseFriendly(newOracle).address);
+    // await multiSign.sendNewOrder(provider.sender(), {
+    //     type: 'change_oracle_address',
+    //     sendMode: 1,
+    //     message: {
+    //         info: {
+    //             type: 'internal',
+    //             ihrDisabled: false,
+    //             bounce: true,
+    //             bounced: false,
+    //             dest: bridgeAddress.address,
+    //             value: {
+    //                 coins: toNano('0.01') // ton amount
+    //             },
+    //             ihrFee: 0n,
+    //             forwardFee: 0n,
+    //             createdLt: 0n,
+    //             createdAt: 0
+    //         },
+    //         body: changeOracleMessage
+    //     }
+    // }, oneDayLaterSeconds, toNano('0.02'), 0, true);
+    let seq = await multiSign.getMultisigData();
+    console.log(seq.nextOrderSeqno);
     // console.log(await multiSign.getOrderAddress(1n));
 }

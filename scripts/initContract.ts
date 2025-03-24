@@ -135,30 +135,30 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // let jetton = await bridgePool.getJettonAddress();
     // console.log(jetton.jettonAddress);
     // console.log(jetton.poolJettonWalletAddress);
-    // get daily limit
-    let dailyLimit = await bridgePool.getReceiptDailyLimit(chainId);
-    console.log(dailyLimit.dailyLimit);
-    console.log(dailyLimit.refreshTime);
-    console.log(dailyLimit.remainToken);
-    // get rate limit
-    let rateLimit = await bridgePool.getReceiptRateLimit(chainId);
-    console.log(rateLimit.tokenCapacity);
-    console.log(rateLimit.rate);
-    console.log(rateLimit.currentTokenAmount);
-    console.log(rateLimit.isEnable);
-    console.log(rateLimit.refreshTime);
-    // get daily limit
-    dailyLimit = await bridgePool.getSwapDailyLimit(chainId);
-    console.log(dailyLimit.dailyLimit);
-    console.log(dailyLimit.refreshTime);
-    console.log(dailyLimit.remainToken);
-    // get rate limit
-    rateLimit = await bridgePool.getSwapRateLimit(chainId);
-    console.log(rateLimit.tokenCapacity);
-    console.log(rateLimit.rate);
-    console.log(rateLimit.currentTokenAmount);
-    console.log(rateLimit.isEnable);
-    console.log(rateLimit.refreshTime);
+    // // get daily limit
+    // let dailyLimit = await bridgePool.getReceiptDailyLimit(chainId);
+    // console.log(dailyLimit.dailyLimit);
+    // console.log(dailyLimit.refreshTime);
+    // console.log(dailyLimit.remainToken);
+    // // get rate limit
+    // let rateLimit = await bridgePool.getReceiptRateLimit(chainId);
+    // console.log(rateLimit.tokenCapacity);
+    // console.log(rateLimit.rate);
+    // console.log(rateLimit.currentTokenAmount);
+    // console.log(rateLimit.isEnable);
+    // console.log(rateLimit.refreshTime);
+    // // get daily limit
+    // dailyLimit = await bridgePool.getSwapDailyLimit(chainId);
+    // console.log(dailyLimit.dailyLimit);
+    // console.log(dailyLimit.refreshTime);
+    // console.log(dailyLimit.remainToken);
+    // // get rate limit
+    // rateLimit = await bridgePool.getSwapRateLimit(chainId);
+    // console.log(rateLimit.tokenCapacity);
+    // console.log(rateLimit.rate);
+    // console.log(rateLimit.currentTokenAmount);
+    // console.log(rateLimit.isEnable);
+    // console.log(rateLimit.refreshTime);
 
     // console.log(getUTCMidnight());
     // // get daily limit
@@ -188,7 +188,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
 
     // // add jetton liquidity
     // let amount_add_liquidity = 100000000n;
-    // let forwardAmount = toNano('0.086333288');
+    // let forwardAmount = toNano('0.1');
     // let payload = BridgePool.packAddLiquidityBody();
     // await deployJettonWallet.sendTransfer(
     //     admin,
@@ -202,10 +202,13 @@ export async function run(provider: NetworkProvider, args: string[]) {
     
     // // remove jetton liquidity
     // let amount_remove_liquidity = 100000000n;
-    // let fee = toNano('0.1');
-    // const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(admin.address!);
-    // let usr_liq = provider.open(BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
-    // await usr_liq.sendRemoveLiquidity(admin,fee,amount_remove_liquidity);
+    let fee = toNano('0.1');
+    const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(admin.address!);
+    let usr_liq = provider.open(BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
+    // let liq = await usr_liq.getLiquidity();
+    // console.log(liq);
+    let amount_remove_liquidity = 100000000n;
+    await usr_liq.sendRemoveLiquidity(admin,fee,amount_remove_liquidity);
     
 
     // const liquidity_account = await bridgePool.getPoolLiquidityAccountAddress(provider.sender().address!);

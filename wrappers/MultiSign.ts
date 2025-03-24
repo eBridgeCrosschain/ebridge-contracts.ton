@@ -32,7 +32,10 @@ export type SetTargetContractRequest = {
 export type AddJettonWhitelistRequest = {
     type: 'add_jetton_whitelist', sendMode: SendMode, message: MessageRelaxed
 }
-export type Action = AddJettonWhitelistRequest | SetTargetContractRequest | UpdateRequest;
+export type ChangeOracleContractRequest = {
+    type: 'change_oracle_address', sendMode: SendMode, message: MessageRelaxed
+}
+export type Action = AddJettonWhitelistRequest | SetTargetContractRequest | ChangeOracleContractRequest | UpdateRequest;
 
 function arrayToCell(arr: Array<Address>): Dictionary<number, Address> {
     let dict = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Address());
@@ -105,6 +108,14 @@ export class MultiSig implements Contract {
             .storeRef(message)
             .endCell();
     }
+    
+    static packChangeOracleContractRequest(changeOracleContract: ChangeOracleContractRequest) {
+        let message = beginCell().store(storeMessageRelaxed(changeOracleContract.message)).endCell();
+        return beginCell().storeUint(Op.actions.send_message, 32)
+            .storeUint(changeOracleContract.sendMode, 8)
+            .storeRef(message)
+            .endCell();
+    }
 
     static packUpdateRequest(update: UpdateRequest) {
         return beginCell().storeUint(Op.actions.update_multisig_params, 32)
@@ -122,6 +133,8 @@ export class MultiSig implements Contract {
             actionCell = MultiSig.packSetTargetContractRequest(action)
         } else if (action.type === "update") {
             actionCell = MultiSig.packUpdateRequest(action)
+        } else if (action.type === "change_oracle_address") {
+            actionCell = MultiSig.packChangeOracleContractRequest(action)
         }
         return actionCell;
     }

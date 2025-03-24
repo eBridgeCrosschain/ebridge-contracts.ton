@@ -714,7 +714,7 @@ export class Bridge implements Contract {
     }
 
     async getEstimateSwapFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_swap_fee', []);
+        const res = await provider.get('get_estimate_release_jetton_fee', []);
         return res.stack.readBigNumber();
     }
 
@@ -723,19 +723,10 @@ export class Bridge implements Contract {
         return res.stack.readBigNumber();
     }
     async getEstimateReleaseTransferFee(provider: ContractProvider) {
-        const res = await provider.get('get_estimate_release_transfer_fee', []);
+        const res = await provider.get('get_estimate_release_native_fee', []);
         return res.stack.readBigNumber();
     }
     
-    //get_estimate_transfer_lock_fwd_fee_split
-    async getEstimateTransferLockFwdFeeSplit(provider: ContractProvider) {
-        const {stack}  = await provider.get('get_estimate_transfer_lock_fwd_fee_split', []);
-        return {
-            totalFee:stack.readBigNumber(),
-            gasFee:stack.readBigNumber(),
-            fwdFee:stack.readBigNumber()
-        }
-    }
     
     async get_receipt_hash_exist(provider: ContractProvider, hash: bigint,timestamp: number) {
         const result = await provider.get('is_receipt_hash_exist', [{
@@ -755,13 +746,6 @@ export class Bridge implements Contract {
         }
     }
     
-    async get_receipt_hash_two_days_ago(provider: ContractProvider) {
-        const {stack}  = await provider.get('get_receipt_hash_two_days_ago', []);
-        return {
-            found:stack.readBoolean(),
-            dic:stack.readCellOpt()
-        }
-    }
     
     async get_message_id_receipt_dic(provider: ContractProvider) {
         const res = await provider.get('get_message_id_receipt_dic', []);

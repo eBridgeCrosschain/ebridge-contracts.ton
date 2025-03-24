@@ -78,7 +78,7 @@
     return calculate_transfer_lock_fwd_fee();
 }
 
-(int) get_estimate_swap_fee() method_id {
+(int) get_estimate_release_jetton_fee() method_id {
     return calculate_release_jetton_fee();
 }
 
@@ -86,7 +86,7 @@
     return calculate_create_native_receipt_process_fee();
 }
 
-(int) get_estimate_release_transfer_fee() method_id {
+(int) get_estimate_release_native_fee() method_id {
     return calculate_release_native_fee();
 }
 
