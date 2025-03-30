@@ -2,9 +2,9 @@ import {Address, toNano, ContractProvider, beginCell} from "@ton/core";
 import {compile, NetworkProvider} from "@ton/blueprint";
 import aelf from "aelf-sdk";
 import {Buffer} from "buffer";
-import {Bridge} from "../wrappers/Bridge";
-import {Op} from "../wrappers/constants";
-import {MultiSig} from "../wrappers/MultiSign";
+import {MultiSig} from "../../wrappers/MultiSign";
+import {Bridge} from "../../wrappers/Bridge";
+import {Op} from "../../wrappers/constants";
 
 const bridgeAddress = Address.parseFriendly("kQDS511tzowt2x1xyIDgpglhaz6wG9uVP2t4BixFTViYQoM_");
 const multiSignAddress = Address.parseFriendly("EQBlPNgBLZfD1HhZotqHjhrJVBoIbxCqV2CUvn-U5Qq4CL6P");
@@ -35,29 +35,30 @@ export async function run(provider: NetworkProvider, args: string[]) {
         orderCode
     };
     const multiSign = provider.open(MultiSig.createFromConfig(config, code));
-    // const masterMsg = Bridge.packSetTargetContractBody(Op.bridge.set_target_contract, targetContractconfigs);
+    
+    const masterMsg = Bridge.packSetTargetContractBody(Op.bridge.set_target_contract, targetContractconfigs);
     //
-    // await multiSign.sendNewOrder(provider.sender(), {
-    //     type: 'set_target_contract',
-    //     sendMode: 1,
-    //     message: {
-    //         info: {
-    //             type: 'internal',
-    //             ihrDisabled: false,
-    //             bounce: true,
-    //             bounced: false,
-    //             dest: bridgeAddress.address,
-    //             value: {
-    //                 coins: toNano('0.1') // ton amount
-    //             },
-    //             ihrFee: 0n,
-    //             forwardFee: 0n,
-    //             createdLt: 0n,
-    //             createdAt: 0
-    //         },
-    //         body: masterMsg
-    //     }
-    // }, 1742457410, toNano('0.1'), 0, true);
+    await multiSign.sendNewOrder(provider.sender(), {
+        type: 'set_target_contract',
+        sendMode: 1,
+        message: {
+            info: {
+                type: 'internal',
+                ihrDisabled: false,
+                bounce: true,
+                bounced: false,
+                dest: bridgeAddress.address,
+                value: {
+                    coins: toNano('0.1') // ton amount
+                },
+                ihrFee: 0n,
+                forwardFee: 0n,
+                createdLt: 0n,
+                createdAt: 0
+            },
+            body: masterMsg
+        }
+    }, oneDayLaterSeconds, toNano('0.1'), 0, true);
     // let newOracle = "EQChOx2UsaWRVb8k9NAARNKaNqHVC-uQ98Ff3Uy-qDgqBtMg";
     // const changeOracleMessage = Bridge.packSetOracleBody(Address.parseFriendly(newOracle).address);
     // await multiSign.sendNewOrder(provider.sender(), {

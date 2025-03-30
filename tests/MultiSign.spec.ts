@@ -20,17 +20,10 @@ import '@ton/test-utils';
 import {compile, sleep} from '@ton/blueprint';
 import {findTransactionRequired, randomAddress} from "@ton/test-utils";
 import {Buffer} from "buffer";
-import {JettonMinter} from "../wrappers/JettonMinter";
-import {JettonWallet} from "../wrappers/JettonWallet";
-import {BridgePool} from "../wrappers/BridgePool";
-import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 import aelf from "aelf-sdk";
 import {MultiSig, MultiSigConfig, SetTargetContractRequest, UpdateRequest} from "../wrappers/MultiSign";
 import {Errors, Op} from "../wrappers/constants";
 import {MultiSigOrder} from "../wrappers/MultiSignOrder";
-import exp from "constants";
-import {MultisigOrder} from "@ton/ton";
-import {executeFrom, executeTill, findTransaction, Txiterator} from "./helpers";
 
 describe('MultiSign', () => {
     let code: Cell;

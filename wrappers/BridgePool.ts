@@ -13,7 +13,6 @@ import {Bridge} from "./Bridge";
 import {Op} from "./constants";
 import now = jest.now;
 import {Buffer} from "buffer";
-import {SwapConfig} from "./BridgeSwap";
 
 export type BridgePoolConfig = {
     bridge_address: Address,
@@ -28,6 +27,12 @@ export type BridgePoolConfig = {
     receipt_dict: Dictionary<any, any>,
     receipt_owner_dict: Dictionary<any, any>
 };
+
+export type SwapConfig = {
+    fromChainId: number,
+    originShare: number,
+    targetShare: number
+}
 
 export type dailyLimitConfig = {
     chainId: number,
@@ -147,6 +152,16 @@ export class BridgePool implements Contract {
         return payload;
     }
 
+    static packRemoveLiquidityBody(amount:number|bigint,owner:Address){
+        let queryId = Bridge.getQueryId();
+        return beginCell()
+            .storeUint(Op.bridge_pool.remove_liquidity, 32)
+            .storeUint(queryId,64)
+            .storeCoins(amount)
+            .storeAddress(owner)
+            .endCell();
+    }
+
     static PackReleaseBody(swapId: Cell, receiptId: Cell, receiptHash: Buffer, targetAddress: Address, chainId: number) {
         let queryId = Bridge.getQueryId();
         let messageId = Bridge.getQueryId();
@@ -249,7 +264,7 @@ export class BridgePool implements Contract {
     static PackCreateSwapBody(swapInfos: SwapConfig[]): Cell {
         let queryId = 0;
         const root = beginCell()
-            .storeUint(Op.bridge_swap.create_swap, 32) // op
+            .storeUint(Op.bridge_pool.create_swap, 32) // op
             .storeUint(queryId, 64) // query_id;
             .storeUint(swapInfos[0].fromChainId, 32)
             .storeUint(swapInfos[0].originShare, 64)
@@ -279,14 +294,6 @@ export class BridgePool implements Contract {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: BridgePool.PackCreateSwapBody(swapInfos)
-        });
-    }
-
-    async sendSetReceiptAccount(provider: ContractProvider, via: Sender, value: bigint, receiptAccountCode: Cell) {
-        await provider.internal(via, {
-            value: value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: Bridge.PackSetReceiptAccountBody(receiptAccountCode)
         });
     }
 
@@ -412,6 +419,13 @@ export class BridgePool implements Contract {
         });
     }
     
+    async sendRemoveLiquidity(provider: ContractProvider, via: Sender, value: bigint, amount: bigint,owner:Address) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: BridgePool.packRemoveLiquidityBody(amount,owner),
+        });
+    }
     async getAdmin(provider: ContractProvider) {
         const result = await provider.get('get_admin', []);
         return result.stack.readAddress();

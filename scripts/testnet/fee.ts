@@ -1,8 +1,7 @@
 import {Address} from "@ton/core";
 import {NetworkProvider} from "@ton/blueprint";
-import {Bridge} from "../wrappers/Bridge";
-import {BridgePool} from "../wrappers/BridgePool";
-import {JettonMinter} from "../wrappers/JettonMinter";
+import {Bridge} from "../../wrappers/Bridge";
+import {BridgePool} from "../../wrappers/BridgePool";
 
 const bridgeAddress = Address.parseFriendly("kQDS511tzowt2x1xyIDgpglhaz6wG9uVP2t4BixFTViYQoM_");
 const bridgePoolAddress = Address.parseFriendly("kQCOgvqpldcUabiUJdgtHffTy9_-IfvIoZ9Rk26D8q5uVDf9");
@@ -23,9 +22,6 @@ export async function run(provider: NetworkProvider, args: string[]) {
     console.log("Start to get lock fwd fee");
     let lockFwdFee = await bridge.getEstimateLockFwdFee();
     console.log(`Lock fwd fee: ${lockFwdFee}`);
-    
-    let lockSplitFee = await bridge.getEstimateTransferLockFwdFeeSplit();
-    console.log(`Lock split fee: ${lockSplitFee.totalFee} , ${lockSplitFee.gasFee}, ${lockSplitFee.fwdFee}`);
     
     console.log("Start to get swap fee");
     let swapFee = await bridge.getEstimateSwapFee();

@@ -248,22 +248,22 @@
 }
 
 () _getter_daily_limit(int op, int query_id, int key_hash, int target_chain_id, slice sender) impure inline_ref {
-    (slice receipt_daily_limit, _) = storage::daily_limit.udict_get?(DEFAULT_KEY_LENGTH, key_hash);
+    (slice daily_limit, _) = storage::daily_limit.udict_get?(DEFAULT_KEY_LENGTH, key_hash);
     var payload = begin_cell()
         .store_uint(op, 32)
         .store_uint(query_id, 64)
         .store_uint(target_chain_id, 32)
-        .store_slice(receipt_daily_limit);
+        .store_slice(daily_limit);
     send_payload(sender, payload.end_cell());
 }
 
 () _getter_rate_limit(int op, int query_id, int key_hash, int target_chain_id, slice sender) impure inline_ref {
-    (slice swap_rate_limit, _) = storage::rate_limit.udict_get?(DEFAULT_KEY_LENGTH, key_hash);
+    (slice rate_limit, _) = storage::rate_limit.udict_get?(DEFAULT_KEY_LENGTH, key_hash);
     var payload = begin_cell()
         .store_uint(op, 32)
         .store_uint(query_id, 64)
         .store_uint(target_chain_id, 32)
-        .store_slice(swap_rate_limit);
+        .store_slice(rate_limit);
     send_payload(sender, payload.end_cell());
 }
 

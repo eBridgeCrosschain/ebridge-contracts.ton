@@ -180,7 +180,7 @@ int to_64(int message_id) {
                         if (equal_slices(storage::jetton_address, HOLE_ADDRESS)) {
                             send_message_nobounce(amount, owner, begin_cell().store_slice(owner).end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
                         } else {
-                            return_jetton_to_user(0, amount, owner, owner, storage::jetton_pool_wallet_address, 0);
+                            return_jetton_to_user(0, amount, owner, owner, storage::jetton_pool_wallet_address, RECEIPT_FAILED);
                         }
                         (receipt_owner, _) = udict_delete?(receipt_owner, 96, combined_key);
                     }

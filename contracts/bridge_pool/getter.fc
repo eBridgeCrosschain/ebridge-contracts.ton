@@ -39,9 +39,9 @@
     }
     if (op == getter_swap_daily_limit) {
         raw_reserve(0, 4);
-        int target_chain_id = in_msg_body~load_uint(32);
-        int key_hash = create_key(target_chain_id, SWAP);
-        _getter_daily_limit(response_swap_daily_limit, query_id, key_hash, target_chain_id, sender_address);
+        int from_chain_id = in_msg_body~load_uint(32);
+        int key_hash = create_key(from_chain_id, SWAP);
+        _getter_daily_limit(response_swap_daily_limit, query_id, key_hash, from_chain_id, sender_address);
         return (true);
     }
     if (op == getter_receipt_rate_limit_state) {
@@ -53,9 +53,9 @@
     }
     if (op == getter_swap_rate_limit_state) {
         raw_reserve(0, 4);
-        int target_chain_id = in_msg_body~load_uint(32);
-        int key_hash = create_key(target_chain_id, SWAP);
-        _getter_rate_limit(response_swap_rate_limit_state, query_id, key_hash, target_chain_id, sender_address);
+        int from_chain_id = in_msg_body~load_uint(32);
+        int key_hash = create_key(from_chain_id, SWAP);
+        _getter_rate_limit(response_swap_rate_limit_state, query_id, key_hash, from_chain_id, sender_address);
         return (true);
     }
     return (false); ;; wrong op

@@ -1,7 +1,8 @@
 import {Address, beginCell, Cell, Dictionary, toNano} from '@ton/core';
-import {Bridge} from '../wrappers/Bridge';
+
 import {compile, NetworkProvider} from '@ton/blueprint';
-import {BridgePool} from "../wrappers/BridgePool";
+import {BridgePool} from "../../wrappers/BridgePool";
+
 
 export async function run(provider: NetworkProvider) {
     console.log(provider.sender().address);
@@ -17,11 +18,12 @@ export async function run(provider: NetworkProvider) {
         .storeRef(beginCell().endCell())
         .storeAddress(null)
         .endCell();
+    let bridgeReceiptAccountCode = await compile('BridgeReceiptAccount');
     let receipt_dic = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Cell());
     let receiptRecordDic = Dictionary.empty(Dictionary.Keys.BigInt(16), Dictionary.Values.Cell());
     const bridgePool = provider.open(BridgePool.createFromConfig({
         bridge_address: bridgeAddress.address,
-        jetton_address: nativeToken.address,
+        jetton_address: jettonAddress.address,
         daily_limit: dic,
         rate_limit: dic,
         pool_liquidity_account_code: await compile("BridgePoolLiquidityAccount"),

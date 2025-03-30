@@ -120,7 +120,7 @@
 () receive_from_oracle(slice in_msg_body) impure inline {
     int message_id = in_msg_body~load_int(128);
     if (storage::is_pause) {
-        resend_receipt_info(message_id, TENMINUTESFORSECONDS * 2);
+        resend_receipt_info(message_id, ONEHOURE);
         return ();
     }
     cell origin_data = in_msg_body~load_ref();

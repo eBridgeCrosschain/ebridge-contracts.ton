@@ -2,9 +2,7 @@ import {Address, toNano, ContractProvider, beginCell} from "@ton/core";
 import {compile, NetworkProvider} from "@ton/blueprint";
 import aelf from "aelf-sdk";
 import {Buffer} from "buffer";
-import {Bridge} from "../wrappers/Bridge";
-import {Op} from "../wrappers/constants";
-import {MultiSig, UpdateRequest} from "../wrappers/MultiSign";
+import {MultiSig, UpdateRequest} from "../../wrappers/MultiSign";
 
 const bridgeAddress = Address.parseFriendly("kQDS511tzowt2x1xyIDgpglhaz6wG9uVP2t4BixFTViYQoM_");
 const multiSignAddress = Address.parseFriendly("EQBlPNgBLZfD1HhZotqHjhrJVBoIbxCqV2CUvn-U5Qq4CL6P");

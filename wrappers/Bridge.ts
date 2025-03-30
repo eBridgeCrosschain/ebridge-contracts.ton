@@ -122,7 +122,7 @@ export class Bridge implements Contract {
             .endCell();
     }
 
-    static packSetPoolOrSwapBody(op: number, config: JettonContractConfig[]): Cell {
+    static packSetPoolBody(op: number, config: JettonContractConfig[]): Cell {
         let queryId = Bridge.getQueryId();
         const root = beginCell()
             .storeUint(op, 32) // op
@@ -226,19 +226,19 @@ export class Bridge implements Contract {
         return payload;
     }
 
-    static packReceiptOk(targetChainId: number, owner: Address, jetton: Address, targetAddress: Buffer, amount: number | bigint, receiptId: Cell): Cell {
+    static packReceiptOk(index:number,targetChainId: number, owner: Address, jetton: Address, targetAddress: Buffer, amount: number | bigint, receiptId: Cell): Cell {
         let queryId = Bridge.getQueryId();
         return beginCell()
             .storeUint(Op.bridge.receipt_ok, 32)
-            .storeUint(queryId, 64)
             .storeUint(targetChainId, 32)
+            .storeUint(index, 64)
+            .storeCoins(amount)
+            .storeRef(receiptId)
             .storeRef(beginCell()
                 .storeAddress(owner)
                 .storeAddress(jetton)
                 .storeBuffer(targetAddress, 32)
                 .endCell())
-            .storeCoins(amount)
-            .storeRef(receiptId)
             .endCell();
     }
 
@@ -260,6 +260,15 @@ export class Bridge implements Contract {
             .endCell();
     }
 
+    static packOwnerUpgradeBody(newOwner: Address): Cell {
+        let queryId = Bridge.getQueryId();
+        return beginCell()
+            .storeUint(Op.bridge.init_owner_upgrade, 32)
+            .storeUint(queryId, 64)
+            .storeAddress(newOwner)
+            .endCell();
+    }
+
     static packFinalizeUpgradeBody(): Cell {
         let queryId = Bridge.getQueryId();
         return beginCell()
@@ -272,6 +281,14 @@ export class Bridge implements Contract {
         let queryId = Bridge.getQueryId();
         return beginCell()
             .storeUint(Op.bridge.cancel_code_upgrade, 32)
+            .storeUint(queryId, 64)
+            .endCell();
+    }
+
+    static packCancelAdminUpgradeBody(): Cell {
+        let queryId = Bridge.getQueryId();
+        return beginCell()
+            .storeUint(Op.bridge.cancel_admin_upgrade, 32)
             .storeUint(queryId, 64)
             .endCell();
     }
@@ -296,7 +313,7 @@ export class Bridge implements Contract {
             .storeRef(beginCell()
                 .storeUint(1, 1)
                 .endCell())
-            .storeUint(1,256)
+            .storeUint(1, 256)
             .storeRef(swapId)
             .endCell();
         return beginCell()
@@ -316,22 +333,25 @@ export class Bridge implements Contract {
             )
             .endCell()
     }
-    
-    static PackSetReceiptAccountBody(receiptAccountCode: Cell): Cell {
-        let queryId = Bridge.getQueryId();
+
+    static packResendToOracle(
+        jetton: Address,
+        messageId: bigint,
+        receiptHash: bigint,
+        timestamp: number,
+        exitCode: number,
+        timeSpan: number) {
         return beginCell()
-            .storeUint(Op.bridge.set_bridge_receipt_account_code, 32)
-            .storeUint(queryId, 64)
-            .storeRef(receiptAccountCode)
+            .storeUint(Op.bridge.resend_to_oracle, 32)
+            .storeAddress(jetton)
+            .storeRef(beginCell()
+                .storeInt(messageId,128)
+                .storeUint(receiptHash, 256)
+                .storeUint(timestamp, 64)
+                .endCell())
+            .storeUint(exitCode, 32)
+            .storeUint(timeSpan, 64)
             .endCell();
-    }
-    
-    async sendSetReceiptAccount(provider: ContractProvider, via: Sender, value: bigint, receiptAccountCode: Cell) {
-        await provider.internal(via, {
-            value: value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: Bridge.PackSetReceiptAccountBody(receiptAccountCode)
-        });
     }
 
     // send
@@ -384,20 +404,7 @@ export class Bridge implements Contract {
         await provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: Bridge.packSetPoolOrSwapBody(Op.bridge.set_bridge_pool, configs)
-        });
-    }
-
-    async sendSetBridgeSwap(
-        provider: ContractProvider,
-        via: Sender,
-        value: bigint,
-        configs: JettonContractConfig[],
-    ) {
-        await provider.internal(via, {
-            value: value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: Bridge.packSetPoolOrSwapBody(Op.bridge.set_bridge_swap, configs)
+            body: Bridge.packSetPoolBody(Op.bridge.set_bridge_pool, configs)
         });
     }
 
@@ -452,24 +459,6 @@ export class Bridge implements Contract {
         });
     }
 
-    async sendGetterBridgeSwap(
-        provider: ContractProvider,
-        via: Sender,
-        value: bigint,
-        jetton:Address
-    ) {
-        let queryId = Bridge.getQueryId();
-        await provider.internal(via, {
-            value: value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-                .storeUint(Op.bridge.getter_bridge_swap_address, 32)
-                .storeUint(queryId, 64)
-                .storeAddress(jetton)
-                .endCell()
-        });
-    }
-
     async sendReceiptOk(
         provider: ContractProvider,
         via: Sender,
@@ -479,12 +468,13 @@ export class Bridge implements Contract {
         jetton: Address,
         targetAddress: Buffer,
         amount: number | bigint,
-        receiptId: Cell
+        receiptId: Cell,
+        index: number
     ) {
         await provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: Bridge.packReceiptOk(targetChainId, owner, jetton, targetAddress, amount, receiptId)
+            body: Bridge.packReceiptOk(index,targetChainId, owner, jetton, targetAddress, amount, receiptId)
         });
     }
 
@@ -500,7 +490,7 @@ export class Bridge implements Contract {
             body: Bridge.packInitCodeUpgradeBody(code)
         });
     }
-    
+
     async sendAdminUpgrade(
         provider: ContractProvider,
         via: Sender,
@@ -513,12 +503,25 @@ export class Bridge implements Contract {
             body: Bridge.packAdminUpgradeBody(newAdmin)
         });
     }
-    
+
+    async sendOwnerUpgrade(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        newOwner: Address
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packAdminUpgradeBody(newOwner)
+        });
+    }
+
     async sendCancelUpgrade(
         provider: ContractProvider,
         via: Sender,
         value: bigint
-    ){
+    ) {
         await provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
@@ -559,13 +562,31 @@ export class Bridge implements Contract {
         });
 
     }
-    
+
+    async sendResendToOracle(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        jetton: Address,
+        messageId: bigint,
+        receiptHash: bigint,
+        timestamp: number,
+        exitCode: number,
+        timeSpan: number
+    ) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Bridge.packResendToOracle(jetton, messageId, receiptHash, timestamp, exitCode, timeSpan)
+        });
+    }
+
     async sendRecordReceiptHash(
         provider: ContractProvider,
         via: Sender,
         value: bigint,
         timestamp: number,
-        hash:bigint
+        hash: bigint
     ) {
         await provider.internal(via, {
             value: value,
@@ -573,39 +594,7 @@ export class Bridge implements Contract {
             body: beginCell()
                 .storeUint(1, 32)
                 .storeUint(timestamp, 64)
-                .storeUint(hash,256)
-                .endCell()
-        });
-    }
-
-    async sendCleanReceiptHash(
-        provider: ContractProvider,
-        via: Sender,
-        value: bigint,
-        timestamp: number,
-        hash:bigint
-    ) {
-        await provider.internal(via, {
-            value: value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-                .storeUint(2, 32)
-                .storeUint(timestamp, 64)
-                .storeUint(hash,256)
-                .endCell()
-        });
-    }
-
-    async sendCleanReceiptHash1(
-        provider: ContractProvider,
-        via: Sender,
-        value: bigint
-    ) {
-        await provider.internal(via, {
-            value: value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-                .storeUint(1, 32)
+                .storeUint(hash, 256)
                 .endCell()
         });
     }
@@ -621,7 +610,7 @@ export class Bridge implements Contract {
         await provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: Bridge.PackCreateNativeReceiptBody(targetChainId, targetAddress,amount)
+            body: Bridge.PackCreateNativeReceiptBody(targetChainId, targetAddress, amount)
         });
     }
 
@@ -643,14 +632,6 @@ export class Bridge implements Contract {
             type: 'slice',
             cell: beginCell().storeAddress(address).endCell()
 
-        }]);
-        return result.stack.readAddress();
-    }
-
-    async getBridgeSwap(provider: ContractProvider, address: Address) {
-        const result = await provider.get('get_bridge_swap_address', [{
-            type: 'slice',
-            cell: beginCell().storeAddress(address).endCell()
         }]);
         return result.stack.readAddress();
     }
@@ -722,36 +703,37 @@ export class Bridge implements Contract {
         const res = await provider.get('get_estimate_create_native_fee', []);
         return res.stack.readBigNumber();
     }
+
     async getEstimateReleaseTransferFee(provider: ContractProvider) {
         const res = await provider.get('get_estimate_release_native_fee', []);
         return res.stack.readBigNumber();
     }
-    
-    
-    async get_receipt_hash_exist(provider: ContractProvider, hash: bigint,timestamp: number) {
+
+
+    async get_receipt_hash_exist(provider: ContractProvider, hash: bigint, timestamp: number) {
         const result = await provider.get('is_receipt_hash_exist', [{
             type: 'int',
             value: BigInt(hash)
-        },{
+        }, {
             type: 'int',
             value: BigInt(timestamp)
         }]);
         return result.stack.readBoolean();
     }
-    
+
     async get_receipt_hash_status(provider: ContractProvider) {
-        const {stack}  = await provider.get('get_receipt_hash_min', []);
+        const {stack} = await provider.get('get_receipt_hash_min', []);
         return {
-            dic:stack.readBuffer()
+            dic: stack.readBuffer()
         }
     }
-    
-    
+
+
     async get_message_id_receipt_dic(provider: ContractProvider) {
         const res = await provider.get('get_message_id_receipt_dic', []);
         return res.stack.readCellOpt();
     }
-    
+
     async get_liquidity_account_fee(provider: ContractProvider) {
         const res = await provider.get('get_liquidity_account_fee', []);
         return res.stack.readBigNumber();

@@ -1,14 +1,9 @@
 import {NetworkProvider} from "@ton/blueprint";
-import {Bridge} from "../wrappers/Bridge";
 import {Address, beginCell, Cell, toNano} from '@ton/core';
-import {randomAddress} from "@ton/test-utils";
-import {JettonMinter} from "../wrappers/JettonMinter";
-import {JettonWallet} from "../wrappers/JettonWallet";
-import {Buffer} from "buffer";
-import bs58 from "bs58";
 import aelf from "aelf-sdk";
-import {BridgePool} from "../wrappers/BridgePool";
-import {BridgePoolLiquidityAccount} from "../wrappers/BridgePoolLiquidityAccount";
+import {Bridge} from "../../wrappers/Bridge";
+import {BridgePool} from "../../wrappers/BridgePool";
+import {BridgePoolLiquidityAccount} from "../../wrappers/BridgePoolLiquidityAccount";
 export async function run(provider: NetworkProvider, args: string[]) {
 
     const address = "kQDS511tzowt2x1xyIDgpglhaz6wG9uVP2t4BixFTViYQoM_";

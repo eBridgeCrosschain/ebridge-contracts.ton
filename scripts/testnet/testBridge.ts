@@ -1,14 +1,13 @@
 import {compile, NetworkProvider} from "@ton/blueprint";
-import {Bridge} from "../wrappers/Bridge";
+import {Bridge} from "../../wrappers/Bridge";
 import {Address, beginCell, Cell, Dictionary, toNano} from '@ton/core';
 import {randomAddress} from "@ton/test-utils";
 import bs58 from "bs58";
 import {Buffer} from "buffer";
 import aelf from "aelf-sdk";
-import {JettonMinter} from "../wrappers/JettonMinter";
-import {JettonWallet} from "../wrappers/JettonWallet";
-import {BridgePool} from "../wrappers/BridgePool";
-import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
+import {JettonMinter} from "../../wrappers/JettonMinter";
+import {JettonWallet} from "../../wrappers/JettonWallet";
+import {BridgePool} from "../../wrappers/BridgePool";
 
 
 const bridgeAddress = Address.parseFriendly("kQDS511tzowt2x1xyIDgpglhaz6wG9uVP2t4BixFTViYQoM_");

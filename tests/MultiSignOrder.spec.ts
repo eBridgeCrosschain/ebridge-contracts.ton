@@ -8,7 +8,6 @@ import {Buffer} from "buffer";
 import {JettonMinter} from "../wrappers/JettonMinter";
 import {JettonWallet} from "../wrappers/JettonWallet";
 import {BridgePool} from "../wrappers/BridgePool";
-import {BridgeReceiptAccount} from "../wrappers/BridgeReceiptAccount";
 import aelf from "aelf-sdk";
 import {Action, MultiSig} from "../wrappers/MultiSign";
 import {Errors, Op} from "../wrappers/constants";

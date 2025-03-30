@@ -1,8 +1,7 @@
 import {Address, beginCell, Cell, Dictionary, toNano} from '@ton/core';
-import {Bridge} from '../wrappers/Bridge';
 import {compile, NetworkProvider} from '@ton/blueprint';
-import {JettonMinter} from "../wrappers/JettonMinter";
 import {Buffer} from "buffer";
+import {JettonMinter} from "../../wrappers/JettonMinter";
 
 export async function run(provider: NetworkProvider) {
     console.log(provider.sender().address);

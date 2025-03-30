@@ -1,9 +1,9 @@
 import {NetworkProvider} from "@ton/blueprint";
-import {Bridge} from "../wrappers/Bridge";
+import {Bridge} from "../../wrappers/Bridge";
 import {Address, beginCell, Cell, toNano} from '@ton/core';
 import {randomAddress} from "@ton/test-utils";
-import {JettonMinter} from "../wrappers/JettonMinter";
-import {JettonWallet} from "../wrappers/JettonWallet";
+import {JettonMinter} from "../../wrappers/JettonMinter";
+import {JettonWallet} from "../../wrappers/JettonWallet";
 import {Buffer} from "buffer";
 import bs58 from "bs58";
 import aelf from "aelf-sdk";

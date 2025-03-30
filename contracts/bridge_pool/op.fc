@@ -11,7 +11,6 @@ const add_native_token_liquidity = "add_native_token_liquidity"c;
 const remove_liquidity = "remove_liquidity"c;
 const resend_to_oracle = "resend_to_oracle"c;
 const receipt_ok = "receipt_ok"c;
-const swap_ok = "swap_token_ok"c;
 ;; bridge liquidity account
 const provider_liquidity = "provider_liquidity"c;
 

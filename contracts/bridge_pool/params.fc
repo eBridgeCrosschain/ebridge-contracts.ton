@@ -17,7 +17,7 @@ const ADMIN_UPGRADED = "ADMIN_UPGRADED"c;
 const OWNER_UPGRADED = "OWNER_UPGRADED"c;
 
 const remove_liquidity_ok = "remove_liquidity_ok"c;
-const RECORD_SWAP_FAILED = "RECORD_SWAP_FAILED"c;
+const swap_ok = "swap_token_ok"c;
 
 const SWAP_CREATED = "SWAP_CREATED"c;
 
