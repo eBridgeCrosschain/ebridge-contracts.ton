@@ -1,0 +1,31 @@
+#include "storage.fc";
+#include "op.fc";
+#include "errors.fc";
+#include "../gas.fc";
+#include "../common/message.fc";
+#include "../common/stdlib.fc";
+
+() handle_user_messages(int op, int query_id, int my_balance, int msg_value, slice in_msg_body) impure inline {
+    if (op == account_remove_liquidity) {
+        int fee = 0;
+        if(equal_slices(storage::jetton_address,HOLE_ADDRESS)){
+            fee = calculate_remove_native_liquidity_fee();
+        } else {
+            fee = calculate_remove_liquidity_fee();
+        }
+        throw_unless(NOT_ENOUGH_TONS, msg_value > fee);
+        var liquidity = in_msg_body~load_coins();
+        throw_unless(LIQUIDITY_NOT_ENOUGH, storage::liquidity >= liquidity);
+        storage::liquidity -= liquidity;
+        var body = begin_cell()
+            .store_uint(remove_liquidity, 32)
+            .store_uint(query_id, 64)
+            .store_coins(liquidity)
+            .store_slice(storage::owner)
+            .end_cell();
+        send_simple_message(0, storage::bridge_pool_address, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+        save_storage();
+        return ();
+    }
+    throw(WRONG_OP);
+}
