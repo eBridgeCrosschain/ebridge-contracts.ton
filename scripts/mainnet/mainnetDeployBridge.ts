@@ -31,7 +31,7 @@ export async function run(provider: NetworkProvider) {
         receipt_record_dic: receiptRecordDic
     }, await compile('Bridge')));
 
-    await bridge.sendDeploy(provider.sender(), toNano('10'));
+    await bridge.sendDeploy(provider.sender(), toNano('0.1'));
 
     await provider.waitForDeploy(bridge.address);
 

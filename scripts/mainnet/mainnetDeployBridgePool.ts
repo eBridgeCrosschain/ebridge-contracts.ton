@@ -6,7 +6,7 @@ import {BridgePool} from "../../wrappers/BridgePool";
 
 export async function run(provider: NetworkProvider) {
     console.log(provider.sender().address);
-    const bridgeAddress = Address.parseFriendly("");
+    const bridgeAddress = Address.parseFriendly("EQBnIw0A17M18zeEHEekgpL32e6yu9cx57PnC990pByv2qJN");
     const usdt = Address.parseFriendly("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs");
     let dic = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
     let tempUpgrade = beginCell()
@@ -17,7 +17,6 @@ export async function run(provider: NetworkProvider) {
         .storeRef(beginCell().endCell())
         .storeAddress(null)
         .endCell();
-    let bridgeReceiptAccountCode = await compile('BridgeReceiptAccount');
     let receipt_dic = Dictionary.empty(Dictionary.Keys.Uint(8), Dictionary.Values.Cell());
     let receiptRecordDic = Dictionary.empty(Dictionary.Keys.BigInt(16), Dictionary.Values.Cell());
     const bridgePool = provider.open(BridgePool.createFromConfig({
@@ -34,7 +33,7 @@ export async function run(provider: NetworkProvider) {
         receipt_owner_dict: receiptRecordDic
     }, await compile('BridgePool')));
 
-    await bridgePool.sendDeploy(provider.sender(), toNano('0.05'));
+    await bridgePool.sendDeploy(provider.sender(), toNano('0.1'));
 
     await provider.waitForDeploy(bridgePool.address);
 

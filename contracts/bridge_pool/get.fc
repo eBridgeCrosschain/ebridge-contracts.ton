@@ -1,11 +1,3 @@
-#include "../common/stdlib.fc";
-#include "../common/dic.fc";
-#include "../gas.fc";
-#include "storage.fc";
-#include "bridge_pool_liquidity_account-utils.fc";
-#include "limiter.fc";
-#include "params.fc";
-
 
 (int) get_pool_liquidity() method_id {
     load_storage();

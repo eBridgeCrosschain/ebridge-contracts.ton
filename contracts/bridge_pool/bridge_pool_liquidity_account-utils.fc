@@ -1,5 +1,3 @@
-#include "params.fc";
-#include "../common/stdlib.fc";
 
 cell pack_bridge_pool_liquidity_account_data(slice user_address, slice pool_address, slice jetton_address) inline {
     return begin_cell()

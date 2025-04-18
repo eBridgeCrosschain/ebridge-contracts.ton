@@ -1,10 +1,4 @@
-#include "../common/utils.fc";
-#include "../common/message.fc";
-#include "../common/stdlib.fc";
-#include "op.fc";
-#include "storage.fc";
-#include "errors.fc";
-#include "params.fc";
+
 
 ;; messages from owner
 () handle_owner_messages(int op, int query_id, int my_balance, int msg_value, slice in_msg_body) impure inline {

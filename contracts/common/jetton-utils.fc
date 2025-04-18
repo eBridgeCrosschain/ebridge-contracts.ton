@@ -1,4 +1,4 @@
-#include "../common/stdlib.fc";
+#include "stdlib.fc";
 
 (builder) create_with_payload_transfer_body(int query_id, int jetton_amount, slice to, slice response_address, int fwd_amount, cell payload) inline {
     return begin_cell()

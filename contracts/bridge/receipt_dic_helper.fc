@@ -1,8 +1,4 @@
-#include "storage.fc";
-#include "../common/dic.fc";
-#include "../common/stdlib.fc";
-#include "../common/utils.fc";
-#include "../common/message.fc";
+
 
 (int) is_receipt_exist(slice key_slice) inline {
     (slice value, int found) = dict_get?(storage::receipt_record_dic_bucket, RECEIPT_KEY_LENGTH, key_slice);

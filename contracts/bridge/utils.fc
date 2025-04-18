@@ -1,4 +1,3 @@
-#include "../common/stdlib.fc";
 
 (int) create_key(int target_chain_id, slice jetton_address) impure inline_ref {
     (int wc, int jetton_address_hash) = parse_std_addr(jetton_address);

@@ -1,9 +1,3 @@
-#include "../common/dic.fc";
-#include "../common/utils.fc";
-#include "op.fc";
-#include "storage.fc";
-#include "utils.fc";
-#include "../common/stdlib.fc";
 
 ;; handle onchain 'get' calls
 (int) handle_getter_messages(int op, int query_id, slice sender_address, slice in_msg_body) impure inline {

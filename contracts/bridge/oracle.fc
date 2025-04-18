@@ -1,13 +1,5 @@
-#include "../common/message.fc";
-#include "../common/dic.fc";
-#include "../common/utils.fc";
-#include "storage.fc";
-#include "op.fc";
-#include "errors.fc";
-#include "params.fc";
-#include "receipt_dic_helper.fc";
-#include "../gas.fc";
-#include "../common/stdlib.fc";
+#include "../mock_jetton/stdlib.func";
+
 
 (int) calculate_leaf_hash(int receipt_index, int key_hash, int jetton_amount, slice target_address) impure inline {
     int receipt_index_hash = string_hash(begin_cell().store_uint(receipt_index, 256).end_cell().begin_parse());

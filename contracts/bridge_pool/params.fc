@@ -1,4 +1,5 @@
 const WORKCHAIN = 0;
+const CHAINID = 1100;
 
 const RECEIPT = 0;
 const SWAP = 1;

@@ -4,7 +4,7 @@ import {Bridge} from "../../wrappers/Bridge";
 
 export async function run(provider: NetworkProvider) {
     console.log(provider.sender().address);
-    const oracle_address = "EQBCOuvczf29HIGNxrJdsmTKIabHQ1j4dW2ojlYkcru3IOYy";
+    const oracle_address = "EQChOx2UsaWRVb8k9NAARNKaNqHVC-uQ98Ff3Uy-qDgqBtMg";
     let poolContractDicDefault = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Address());
     let receiptRecordDic = Dictionary.empty(Dictionary.Keys.BigInt(16), Dictionary.Values.Cell());
     let jettonWhitelistDicDefault = Dictionary.empty(Dictionary.Keys.BigUint(256), Dictionary.Values.Cell());
@@ -31,7 +31,7 @@ export async function run(provider: NetworkProvider) {
         receipt_record_dic: receiptRecordDic
     }, await compile('Bridge')));
 
-    await bridge.sendDeploy(provider.sender(), toNano('1'));
+    await bridge.sendDeploy(provider.sender(), toNano('0.1'));
 
     await provider.waitForDeploy(bridge.address);
 

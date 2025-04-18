@@ -33,16 +33,6 @@ builder store_body_header(builder b, int op, int query_id) inline {
           .store_uint(query_id, 64);
 }
 
-() send_empty_message(int amount, slice to, int mode) impure inline_ref {
-    cell msg = begin_cell()
-        .store_msg_flags(BOUNCEABLE)
-        .store_slice(to)
-        .store_coins(amount)
-        .store_msgbody_prefix_slice()
-    .end_cell();
-    send_raw_message(msg, mode);
-}
-
 () send_simple_message(int amount, slice to, cell body, int mode) impure inline_ref {
     cell msg = begin_cell()
         .store_msg_flags(BOUNCEABLE)

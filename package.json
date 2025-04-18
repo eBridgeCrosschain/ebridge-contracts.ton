@@ -27,6 +27,10 @@
         "aelf-sdk": "^3.4.15",
         "axios": "^1.7.7",
         "bs58": "^6.0.0",
-        "follow-redirects": "^1.15.9"
+        "follow-redirects": "^1.15.9",
+        "ton-compiler": "^2.3.0"
+    },
+    "overrides": {
+        "@ton-community/func-js-bin": "0.4.6-wasmfix.0"
     }
 }

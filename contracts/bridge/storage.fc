@@ -1,4 +1,3 @@
-#include "../common/stdlib.fc";
 ;; `bridge_pool_address_dic` is HashMap with `jetton master address` slice key, value is `bridge_pool_address:slice`
 global cell storage::bridge_pool_address_dic;
 ;; ·jetton_white_list_dic· is HashMap with `jetton master address,target_chain_id` int key,value is `is_support:int`
@@ -37,9 +36,6 @@ global cell storage::receipt_record_dic_bucket;
     storage::pause_controller = ds_1_1_slice~load_msg_addr();
     storage::oracle_address = ds_1_1_slice~load_msg_addr();
     storage::temp_upgrade = ds~load_ref();
-    ;; cell ds_2 = ds~load_ref();
-    ;; slice ds_2_slice = ds_2.begin_parse();
-    ;; storage::receipt_record_dic_bucket = ds_2_slice~load_dict();
 }
 
 () save_storage() impure inline {

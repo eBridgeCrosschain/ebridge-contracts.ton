@@ -1,8 +1,8 @@
-const KEY_LENGTH = 8 * 32 + 8 + 3; ;;account_id + wc
+const KEY_LENGTH = 267; ;;account_id + wc 8 * 32 + 8 + 3
 const CHAIN_ID_KEY_LENGTH = 32;
-const DEFAULT_KEY_LENGTH = 8 * 32;
+const DEFAULT_KEY_LENGTH = 256;
 const BUCKET_KEY_LENGTH = 32;
-const RECEIPT_KEY_LENGTH = 64 + 256;
+const RECEIPT_KEY_LENGTH = 320;
 
 (slice, int) dict_get?(cell dict, int key_len, slice index) asm(index dict key_len) "DICTGET" "NULLSWAPIFNOT";
 (slice, slice, int) dict_get_min?(cell dict, int key_len) asm (-> 1 0 2) "DICTMIN" "NULLSWAPIFNOT2";

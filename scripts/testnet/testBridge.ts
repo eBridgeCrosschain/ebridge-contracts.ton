@@ -71,7 +71,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //         bridge_address: buffer
     //     }]);
 
-    let target = await bridge.getTargetContractAddress(chainId);
+    // let target = await bridge.getTargetContractAddress(chainId);
     //
     // console.log(bs58.encode(target));
     //
@@ -135,8 +135,8 @@ export async function run(provider: NetworkProvider, args: string[]) {
     // let exist = await bridge.get_receipt_hash_exist(3402906703721786632110540633291984486971845989414150205649244399666043415252n);
     // console.log(exist);
     //
-    // let res = await bridge.get_receipt_hash_status();
-    // console.log(res.dic.toString('hex'));
+    let res = await bridge.get_receipt_hash_status();
+    console.log(res.dic.toString('hex'));
     //
     // let con = await bridge.getTargetContractAddress(1);
     // let a = aelf.utils.base58.encode(con);

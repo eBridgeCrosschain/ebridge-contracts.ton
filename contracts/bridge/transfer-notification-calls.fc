@@ -1,15 +1,4 @@
-#include "../common/jetton-utils.fc";
-#include "../common/stdlib.fc";
-#include "../common/message.fc";
-#include "../common/dic.fc";
-#include "../common/utils.fc";
-#include "errors.fc";
-#include "storage.fc";
-#include "op.fc";
-#include "params.fc";
-#include "oracle.fc";
-#include "../gas.fc";
-#include "../bridge_pool/op.fc";
+
 
 () return_jetton_to_user(int query_id, int jetton_amount, slice transfer_to, slice response, slice message_to, int exit_code) impure inline_ref {
     builder body = create_simple_transfer_body(query_id, jetton_amount, transfer_to, response, 0);

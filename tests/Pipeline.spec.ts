@@ -1630,7 +1630,7 @@ describe('Pipeline', () => {
             let minutes = info.loadUint(32);
             expect(op).toBe(Op.bridge.resend);
             expect(messageId).toBe(11111);
-            expect(minutes).toBe(20)
+            expect(minutes).toBe(60)
         }
     });
     it('swap failed expired', async () => {
@@ -2415,7 +2415,7 @@ describe('Pipeline', () => {
     });
 
     it('decode send to oracle message', async () => {
-        let body = "te6cckECBgEAAUwAA1sAAAAAAAAAUwAdepiAGlzrrbnRhbtjrjkQHBTBLC1n1gN7cqftbwDFiKmrEwhQBAECAcYDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCmLS0c32SE1X0eIDgAnWYMoYqPWFLs+NeW6eGHKV4vQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEXAAEDAkgAHXqYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARFwAEBQCGAgA7GZ8UsWmJ/THf6UQzoc2aeiRAOGGGcSW7YmtMkzH+HtJOgGAS9EbYtDvoSIPlV+LR7pHyNPkwROec/ts6r0TxAABAlfa/uRxI7mZ+L8lx472Z5Qg7Pp3kMA/olIVgnJVMsRoAQ4AKRSlvsm2g2fiNQ3euMtFU+bgo9uhjq0Gqk6zmSnK7/pArtk06";
+        let body = "te6cckECBgEAAUwAA1sAAAAAAAAAEQAcepiADORhoBr2Zr5m8IOI9JBSXvs91ld65jz2fOF77pSDlftQBAECAcYDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKv1DswY9wocE3iBWq2Vu44CjEm7zIoPAPOEpAZp5XmYEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGtsAEDAkgAHHqYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABrbAEBQCGAgCvY6gTOH1zWmGaBaff/dNOdJh0k9PSQMzAiVuTX1dPRfCbEH/D/BjfzK1MMKtcG/af8rNstPRmsCMylS6U+6JwAABAI1iNkkdFjQ/AmPSkeUMN+G0GJoI6AYvwEhCwGBFoh6oAQ4AWInUylqBJQs4z7SJyZR1usrLYcUS+sgUWKN/ZuGxDv9Bwpmj4";
         let c = Cell.fromBase64(body);
         let sli = c.asSlice();
         let op = sli.loadUint(32);
@@ -2497,7 +2497,7 @@ describe('Pipeline', () => {
 
     });
     it('decode resend to oracle message', async () => {
-        let body = "te6cckEBAgEAZwABYx9VvS6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL4AAAAAAAFRgQAQBgR9hPurPHLj2yb/gAbIPEFAS2IdQeDxBGq4Twq99s2HvZlOcL9D4z+SK4qKnoE2eq7kRM/Q==";
+        let body = "te6cckEBAgEAbwABYx9VvS6ACkUpb7JtoNn4jUN3rjLRVPm4KPboY6tBqpOs5kpyu/6AAAALoAAAAAAAFRgQAQBwuQ1GoCzSeywTkZezctO2a4LP9+nsT9US8OpvGdr+dvK+Ody6H0jswn6ljamdH0BhAAAAAGf56VAudiBc";
         let c = Cell.fromBase64(body);
         let sli = c.asSlice();
         let op = sli.loadUint(32);

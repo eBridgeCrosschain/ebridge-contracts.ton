@@ -11,8 +11,8 @@ import {BridgePoolLiquidityAccount} from "../../wrappers/BridgePoolLiquidityAcco
 import {JettonMinter} from "../../wrappers/JettonMinter";
 
 
-const bridgeAddress = Address.parseFriendly("");
-const bridgePoolAddress = Address.parseFriendly("");
+const bridgeAddress = Address.parseFriendly("EQBnIw0A17M18zeEHEekgpL32e6yu9cx57PnC990pByv2qJN");
+const bridgePoolAddress = Address.parseFriendly("EQBfBX543e7-MXC9iYoq1td_DsMufSqbfHN5L-biMTJqwf-e");
 const usdtAddress = Address.parseFriendly("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs");
 
 const chainIdSide = 1866392;
@@ -61,7 +61,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     
     // 3. set target contract
     // await setTargetContract(bridge, admin);
-
+    //
     // let targetContractAddress = await bridge.getTargetContractAddress(chainIdMain);
     // console.log(aelf.utils.base58.encode(targetContractAddress));
     // targetContractAddress = await bridge.getTargetContractAddress(chainIdSide);
@@ -176,13 +176,13 @@ export async function run(provider: NetworkProvider, args: string[]) {
 
     // // remove jetton liquidity
     // let amount_remove_liquidity = 100000000n;
-    let fee = toNano('0.1');
-    const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(admin.address!);
-    let usr_liq = provider.open(BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
+    // let fee = toNano('0.1');
+    // const userLiquidityAddress = await bridgePool.getPoolLiquidityAccountAddress(admin.address!);
+    // let usr_liq = provider.open(BridgePoolLiquidityAccount.createFromAddress(userLiquidityAddress));
     // let liq = await usr_liq.getLiquidity();
     // console.log(liq);
-    let amount_remove_liquidity = 100000000n;
-    await usr_liq.sendRemoveLiquidity(admin, fee, amount_remove_liquidity);
+    // let amount_remove_liquidity = 100000000n;
+    // await usr_liq.sendRemoveLiquidity(admin, fee, amount_remove_liquidity);
 
 
     // const liquidity_account = await bridgePool.getPoolLiquidityAccountAddress(provider.sender().address!);
@@ -230,16 +230,18 @@ export async function run(provider: NetworkProvider, args: string[]) {
     //         dailyLimit: BigInt(15000000)
     //     }]);
 
+    let oracle = await bridge.getOracleAddress();
+    console.log(oracle);
 }
 
 async function addJettonWhitelist(bridge: OpenedContract<Bridge>, admin: Sender, chainId: number) {
     await bridge.sendAddJetton(
         admin,
-        toNano('0.01'), [usdtAddress.address], chainId);
+        toNano('0.005'), [usdtAddress.address], chainId);
 }
 
 async function setBridgePool(bridge: OpenedContract<Bridge>, admin: Sender) {
-    await bridge.sendSetBridgePool(admin, toNano('0.01'), [{
+    await bridge.sendSetBridgePool(admin, toNano('0.005'), [{
         jetton_address: usdtAddress.address,
         contract_address: bridgePoolAddress.address
     }]);
@@ -248,7 +250,7 @@ async function setBridgePool(bridge: OpenedContract<Bridge>, admin: Sender) {
 async function setTargetContract(bridge: OpenedContract<Bridge>, admin: Sender) {
     const sideContract = aelf.utils.base58.decode(targetContractSide);
     const mainContract = aelf.utils.base58.decode(targetContractMain);
-    await bridge.sendTargetContract(admin, toNano('0.01'), [
+    await bridge.sendTargetContract(admin, toNano('0.005'), [
         {
             chain_id: chainIdSide,
             bridge_address: Buffer.from(sideContract)
@@ -261,7 +263,7 @@ async function setTargetContract(bridge: OpenedContract<Bridge>, admin: Sender) 
 
 async function createSwap(bridgePool: OpenedContract<BridgePool>, admin: Sender) {
     await bridgePool.sendCreateSwap(
-        admin, toNano('0.01'), [{
+        admin, toNano('0.009'), [{
             fromChainId: chainIdSide,
             originShare: 1,
             targetShare: 1
@@ -277,12 +279,8 @@ async function setBridge(bridgePool: OpenedContract<BridgePool>, admin: Sender, 
     await bridgePool.sendSetBridge(admin, toNano('0.01'), bridgeAddress);
 }
 
-async function setBridgePoolSwap(bridgePool: OpenedContract<BridgePool>, admin: Sender, swap: Address) {
-    await bridgePool.sendSetBridgeSwap(admin, toNano('0.004'), swap);
-}
-
 async function setJetton(bridgePool: OpenedContract<BridgePool>, admin: Sender, bridgePoolJettonWallet: Address) {
-    await bridgePool.sendSetJetton(admin, toNano('0.01'), bridgePoolJettonWallet);
+    await bridgePool.sendSetJetton(admin, toNano('0.005'), bridgePoolJettonWallet);
 }
 
 async function setDailyLimit(bridgePool: OpenedContract<BridgePool>, admin: Sender, dailyLimit: bigint, refreshTime: number) {
