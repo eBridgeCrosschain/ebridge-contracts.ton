@@ -1385,6 +1385,11 @@ describe('Pipeline', () => {
             to: bridge.address,
             success: true,
         });
+        expect(result.transactions).toHaveTransaction({
+            from: bridge.address,
+            to: bridge.address,
+            success: true,
+        });
 
         expect(result.transactions).toHaveTransaction({
             from: bridge.address,
@@ -1630,7 +1635,7 @@ describe('Pipeline', () => {
             let minutes = info.loadUint(32);
             expect(op).toBe(Op.bridge.resend);
             expect(messageId).toBe(11111);
-            expect(minutes).toBe(20)
+            expect(minutes).toBe(60)
         }
     });
     it('swap failed expired', async () => {
@@ -1711,9 +1716,9 @@ describe('Pipeline', () => {
             swapId,
             jettonMinter.address
         );
-        expect(result.transactions.length).toEqual(3);
+        expect(result.transactions.length).toEqual(4);
         expect(result.transactions).toHaveTransaction({
-            from: oracle.address,
+            from: bridge.address,
             to: bridge.address,
             success: false,
             exitCode: 109
@@ -1812,7 +1817,7 @@ describe('Pipeline', () => {
             to: oracle.address,
             success: true
         });
-        let body = result.transactions[2].outMessages.get(0)?.body;
+        let body = result.transactions[3].outMessages.get(0)?.body;
         let receiptHash = BigInt(0);
         if (body != undefined) {
             let info = body.asSlice();
@@ -1883,7 +1888,7 @@ describe('Pipeline', () => {
             swapId,
             jettonMinter.address
         );
-        expect(result1.transactions.length).toEqual(6);
+        expect(result1.transactions.length).toEqual(7);
         expect(result1.transactions).toHaveTransaction({
             from: oracle.address,
             to: bridge.address,

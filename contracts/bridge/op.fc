@@ -20,6 +20,8 @@ const resend_to_oracle = "resend_to_oracle"c;
 const receipt_ok = "receipt_ok"c;
 const release = "release"c;
 
+const record_receipt = "record_receipt"c;
+
 ;; admin
 const add_jetton_whitelist = "add_jetton_whitelist"c;
 const remove_jetton = "remove_jetton"c;

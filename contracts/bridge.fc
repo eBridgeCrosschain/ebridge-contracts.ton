@@ -61,6 +61,52 @@
         receive_from_oracle(in_msg_body);
         return ();
     }
+    if (op == record_receipt) {
+        throw_unless(UNAUTHORIZED, equal_slices(sender_address, my_address()));
+        int message_id = in_msg_body~load_int(128);
+        slice jetton = in_msg_body~load_msg_addr();
+        cell receipt = in_msg_body~load_ref();
+        slice receipt_info = receipt.begin_parse();
+        int timestamp = receipt_info~load_uint(64);
+        int leaf_hash = receipt_info~load_uint(256);
+        cell release_info = in_msg_body~load_ref();
+        slice release_info_slice = release_info.begin_parse();
+        cell swap_id_ref = release_info_slice~load_ref();
+        cell receipt_id_ref = release_info_slice~load_ref();
+        slice receipt_target_address = release_info_slice~load_msg_addr();
+        int receipt_amount = release_info_slice~load_coins();
+        (slice jetton_bridge_pool_address, int found_pool) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton);
+        if (~ found_pool) {
+            resend_receipt_info(message_id, TENMINUTESFORSECONDS * 2);
+            return ();
+        }
+        int success = record_receipt_buckets(timestamp, leaf_hash);
+        if (~ success) {
+            ;; exist leaf hash;
+            throw(ALREADY_RECORD);
+        }
+        save_storage();
+        cell release_info = begin_cell()
+            .store_uint(release, 32)
+            .store_int(message_id, 128)
+            .store_ref(swap_id_ref)
+            .store_ref(begin_cell()
+                .store_ref(receipt_id_ref)
+                .store_uint(leaf_hash, 256)
+                .store_uint(timestamp, 64)
+                .store_slice(receipt_target_address)
+                .end_cell())
+            .store_coins(receipt_amount)
+            .end_cell();
+        int fee = 0;
+        if (equal_slices(jetton, HOLE_ADDRESS)) {
+            fee = calculate_release_native_fee();
+        } else {
+            fee = calculate_release_jetton_fee();
+        }
+        send_simple_message(fee, jetton_bridge_pool_address, release_info, SEND_MODE_PAY_FEES_SEPARETELY | SEND_MODE_BOUNCE_TRANSACTION);
+        return ();
+    }
     if (op == receipt_ok) {
         int target_chain_id = 0;
         int jetton_amount = 0;
@@ -108,8 +154,8 @@
         throw_unless(UNAUTHORIZED, found_pool & equal_slices(sender_address, jetton_pool_address));
         (cell message_info, int exit_code, int time_span) = (in_msg_body~load_ref(), in_msg_body~load_uint(32), in_msg_body~load_uint(64));
         slice message = message_info.begin_parse();
-        (int message_id, int receipt_hash, int timestamp) = (message~load_int(128), message~load_uint(256),message~load_uint(64));
-        int success = clear_failed_receipt_hash(timestamp,receipt_hash);
+        (int message_id, int receipt_hash, int timestamp) = (message~load_int(128), message~load_uint(256), message~load_uint(64));
+        int success = clear_failed_receipt_hash(timestamp, receipt_hash);
         if (success) {
             resend_receipt_info(message_id, time_span);
         } else {
@@ -140,18 +186,18 @@
     }
     if (op == create_native_receipt) {
         if (storage::is_pause) {
-            send_message_nobounce(0,sender_address,begin_cell().store_uint(transfer_bounce_paused,32).end_cell(),SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            send_message_nobounce(0, sender_address, begin_cell().store_uint(transfer_bounce_paused, 32).end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             return ();
         }
         (int target_chain_id, slice target_address, int amount) = (in_msg_body~load_uint(32), in_msg_body~load_bits(256), in_msg_body~load_coins());
         (var jetton_pool_address, int found) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, HOLE_ADDRESS);
-        if(~ found){
-            send_message_nobounce(0,sender_address,begin_cell().store_uint(transfer_bounce_token_pool_not_exist,32).end_cell(),SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+        if (~ found) {
+            send_message_nobounce(0, sender_address, begin_cell().store_uint(transfer_bounce_token_pool_not_exist, 32).end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             return ();
         }
         int amount_enough = msg_value >= calculate_create_native_receipt_process_fee() + amount;
-        if (~ amount_enough){
-            send_message_nobounce(0,sender_address,begin_cell().store_uint(INSUFFICIENT_TONS,32).end_cell(),SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+        if (~ amount_enough) {
+            send_message_nobounce(0, sender_address, begin_cell().store_uint(INSUFFICIENT_TONS, 32).end_cell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             return ();
         }
         var body = begin_cell()
@@ -309,7 +355,7 @@
         );
         return ();
     }
-    
+
     ;; handle governance message from owner to change pool parameters
     ;; contract upgrade
     if (equal_slices(sender_address, storage::owner)) {

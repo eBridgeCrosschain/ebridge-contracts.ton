@@ -145,43 +145,28 @@
         throw(SWAP_ID_REF_IS_NULL);
     }
     (int receipt_index, int key_hash, int receipt_amount, int leaf_hash, slice receipt_target_address, int timestamp) = decode_message_and_verification(message);
-
-    (slice jetton_bridge_pool_address, int found_pool) = dict_get?(storage::bridge_pool_address_dic, KEY_LENGTH, jetton_address);
-    if (~ found_pool) {
-        resend_receipt_info(message_id, TENMINUTESFORSECONDS * 2);
-        return ();
-    }
     if (timestamp + EXPIRE_TIME < now()) {
         ;; expired bridge message.
         throw(EXPIRED_BRIDGE_MESSAGE);
     }
-    int success = record_receipt_buckets(timestamp,leaf_hash);
-    if(~ success){
-        ;; exist leaf hash;
-        throw(ALREADY_RECORD);
-    }
-    save_storage();
-    cell payload = begin_cell()
-        .store_uint(release, 32)
-        .store_int(message_id, 128)
+    cell release_info = begin_cell()
         .store_ref(swap_id_ref)
         .store_ref(begin_cell()
-            .store_ref(
-                begin_cell()
                 .store_uint(key_hash, 256)
                 .store_uint(receipt_index, 256)
                 .end_cell())
-            .store_uint(leaf_hash, 256)
-            .store_uint(timestamp, 64)
-            .store_slice(receipt_target_address)
-            .end_cell())
+        .store_slice(receipt_target_address)
         .store_coins(receipt_amount)
         .end_cell();
-    int fee = 0;
-    if(equal_slices(jetton_address, HOLE_ADDRESS)){
-        fee = calculate_release_native_fee();
-    } else {
-        fee = calculate_release_jetton_fee();
-    }
-    send_simple_message(fee, jetton_bridge_pool_address, payload, SEND_MODE_PAY_FEES_SEPARETELY | SEND_MODE_BOUNCE_TRANSACTION);
+    cell info = begin_cell()
+        .store_uint(record_receipt,32)
+        .store_int(message_id, 128)
+        .store_slice(jetton_address)
+        .store_ref(begin_cell()
+            .store_uint(timestamp, 64)
+            .store_uint(leaf_hash, 256)
+            .end_cell())
+        .store_ref(release_info)
+        .end_cell();
+    send_simple_message(ONE_TON, my_address(), info, SEND_MODE_PAY_FEES_SEPARETELY | SEND_MODE_BOUNCE_TRANSACTION);
 }
