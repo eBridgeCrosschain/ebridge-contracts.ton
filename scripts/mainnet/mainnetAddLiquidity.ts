@@ -11,8 +11,8 @@ import {BridgePoolLiquidityAccount} from "../../wrappers/BridgePoolLiquidityAcco
 import {JettonMinter} from "../../wrappers/JettonMinter";
 
 
-const bridgeAddress = Address.parseFriendly("");
-const bridgePoolAddress = Address.parseFriendly("");
+const bridgeAddress = Address.parseFriendly("EQBnIw0A17M18zeEHEekgpL32e6yu9cx57PnC990pByv2qJN");
+const bridgePoolAddress = Address.parseFriendly("EQBfBX543e7-MXC9iYoq1td_DsMufSqbfHN5L-biMTJqwf-e");
 const usdtAddress = Address.parseFriendly("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs");
 
 export async function run(provider: NetworkProvider, args: string[]) {
